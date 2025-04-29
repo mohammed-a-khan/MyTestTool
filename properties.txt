@@ -1,0 +1,189 @@
+# backend/src/main/resources/application.properties
+# Server configuration
+server.port=8080
+server.servlet.context-path=/api
+
+# Application information
+spring.application.name=CSTestForge
+application.version=1.0.0
+
+# File storage configuration
+application.storage.root-dir=./cstestforge-data
+application.storage.projects-dir=${application.storage.root-dir}/projects
+application.storage.recordings-dir=${application.storage.root-dir}/recordings
+application.storage.executions-dir=${application.storage.root-dir}/executions
+application.storage.temp-dir=${application.storage.root-dir}/temp
+application.storage.nlp-dir=${application.storage.root-dir}/nlp
+
+# Security configuration
+jwt.secret=cstestforge-secret-key-change-in-production-environment
+jwt.expiration=86400000
+jwt.header=Authorization
+jwt.prefix=Bearer 
+
+# Playwright configuration
+playwright.browser.executable-path=
+playwright.browser.download-if-missing=true
+playwright.browser.headless=false
+playwright.browser.timeout=30000
+
+# Websocket configuration
+spring.websocket.path=/ws
+
+# Logging configuration
+logging.level.root=INFO
+logging.level.com.cstestforge=DEBUG
+logging.file.name=${application.storage.root-dir}/logs/cstestforge.log
+logging.pattern.console=%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n
+logging.pattern.file=%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n
+
+# Jackson configuration
+spring.jackson.serialization.write-dates-as-timestamps=false
+spring.jackson.deserialization.fail-on-unknown-properties=false
+spring.jackson.default-property-inclusion=non_null
+
+# File upload configuration
+spring.servlet.multipart.max-file-size=100MB
+spring.servlet.multipart.max-request-size=100MB
+
+# Database testing configuration
+database.connections.timeout=30000
+database.query.timeout=30000
+
+# NLP configuration
+nlp.model.dir=${application.storage.nlp-dir}/models
+nlp.confidence.threshold=0.7
+nlp.extraction.aggressive=false
+
+# Self-healing configuration
+self-healing.max-attempts=3
+self-healing.similarity-threshold=0.8
+self-healing.auto-update=true
+
+# Frontend build directory
+frontend.build.dir=../frontend/build
+
+# CORS configuration
+spring.web.cors.allowed-origins=http://localhost:3000
+spring.web.cors.allowed-methods=GET,POST,PUT,DELETE,OPTIONS
+spring.web.cors.allowed-headers=*
+spring.web.cors.allow-credentials=true
+spring.web.cors.max-age=3600
+
+# Spring Security configuration
+spring.security.user.name=admin
+spring.security.user.password=admin
+spring.security.user.roles=ADMIN
+
+
+# frontend/package.json
+{
+  "name": "cstestforge-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.14.16",
+    "@mui/material": "^5.14.16",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.18.60",
+    "@types/react": "^18.2.33",
+    "@types/react-dom": "^18.2.14",
+    "axios": "^1.6.0",
+    "date-fns": "^2.30.0",
+    "lodash": "^4.17.21",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.18.0",
+    "react-scripts": "5.0.1",
+    "sockjs-client": "^1.6.1",
+    "stompjs": "^2.3.3",
+    "typescript": "^4.9.5",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "proxy": "http://localhost:8080/api"
+}
+
+
+# frontend/tsconfig.json
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "baseUrl": "src"
+  },
+  "include": [
+    "src"
+  ]
+}
+
+
+# frontend/.env
+REACT_APP_API_URL=http://localhost:8080/api
+REACT_APP_WS_URL=http://localhost:8080/ws
+REACT_APP_VERSION=1.0.0
+GENERATE_SOURCEMAP=false
+
+
+# frontend/build.bat
+@echo off
+echo Building frontend for CSTestForge...
+
+REM Install dependencies if node_modules doesn't exist
+if not exist node_modules (
+  echo Installing dependencies...
+  call npm install
+)
+
+REM Build the React application
+echo Building React application...
+call npm run build
+
+echo Frontend build completed successfully.
+echo The build files are located in the 'build' directory.
+echo These will be copied to the Spring Boot application when you run 'mvn clean package' in the backend directory.
