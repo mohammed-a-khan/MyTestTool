@@ -1,0 +1,4547 @@
+/**
+ * Base Repository Interface
+ * Defines common operations for all repositories
+ */
+package com.cstestforge.repository;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface FileSystemRepository<T> {
+    /**
+     * Save an entity to the filesystem
+     * @param entity Entity to save
+     * @return Saved entity
+     */
+    T save(T entity);
+    
+    /**
+     * Find an entity by its ID
+     * @param id Entity ID
+     * @return Optional containing the entity if found
+     */
+    Optional<T> findById(String id);
+    
+    /**
+     * Find all entities
+     * @return List of all entities
+     */
+    List<T> findAll();
+    
+    /**
+     * Delete an entity by its ID
+     * @param id Entity ID
+     */
+    void deleteById(String id);
+    
+    /**
+     * Check if an entity with the given ID exists
+     * @param id Entity ID
+     * @return true if entity exists, false otherwise
+     */
+    boolean existsById(String id);
+}
+
+/**
+ * Project Repository Interface
+ * Extends the base repository with project-specific operations
+ */
+package com.cstestforge.repository;
+
+import com.cstestforge.model.project.Project;
+
+public interface ProjectRepository extends FileSystemRepository<Project> {
+    /**
+     * Creates the necessary directory structure for a new project
+     * @param projectId Project ID
+     */
+    void createProjectDirectories(String projectId);
+    
+    /**
+     * Deletes all directories and files associated with a project
+     * @param projectId Project ID
+     */
+    void deleteProjectDirectories(String projectId);
+}
+
+/**
+ * Project Settings Repository Interface
+ */
+package com.cstestforge.repository;
+
+import com.cstestforge.model.project.ProjectSettings;
+import java.util.Optional;
+
+public interface ProjectSettingsRepository extends FileSystemRepository<ProjectSettings> {
+    /**
+     * Find project settings by project ID
+     * @param projectId Project ID
+     * @return Optional containing project settings if found
+     */
+    Optional<ProjectSettings> findByProjectId(String projectId);
+    
+    /**
+     * Delete project settings by project ID
+     * @param projectId Project ID
+     */
+    void deleteByProjectId(String projectId);
+    
+    /**
+     * Check if settings exist for a project
+     * @param projectId Project ID
+     * @return true if settings exist, false otherwise
+     */
+    boolean existsByProjectId(String projectId);
+}
+
+/**
+ * File System Project Repository Implementation
+ */
+package com.cstestforge.repository.impl;
+
+import com.cstestforge.exception.StorageException;
+import com.cstestforge.model.project.Project;
+import com.cstestforge.repository.ProjectRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+
+public class FileSystemProjectRepository implements ProjectRepository {
+
+    private final String basePath;
+    private final ObjectMapper objectMapper;
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+
+    /**
+     * Constructor
+     * @param basePath Base directory path for all project data
+     * @param objectMapper JSON object mapper
+     */
+    public FileSystemProjectRepository(String basePath, ObjectMapper objectMapper) {
+        this.basePath = basePath;
+        this.objectMapper = objectMapper;
+        
+        // Ensure the base directory exists
+        ensureDirectoryExists(this.basePath);
+        ensureDirectoryExists(this.basePath + "/projects");
+    }
+
+    @Override
+    public Project save(Project project) {
+        lock.writeLock().lock();
+        try {
+            // Assign ID if not present
+            if (project.getId() == null || project.getId().isEmpty()) {
+                project.setId(UUID.randomUUID().toString());
+            }
+            
+            // Create project directories if not exists
+            createProjectDirectories(project.getId());
+            
+            // Write project data to file
+            File file = new File(getProjectFilePath(project.getId()));
+            objectMapper.writeValue(file, project);
+            
+            return project;
+        } catch (IOException e) {
+            throw new StorageException("Failed to save project: " + e.getMessage(), e);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public Optional<Project> findById(String id) {
+        lock.readLock().lock();
+        try {
+            File file = new File(getProjectFilePath(id));
+            
+            if (!file.exists()) {
+                return Optional.empty();
+            }
+            
+            Project project = objectMapper.readValue(file, Project.class);
+            return Optional.of(project);
+        } catch (IOException e) {
+            throw new StorageException("Failed to read project: " + e.getMessage(), e);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public List<Project> findAll() {
+        lock.readLock().lock();
+        try {
+            File projectsDir = new File(basePath + "/projects");
+            File[] projectFiles = projectsDir.listFiles((dir, name) -> name.endsWith(".json"));
+            
+            if (projectFiles == null) {
+                return new ArrayList<>();
+            }
+            
+            List<Project> projects = new ArrayList<>();
+            for (File file : projectFiles) {
+                Project project = objectMapper.readValue(file, Project.class);
+                projects.add(project);
+            }
+            
+            return projects;
+        } catch (IOException e) {
+            throw new StorageException("Failed to list projects: " + e.getMessage(), e);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public void deleteById(String id) {
+        lock.writeLock().lock();
+        try {
+            File file = new File(getProjectFilePath(id));
+            
+            if (file.exists() && !file.delete()) {
+                throw new StorageException("Failed to delete project file: " + id);
+            }
+            
+            // Delete project directories and all contained files
+            deleteProjectDirectories(id);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public boolean existsById(String id) {
+        lock.readLock().lock();
+        try {
+            File file = new File(getProjectFilePath(id));
+            return file.exists();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public void createProjectDirectories(String projectId) {
+        String projectPath = basePath + "/projects/" + projectId;
+        
+        ensureDirectoryExists(projectPath);
+        ensureDirectoryExists(projectPath + "/testcases");
+        ensureDirectoryExists(projectPath + "/testcases/versions");
+        ensureDirectoryExists(projectPath + "/bdd");
+        ensureDirectoryExists(projectPath + "/testsuites");
+        ensureDirectoryExists(projectPath + "/datasources");
+        ensureDirectoryExists(projectPath + "/executions");
+        ensureDirectoryExists(projectPath + "/executions/screenshots");
+        ensureDirectoryExists(projectPath + "/executions/videos");
+        ensureDirectoryExists(projectPath + "/executions/logs");
+        ensureDirectoryExists(projectPath + "/database");
+        ensureDirectoryExists(projectPath + "/database/connections");
+        ensureDirectoryExists(projectPath + "/database/tests");
+        ensureDirectoryExists(projectPath + "/api");
+        ensureDirectoryExists(projectPath + "/api/tests");
+        ensureDirectoryExists(projectPath + "/nlp");
+        ensureDirectoryExists(projectPath + "/integrations");
+        ensureDirectoryExists(projectPath + "/integrations/git");
+        ensureDirectoryExists(projectPath + "/integrations/ado");
+    }
+
+    @Override
+    public void deleteProjectDirectories(String projectId) {
+        try {
+            Path projectPath = Paths.get(basePath + "/projects/" + projectId);
+            if (Files.exists(projectPath)) {
+                Files.walk(projectPath)
+                    .sorted((p1, p2) -> -p1.compareTo(p2)) // Reverse order to delete files before directories
+                    .forEach(path -> {
+                        try {
+                            Files.delete(path);
+                        } catch (IOException e) {
+                            throw new StorageException("Failed to delete path: " + path, e);
+                        }
+                    });
+            }
+        } catch (IOException e) {
+            throw new StorageException("Failed to delete project directories: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Get the file path for a project
+     * @param projectId Project ID
+     * @return File path
+     */
+    public String getProjectFilePath(String projectId) {
+        return basePath + "/projects/project-" + projectId + ".json";
+    }
+
+    /**
+     * Ensure a directory exists, creating it if necessary
+     * @param path Directory path
+     */
+    public void ensureDirectoryExists(String path) {
+        File dir = new File(path);
+        if (!dir.exists() && !dir.mkdirs()) {
+            throw new StorageException("Failed to create directory: " + path);
+        }
+    }
+}
+
+/**
+ * File System Project Settings Repository Implementation
+ */
+package com.cstestforge.repository.impl;
+
+import com.cstestforge.exception.StorageException;
+import com.cstestforge.model.project.ProjectSettings;
+import com.cstestforge.repository.ProjectSettingsRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+public class FileSystemProjectSettingsRepository implements ProjectSettingsRepository {
+
+    private final String basePath;
+    private final ObjectMapper objectMapper;
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+
+    /**
+     * Constructor
+     * @param basePath Base directory path for all project data
+     * @param objectMapper JSON object mapper
+     */
+    public FileSystemProjectSettingsRepository(String basePath, ObjectMapper objectMapper) {
+        this.basePath = basePath;
+        this.objectMapper = objectMapper;
+    }
+
+    @Override
+    public ProjectSettings save(ProjectSettings settings) {
+        lock.writeLock().lock();
+        try {
+            String filePath = getSettingsFilePath(settings.getProjectId());
+            File file = new File(filePath);
+            File parentDir = file.getParentFile();
+            
+            if (!parentDir.exists() && !parentDir.mkdirs()) {
+                throw new StorageException("Failed to create directory: " + parentDir.getPath());
+            }
+            
+            objectMapper.writeValue(file, settings);
+            return settings;
+        } catch (IOException e) {
+            throw new StorageException("Failed to save project settings: " + e.getMessage(), e);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public Optional<ProjectSettings> findById(String id) {
+        // For ProjectSettings, the ID is not used directly
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<ProjectSettings> findByProjectId(String projectId) {
+        lock.readLock().lock();
+        try {
+            File file = new File(getSettingsFilePath(projectId));
+            
+            if (!file.exists()) {
+                return Optional.empty();
+            }
+            
+            ProjectSettings settings = objectMapper.readValue(file, ProjectSettings.class);
+            return Optional.of(settings);
+        } catch (IOException e) {
+            throw new StorageException("Failed to read project settings: " + e.getMessage(), e);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public List<ProjectSettings> findAll() {
+        throw new UnsupportedOperationException("Finding all project settings is not supported");
+    }
+
+    @Override
+    public void deleteById(String id) {
+        // For ProjectSettings, the ID is not used directly
+    }
+
+    @Override
+    public void deleteByProjectId(String projectId) {
+        lock.writeLock().lock();
+        try {
+            File file = new File(getSettingsFilePath(projectId));
+            
+            if (file.exists() && !file.delete()) {
+                throw new StorageException("Failed to delete project settings file for project: " + projectId);
+            }
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public boolean existsById(String id) {
+        // For ProjectSettings, the ID is not used directly
+        return false;
+    }
+
+    @Override
+    public boolean existsByProjectId(String projectId) {
+        lock.readLock().lock();
+        try {
+            File file = new File(getSettingsFilePath(projectId));
+            return file.exists();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    /**
+     * Get the file path for project settings
+     * @param projectId Project ID
+     * @return File path
+     */
+    public String getSettingsFilePath(String projectId) {
+        return basePath + "/projects/" + projectId + "/settings.json";
+    }
+}
+
+/**
+ * Project Model
+ */
+package com.cstestforge.model.project;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+public class Project {
+    private String id;
+    private String name;
+    private String description;
+    private String createdBy;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private Map<String, String> tags;
+
+    /**
+     * Default constructor
+     */
+    public Project() {
+        this.tags = new HashMap<>();
+    }
+
+    /**
+     * Constructor with required fields
+     * @param name Project name
+     * @param description Project description
+     * @param createdBy User who created the project
+     */
+    public Project(String name, String description, String createdBy) {
+        this.name = name;
+        this.description = description;
+        this.createdBy = createdBy;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+        this.tags = new HashMap<>();
+    }
+
+    /**
+     * Updates the timestamp to the current time
+     */
+    public void updateTimestamp() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // Getters and Setters
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public Map<String, String> getTags() {
+        return tags;
+    }
+
+    public void setTags(Map<String, String> tags) {
+        this.tags = tags;
+    }
+}
+
+/**
+ * Project Settings Model
+ */
+package com.cstestforge.model.project;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class ProjectSettings {
+    private String projectId;
+    private String defaultBrowser;
+    private boolean headlessMode;
+    private int defaultTimeout;
+    private boolean captureScreenshots;
+    private boolean captureVideos;
+    private String defaultEnvironment;
+    private Map<String, String> customSettings;
+    private ParallelExecutionSettings parallelExecutionSettings;
+    private BDDSettings bddSettings;
+
+    /**
+     * Default constructor
+     */
+    public ProjectSettings() {
+        this.customSettings = new HashMap<>();
+        this.parallelExecutionSettings = new ParallelExecutionSettings();
+        this.bddSettings = new BDDSettings();
+    }
+
+    /**
+     * Constructor with required fields
+     * @param projectId Project ID
+     */
+    public ProjectSettings(String projectId) {
+        this.projectId = projectId;
+        this.defaultBrowser = "chrome";
+        this.headlessMode = false;
+        this.defaultTimeout = 30000;
+        this.captureScreenshots = true;
+        this.captureVideos = false;
+        this.defaultEnvironment = "default";
+        this.customSettings = new HashMap<>();
+        this.parallelExecutionSettings = new ParallelExecutionSettings();
+        this.bddSettings = new BDDSettings();
+    }
+
+    /**
+     * Adds a custom setting
+     * @param key Setting key
+     * @param value Setting value
+     */
+    public void addCustomSetting(String key, String value) {
+        this.customSettings.put(key, value);
+    }
+
+    /**
+     * Gets a custom setting value
+     * @param key Setting key
+     * @return Setting value
+     */
+    public String getCustomSetting(String key) {
+        return this.customSettings.get(key);
+    }
+
+    // Getters and Setters
+
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
+    }
+
+    public String getDefaultBrowser() {
+        return defaultBrowser;
+    }
+
+    public void setDefaultBrowser(String defaultBrowser) {
+        this.defaultBrowser = defaultBrowser;
+    }
+
+    public boolean isHeadlessMode() {
+        return headlessMode;
+    }
+
+    public void setHeadlessMode(boolean headlessMode) {
+        this.headlessMode = headlessMode;
+    }
+
+    public int getDefaultTimeout() {
+        return defaultTimeout;
+    }
+
+    public void setDefaultTimeout(int defaultTimeout) {
+        this.defaultTimeout = defaultTimeout;
+    }
+
+    public boolean isCaptureScreenshots() {
+        return captureScreenshots;
+    }
+
+    public void setCaptureScreenshots(boolean captureScreenshots) {
+        this.captureScreenshots = captureScreenshots;
+    }
+
+    public boolean isCaptureVideos() {
+        return captureVideos;
+    }
+
+    public void setCaptureVideos(boolean captureVideos) {
+        this.captureVideos = captureVideos;
+    }
+
+    public String getDefaultEnvironment() {
+        return defaultEnvironment;
+    }
+
+    public void setDefaultEnvironment(String defaultEnvironment) {
+        this.defaultEnvironment = defaultEnvironment;
+    }
+
+    public Map<String, String> getCustomSettings() {
+        return customSettings;
+    }
+
+    public void setCustomSettings(Map<String, String> customSettings) {
+        this.customSettings = customSettings;
+    }
+
+    public ParallelExecutionSettings getParallelExecutionSettings() {
+        return parallelExecutionSettings;
+    }
+
+    public void setParallelExecutionSettings(ParallelExecutionSettings parallelExecutionSettings) {
+        this.parallelExecutionSettings = parallelExecutionSettings;
+    }
+
+    public BDDSettings getBddSettings() {
+        return bddSettings;
+    }
+
+    public void setBddSettings(BDDSettings bddSettings) {
+        this.bddSettings = bddSettings;
+    }
+}
+
+/**
+ * Parallel Execution Settings Model
+ */
+package com.cstestforge.model.project;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class ParallelExecutionSettings {
+    private boolean enabled;
+    private int maxWorkers;
+    private String mode;
+    private boolean isolatedContexts;
+    private int retryLimit;
+    private double timeoutMultiplier;
+    private boolean shardTests;
+    private boolean balanceByDuration;
+    private Map<String, String> workerOptions;
+
+    /**
+     * Default constructor
+     */
+    public ParallelExecutionSettings() {
+        this.enabled = false;
+        this.maxWorkers = 4;
+        this.mode = "process";
+        this.isolatedContexts = true;
+        this.retryLimit = 3;
+        this.timeoutMultiplier = 1.5;
+        this.shardTests = true;
+        this.balanceByDuration = true;
+        this.workerOptions = new HashMap<>();
+    }
+
+    // Getters and Setters
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public int getMaxWorkers() {
+        return maxWorkers;
+    }
+
+    public void setMaxWorkers(int maxWorkers) {
+        this.maxWorkers = maxWorkers;
+    }
+
+    public String getMode() {
+        return mode;
+    }
+
+    public void setMode(String mode) {
+        this.mode = mode;
+    }
+
+    public boolean isIsolatedContexts() {
+        return isolatedContexts;
+    }
+
+    public void setIsolatedContexts(boolean isolatedContexts) {
+        this.isolatedContexts = isolatedContexts;
+    }
+
+    public int getRetryLimit() {
+        return retryLimit;
+    }
+
+    public void setRetryLimit(int retryLimit) {
+        this.retryLimit = retryLimit;
+    }
+
+    public double getTimeoutMultiplier() {
+        return timeoutMultiplier;
+    }
+
+    public void setTimeoutMultiplier(double timeoutMultiplier) {
+        this.timeoutMultiplier = timeoutMultiplier;
+    }
+
+    public boolean isShardTests() {
+        return shardTests;
+    }
+
+    public void setShardTests(boolean shardTests) {
+        this.shardTests = shardTests;
+    }
+
+    public boolean isBalanceByDuration() {
+        return balanceByDuration;
+    }
+
+    public void setBalanceByDuration(boolean balanceByDuration) {
+        this.balanceByDuration = balanceByDuration;
+    }
+
+    public Map<String, String> getWorkerOptions() {
+        return workerOptions;
+    }
+
+    public void setWorkerOptions(Map<String, String> workerOptions) {
+        this.workerOptions = workerOptions;
+    }
+
+    public boolean isEnabledSpecified() {
+        // Used by settings resolver to know if this value was specified
+        return true;
+    }
+
+    public boolean isIsolatedContextsSpecified() {
+        // Used by settings resolver to know if this value was specified
+        return true;
+    }
+
+    public boolean isShardTestsSpecified() {
+        // Used by settings resolver to know if this value was specified
+        return true;
+    }
+
+    public boolean isBalanceByDurationSpecified() {
+        // Used by settings resolver to know if this value was specified
+        return true;
+    }
+}
+
+/**
+ * BDD Settings Model
+ */
+package com.cstestforge.model.project;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class BDDSettings {
+    private boolean enabled;
+    private String defaultLanguage;
+    private List<String> additionalLanguages;
+    private boolean strictMode;
+    private boolean autoGenerateSteps;
+
+    /**
+     * Default constructor
+     */
+    public BDDSettings() {
+        this.enabled = false;
+        this.defaultLanguage = "en";
+        this.additionalLanguages = new ArrayList<>();
+        this.strictMode = true;
+        this.autoGenerateSteps = false;
+    }
+
+    // Getters and Setters
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public String getDefaultLanguage() {
+        return defaultLanguage;
+    }
+
+    public void setDefaultLanguage(String defaultLanguage) {
+        this.defaultLanguage = defaultLanguage;
+    }
+
+    public List<String> getAdditionalLanguages() {
+        return additionalLanguages;
+    }
+
+    public void setAdditionalLanguages(List<String> additionalLanguages) {
+        this.additionalLanguages = additionalLanguages;
+    }
+
+    public boolean isStrictMode() {
+        return strictMode;
+    }
+
+    public void setStrictMode(boolean strictMode) {
+        this.strictMode = strictMode;
+    }
+
+    public boolean isAutoGenerateSteps() {
+        return autoGenerateSteps;
+    }
+
+    public void setAutoGenerateSteps(boolean autoGenerateSteps) {
+        this.autoGenerateSteps = autoGenerateSteps;
+    }
+}
+
+/**
+ * Project Service Interface
+ */
+package com.cstestforge.service.project;
+
+import com.cstestforge.model.project.Project;
+import com.cstestforge.model.project.ProjectSettings;
+import java.util.List;
+
+public interface ProjectService {
+    /**
+     * Creates a new project
+     * @param project Project to create
+     * @return Created project
+     */
+    Project createProject(Project project);
+    
+    /**
+     * Gets a project by ID
+     * @param projectId Project ID
+     * @return Project
+     */
+    Project getProject(String projectId);
+    
+    /**
+     * Gets all projects
+     * @return List of all projects
+     */
+    List<Project> getAllProjects();
+    
+    /**
+     * Updates a project
+     * @param projectId Project ID
+     * @param project Updated project data
+     * @return Updated project
+     */
+    Project updateProject(String projectId, Project project);
+    
+    /**
+     * Deletes a project
+     * @param projectId Project ID
+     */
+    void deleteProject(String projectId);
+    
+    /**
+     * Gets project settings
+     * @param projectId Project ID
+     * @return Project settings
+     */
+    ProjectSettings getProjectSettings(String projectId);
+    
+    /**
+     * Updates project settings
+     * @param projectId Project ID
+     * @param settings Updated settings
+     * @return Updated settings
+     */
+    ProjectSettings updateProjectSettings(String projectId, ProjectSettings settings);
+}
+
+/**
+ * Project Service Implementation
+ */
+package com.cstestforge.service.impl.project;
+
+import com.cstestforge.exception.ResourceNotFoundException;
+import com.cstestforge.model.project.Project;
+import com.cstestforge.model.project.ProjectSettings;
+import com.cstestforge.repository.impl.FileSystemProjectRepository;
+import com.cstestforge.repository.impl.FileSystemProjectSettingsRepository;
+import com.cstestforge.service.project.ProjectService;
+
+import java.util.List;
+
+public class ProjectServiceImpl implements ProjectService {
+
+    private final FileSystemProjectRepository projectRepository;
+    private final FileSystemProjectSettingsRepository settingsRepository;
+
+    /**
+     * Constructor
+     * @param projectRepository Project repository
+     * @param settingsRepository Settings repository
+     */
+    public ProjectServiceImpl(
+            FileSystemProjectRepository projectRepository,
+            FileSystemProjectSettingsRepository settingsRepository) {
+        this.projectRepository = projectRepository;
+        this.settingsRepository = settingsRepository;
+    }
+
+    @Override
+    public Project createProject(Project project) {
+        // Create project
+        Project savedProject = projectRepository.save(project);
+        
+        // Create default settings
+        ProjectSettings settings = new ProjectSettings(savedProject.getId());
+        settingsRepository.save(settings);
+        
+        return savedProject;
+    }
+
+    @Override
+    public Project getProject(String projectId) {
+        return projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found: " + projectId));
+    }
+
+    @Override
+    public List<Project> getAllProjects() {
+        return projectRepository.findAll();
+    }
+
+    @Override
+    public Project updateProject(String projectId, Project project) {
+        // Check if project exists
+        if (!projectRepository.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found: " + projectId);
+        }
+        
+        // Update project
+        project.setId(projectId);
+        project.updateTimestamp();
+        return projectRepository.save(project);
+    }
+
+    @Override
+    public void deleteProject(String projectId) {
+        // Check if project exists
+        if (!projectRepository.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found: " + projectId);
+        }
+        
+        // Delete project settings
+        if (settingsRepository.existsByProjectId(projectId)) {
+            settingsRepository.deleteByProjectId(projectId);
+        }
+        
+        // Delete project
+        projectRepository.deleteById(projectId);
+    }
+
+    @Override
+    public ProjectSettings getProjectSettings(String projectId) {
+        // Check if project exists
+        if (!projectRepository.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found: " + projectId);
+        }
+        
+        // Get settings or create default if not found
+        return settingsRepository.findByProjectId(projectId)
+                .orElseGet(() -> {
+                    ProjectSettings settings = new ProjectSettings(projectId);
+                    return settingsRepository.save(settings);
+                });
+    }
+
+    @Override
+    public ProjectSettings updateProjectSettings(String projectId, ProjectSettings settings) {
+        // Check if project exists
+        if (!projectRepository.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found: " + projectId);
+        }
+        
+        // Ensure projectId is set correctly
+        settings.setProjectId(projectId);
+        
+        // Save settings
+        return settingsRepository.save(settings);
+    }
+}
+
+/**
+ * Storage Exception
+ */
+package com.cstestforge.exception;
+
+public class StorageException extends RuntimeException {
+    
+    public StorageException(String message) {
+        super(message);
+    }
+    
+    public StorageException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}
+
+/**
+ * Resource Not Found Exception
+ */
+package com.cstestforge.exception;
+
+public class ResourceNotFoundException extends RuntimeException {
+    
+    public ResourceNotFoundException(String message) {
+        super(message);
+    }
+    
+    public ResourceNotFoundException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}
+
+/**
+ * Project Controller
+ */
+package com.cstestforge.controller;
+
+import com.cstestforge.model.project.Project;
+import com.cstestforge.model.project.ProjectSettings;
+import com.cstestforge.service.project.ProjectService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/projects")
+public class ProjectController {
+
+    private final ProjectService projectService;
+
+    /**
+     * Constructor
+     * @param projectService Project service
+     */
+    public ProjectController(ProjectService projectService) {
+        this.projectService = projectService;
+    }
+
+    /**
+     * Create a new project
+     * @param project Project to create
+     * @return Created project
+     */
+    @PostMapping
+    public ResponseEntity<Project> createProject(@Valid @RequestBody Project project) {
+        Project createdProject = projectService.createProject(project);
+        return new ResponseEntity<>(createdProject, HttpStatus.CREATED);
+    }
+
+    /**
+     * Get all projects
+     * @return List of all projects
+     */
+    @GetMapping
+    public ResponseEntity<List<Project>> getAllProjects() {
+        List<Project> projects = projectService.getAllProjects();
+        return new ResponseEntity<>(projects, HttpStatus.OK);
+    }
+
+    /**
+     * Get a project by ID
+     * @param projectId Project ID
+     * @return Project
+     */
+    @GetMapping("/{projectId}")
+    public ResponseEntity<Project> getProject(@PathVariable String projectId) {
+        Project project = projectService.getProject(projectId);
+        return new ResponseEntity<>(project, HttpStatus.OK);
+    }
+
+    /**
+     * Update a project
+     * @param projectId Project ID
+     * @param project Updated project data
+     * @return Updated project
+     */
+    @PutMapping("/{projectId}")
+    public ResponseEntity<Project> updateProject(
+            @PathVariable String projectId,
+            @Valid @RequestBody Project project) {
+        Project updatedProject = projectService.updateProject(projectId, project);
+        return new ResponseEntity<>(updatedProject, HttpStatus.OK);
+    }
+
+    /**
+     * Delete a project
+     * @param projectId Project ID
+     * @return No content
+     */
+    @DeleteMapping("/{projectId}")
+    public ResponseEntity<Void> deleteProject(@PathVariable String projectId) {
+        projectService.deleteProject(projectId);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * Get project settings
+     * @param projectId Project ID
+     * @return Project settings
+     */
+    @GetMapping("/{projectId}/settings")
+    public ResponseEntity<ProjectSettings> getProjectSettings(@PathVariable String projectId) {
+        ProjectSettings settings = projectService.getProjectSettings(projectId);
+        return new ResponseEntity<>(settings, HttpStatus.OK);
+    }
+
+    /**
+     * Update project settings
+     * @param projectId Project ID
+     * @param settings Updated settings
+     * @return Updated settings
+     */
+    @PutMapping("/{projectId}/settings")
+    public ResponseEntity<ProjectSettings> updateProjectSettings(
+            @PathVariable String projectId,
+            @Valid @RequestBody ProjectSettings settings) {
+        ProjectSettings updatedSettings = projectService.updateProjectSettings(projectId, settings);
+        return new ResponseEntity<>(updatedSettings, HttpStatus.OK);
+    }
+}
+
+/**
+ * TestStep Model
+ */
+package com.cstestforge.model.testcase;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class TestStep {
+    private String id;
+    private String action;
+    private String selector;
+    private String selectorType;
+    private Map<String, String> parameters;
+    private String description;
+    private boolean isScreenshotRequired;
+    private boolean isOptional;
+    private boolean isConditional;
+    private String conditionalExpression;
+    private int sequence;
+
+    /**
+     * Default constructor
+     */
+    public TestStep() {
+        this.parameters = new HashMap<>();
+        this.isScreenshotRequired = false;
+        this.isOptional = false;
+        this.isConditional = false;
+    }
+
+    /**
+     * Constructor with required fields
+     * @param action Action type (click, type, etc.)
+     * @param selector Element selector
+     * @param selectorType Selector type (css, xpath, etc.)
+     * @param sequence Order in the test case
+     */
+    public TestStep(String action, String selector, String selectorType, int sequence) {
+        this.action = action;
+        this.selector = selector;
+        this.selectorType = selectorType;
+        this.sequence = sequence;
+        this.parameters = new HashMap<>();
+        this.isScreenshotRequired = false;
+        this.isOptional = false;
+        this.isConditional = false;
+    }
+
+    // Getters and Setters
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getAction() {
+        return action;
+    }
+
+    public void setAction(String action) {
+        this.action = action;
+    }
+
+    public String getSelector() {
+        return selector;
+    }
+
+    public void setSelector(String selector) {
+        this.selector = selector;
+    }
+
+    public String getSelectorType() {
+        return selectorType;
+    }
+
+    public void setSelectorType(String selectorType) {
+        this.selectorType = selectorType;
+    }
+
+    public Map<String, String> getParameters() {
+        return parameters;
+    }
+
+    public void setParameters(Map<String, String> parameters) {
+        this.parameters = parameters;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public boolean isScreenshotRequired() {
+        return isScreenshotRequired;
+    }
+
+    public void setScreenshotRequired(boolean screenshotRequired) {
+        isScreenshotRequired = screenshotRequired;
+    }
+
+    public boolean isOptional() {
+        return isOptional;
+    }
+
+    public void setOptional(boolean optional) {
+        isOptional = optional;
+    }
+
+    public boolean isConditional() {
+        return isConditional;
+    }
+
+    public void setConditional(boolean conditional) {
+        isConditional = conditional;
+    }
+
+    public String getConditionalExpression() {
+        return conditionalExpression;
+    }
+
+    public void setConditionalExpression(String conditionalExpression) {
+        this.conditionalExpression = conditionalExpression;
+    }
+
+    public int getSequence() {
+        return sequence;
+    }
+
+    public void setSequence(int sequence) {
+        this.sequence = sequence;
+    }
+}
+
+/**
+ * TestCase Model
+ */
+package com.cstestforge.model.testcase;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+public class TestCase {
+    private String id;
+    private String projectId;
+    private String name;
+    private String description;
+    private String createdBy;
+    private String browser;
+    private boolean headless;
+    private int defaultTimeout;
+    private List<TestStep> steps;
+    private Map<String, String> tags;
+    private boolean isActive;
+    private String version;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    /**
+     * Default constructor
+     */
+    public TestCase() {
+        this.steps = new ArrayList<>();
+        this.tags = new HashMap<>();
+        this.isActive = true;
+        this.version = "1.0";
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Constructor with required fields
+     * @param projectId Project ID
+     * @param name Test case name
+     * @param description Test case description
+     * @param createdBy Creator
+     */
+    public TestCase(String projectId, String name, String description, String createdBy) {
+        this.id = UUID.randomUUID().toString();
+        this.projectId = projectId;
+        this.name = name;
+        this.description = description;
+        this.createdBy = createdBy;
+        this.browser = "chrome";
+        this.headless = false;
+        this.defaultTimeout = 30000;
+        this.steps = new ArrayList<>();
+        this.tags = new HashMap<>();
+        this.isActive = true;
+        this.version = "1.0";
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Adds a step to the test case
+     * @param step Step to add
+     * @return This test case for chaining
+     */
+    public TestCase addStep(TestStep step) {
+        // Ensure step has ID
+        if (step.getId() == null || step.getId().isEmpty()) {
+            step.setId(UUID.randomUUID().toString());
+        }
+        
+        // Set sequence if not set
+        if (step.getSequence() <= 0) {
+            step.setSequence(this.steps.size() + 1);
+        }
+        
+        this.steps.add(step);
+        return this;
+    }
+
+    /**
+     * Updates the timestamp to the current time
+     */
+    public void updateTimestamp() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // Getters and Setters
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public String getBrowser() {
+        return browser;
+    }
+
+    public void setBrowser(String browser) {
+        this.browser = browser;
+    }
+
+    public boolean isHeadless() {
+        return headless;
+    }
+
+    public void setHeadless(boolean headless) {
+        this.headless = headless;
+    }
+
+    public int getDefaultTimeout() {
+        return defaultTimeout;
+    }
+
+    public void setDefaultTimeout(int defaultTimeout) {
+        this.defaultTimeout = defaultTimeout;
+    }
+
+    public List<TestStep> getSteps() {
+        return steps;
+    }
+
+    public void setSteps(List<TestStep> steps) {
+        this.steps = steps;
+    }
+
+    public Map<String, String> getTags() {
+        return tags;
+    }
+
+    public void setTags(Map<String, String> tags) {
+        this.tags = tags;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+}
+
+/**
+ * TestCaseVersion Model
+ */
+package com.cstestforge.model.testcase;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+public class TestCaseVersion {
+    private String id;
+    private String testCaseId;
+    private String projectId;
+    private String version;
+    private String changelog;
+    private String createdBy;
+    private TestCase snapshot;
+    private LocalDateTime createdAt;
+
+    /**
+     * Default constructor
+     */
+    public TestCaseVersion() {
+        this.createdAt = LocalDateTime.now();
+    }
+
+    /**
+     * Constructor with required fields
+     * @param testCaseId Test case ID
+     * @param projectId Project ID
+     * @param version Version number
+     * @param changelog Description of changes
+     * @param createdBy User who created version
+     * @param snapshot Complete test case snapshot
+     */
+    public TestCaseVersion(String testCaseId, String projectId, String version, 
+                          String changelog, String createdBy, TestCase snapshot) {
+        this.id = UUID.randomUUID().toString();
+        this.testCaseId = testCaseId;
+        this.projectId = projectId;
+        this.version = version;
+        this.changelog = changelog;
+        this.createdBy = createdBy;
+        this.snapshot = snapshot;
+        this.createdAt = LocalDateTime.now();
+    }
+
+    // Getters and Setters
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getTestCaseId() {
+        return testCaseId;
+    }
+
+    public void setTestCaseId(String testCaseId) {
+        this.testCaseId = testCaseId;
+    }
+
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
+
+    public String getChangelog() {
+        return changelog;
+    }
+
+    public void setChangelog(String changelog) {
+        this.changelog = changelog;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public TestCase getSnapshot() {
+        return snapshot;
+    }
+
+    public void setSnapshot(TestCase snapshot) {
+        this.snapshot = snapshot;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+}
+
+/**
+ * Test Case Repository Implementation
+ */
+package com.cstestforge.repository.impl;
+
+import com.cstestforge.exception.StorageException;
+import com.cstestforge.model.testcase.TestCase;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+public class FileSystemTestCaseRepository {
+    
+    private final String basePath;
+    private final ObjectMapper objectMapper;
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+
+    /**
+     * Constructor
+     * @param basePath Base directory path for all project data
+     * @param objectMapper JSON object mapper
+     */
+    public FileSystemTestCaseRepository(String basePath, ObjectMapper objectMapper) {
+        this.basePath = basePath;
+        this.objectMapper = objectMapper;
+    }
+
+    /**
+     * Save a test case
+     * @param testCase Test case to save
+     * @return Saved test case
+     */
+    public TestCase save(TestCase testCase) {
+        lock.writeLock().lock();
+        try {
+            // Assign ID if not present
+            if (testCase.getId() == null || testCase.getId().isEmpty()) {
+                testCase.setId(UUID.randomUUID().toString());
+            }
+            
+            // Ensure project directory exists
+            ensureTestCaseDirectoryExists(testCase.getProjectId());
+            
+            // Write test case to file
+            File file = new File(getTestCaseFilePath(testCase.getProjectId(), testCase.getId()));
+            objectMapper.writeValue(file, testCase);
+            
+            return testCase;
+        } catch (IOException e) {
+            throw new StorageException("Failed to save test case: " + e.getMessage(), e);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    /**
+     * Find a test case by ID
+     * @param projectId Project ID
+     * @param id Test case ID
+     * @return Optional containing the test case if found
+     */
+    public Optional<TestCase> findById(String projectId, String id) {
+        lock.readLock().lock();
+        try {
+            File file = new File(getTestCaseFilePath(projectId, id));
+            
+            if (!file.exists()) {
+                return Optional.empty();
+            }
+            
+            TestCase testCase = objectMapper.readValue(file, TestCase.class);
+            return Optional.of(testCase);
+        } catch (IOException e) {
+            throw new StorageException("Failed to read test case: " + e.getMessage(), e);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    /**
+     * Find all test cases in a project
+     * @param projectId Project ID
+     * @return List of test cases
+     */
+    public List<TestCase> findAllByProjectId(String projectId) {
+        lock.readLock().lock();
+        try {
+            File testCasesDir = new File(getTestCasesDirectory(projectId));
+            
+            if (!testCasesDir.exists()) {
+                return new ArrayList<>();
+            }
+            
+            File[] testCaseFiles = testCasesDir.listFiles((dir, name) -> name.endsWith(".json"));
+            
+            if (testCaseFiles == null) {
+                return new ArrayList<>();
+            }
+            
+            List<TestCase> testCases = new ArrayList<>();
+            for (File file : testCaseFiles) {
+                TestCase testCase = objectMapper.readValue(file, TestCase.class);
+                testCases.add(testCase);
+            }
+            
+            return testCases;
+        } catch (IOException e) {
+            throw new StorageException("Failed to list test cases: " + e.getMessage(), e);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    /**
+     * Delete a test case by ID
+     * @param projectId Project ID
+     * @param id Test case ID
+     */
+    public void deleteById(String projectId, String id) {
+        lock.writeLock().lock();
+        try {
+            File file = new File(getTestCaseFilePath(projectId, id));
+            
+            if (file.exists() && !file.delete()) {
+                throw new StorageException("Failed to delete test case file: " + id);
+            }
+            
+            // Delete version directory if exists
+            File versionDir = new File(getTestCaseVersionsDirectory(projectId, id));
+            if (versionDir.exists()) {
+                File[] versionFiles = versionDir.listFiles();
+                if (versionFiles != null) {
+                    for (File versionFile : versionFiles) {
+                        if (!versionFile.delete()) {
+                            throw new StorageException("Failed to delete test case version file: " + versionFile.getName());
+                        }
+                    }
+                }
+                if (!versionDir.delete()) {
+                    throw new StorageException("Failed to delete test case version directory: " + id);
+                }
+            }
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    /**
+     * Check if a test case exists
+     * @param projectId Project ID
+     * @param id Test case ID
+     * @return true if test case exists, false otherwise
+     */
+    public boolean existsById(String projectId, String id) {
+        lock.readLock().lock();
+        try {
+            File file = new File(getTestCaseFilePath(projectId, id));
+            return file.exists();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    /**
+     * Get the directory path for test cases
+     * @param projectId Project ID
+     * @return Directory path
+     */
+    public String getTestCasesDirectory(String projectId) {
+        return basePath + "/projects/" + projectId + "/testcases";
+    }
+
+    /**
+     * Get the file path for a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @return File path
+     */
+    public String getTestCaseFilePath(String projectId, String testCaseId) {
+        return getTestCasesDirectory(projectId) + "/" + testCaseId + ".json";
+    }
+
+    /**
+     * Get the directory path for test case versions
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @return Directory path
+     */
+    public String getTestCaseVersionsDirectory(String projectId, String testCaseId) {
+        return getTestCasesDirectory(projectId) + "/" + testCaseId + "/versions";
+    }
+
+    /**
+     * Ensure the test case directory exists
+     * @param projectId Project ID
+     */
+    private void ensureTestCaseDirectoryExists(String projectId) {
+        File dir = new File(getTestCasesDirectory(projectId));
+        if (!dir.exists() && !dir.mkdirs()) {
+            throw new StorageException("Failed to create directory: " + dir.getPath());
+        }
+    }
+}
+
+/**
+ * Test Case Version Repository Implementation
+ */
+package com.cstestforge.repository.impl;
+
+import com.cstestforge.exception.StorageException;
+import com.cstestforge.model.testcase.TestCase;
+import com.cstestforge.model.testcase.TestCaseVersion;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class FileSystemTestCaseVersionRepository {
+    
+    private final String basePath;
+    private final ObjectMapper objectMapper;
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+
+    /**
+     * Constructor
+     * @param basePath Base directory path for all project data
+     * @param objectMapper JSON object mapper
+     */
+    public FileSystemTestCaseVersionRepository(String basePath, ObjectMapper objectMapper) {
+        this.basePath = basePath;
+        this.objectMapper = objectMapper;
+    }
+
+    /**
+     * Save a test case version
+     * @param version Test case version to save
+     * @return Saved test case version
+     */
+    public TestCaseVersion save(TestCaseVersion version) {
+        lock.writeLock().lock();
+        try {
+            // Assign ID if not present
+            if (version.getId() == null || version.getId().isEmpty()) {
+                version.setId(UUID.randomUUID().toString());
+            }
+            
+            // Ensure version directory exists
+            ensureVersionDirectoryExists(version.getProjectId(), version.getTestCaseId());
+            
+            // Write version to file
+            File file = new File(getVersionFilePath(version.getProjectId(), version.getTestCaseId(), version.getId()));
+            objectMapper.writeValue(file, version);
+            
+            return version;
+        } catch (IOException e) {
+            throw new StorageException("Failed to save test case version: " + e.getMessage(), e);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    /**
+     * Create a new version of a test case
+     * @param testCase Test case
+     * @param changelog Description of changes
+     * @param createdBy User who created the version
+     * @return Created test case version
+     */
+    public TestCaseVersion createVersion(TestCase testCase, String changelog, String createdBy) {
+        // Calculate next version number
+        String nextVersion = calculateNextVersion(testCase.getProjectId(), testCase.getId());
+        
+        // Create version
+        TestCaseVersion version = new TestCaseVersion(
+                testCase.getId(),
+                testCase.getProjectId(),
+                nextVersion,
+                changelog,
+                createdBy,
+                testCase
+        );
+        
+        // Save version
+        return save(version);
+    }
+
+    /**
+     * Find a test case version by ID
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @param versionId Version ID
+     * @return Optional containing the test case version if found
+     */
+    public Optional<TestCaseVersion> findById(String projectId, String testCaseId, String versionId) {
+        lock.readLock().lock();
+        try {
+            File file = new File(getVersionFilePath(projectId, testCaseId, versionId));
+            
+            if (!file.exists()) {
+                return Optional.empty();
+            }
+            
+            TestCaseVersion version = objectMapper.readValue(file, TestCaseVersion.class);
+            return Optional.of(version);
+        } catch (IOException e) {
+            throw new StorageException("Failed to read test case version: " + e.getMessage(), e);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    /**
+     * Find all versions of a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @return List of test case versions
+     */
+    public List<TestCaseVersion> findAllByTestCaseId(String projectId, String testCaseId) {
+        lock.readLock().lock();
+        try {
+            File versionsDir = new File(getVersionsDirectory(projectId, testCaseId));
+            
+            if (!versionsDir.exists()) {
+                return new ArrayList<>();
+            }
+            
+            File[] versionFiles = versionsDir.listFiles((dir, name) -> name.endsWith(".json"));
+            
+            if (versionFiles == null) {
+                return new ArrayList<>();
+            }
+            
+            List<TestCaseVersion> versions = new ArrayList<>();
+            for (File file : versionFiles) {
+                TestCaseVersion version = objectMapper.readValue(file, TestCaseVersion.class);
+                versions.add(version);
+            }
+            
+            // Sort by version number (newest first)
+            versions.sort((v1, v2) -> compareVersions(v2.getVersion(), v1.getVersion()));
+            
+            return versions;
+        } catch (IOException e) {
+            throw new StorageException("Failed to list test case versions: " + e.getMessage(), e);
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    /**
+     * Calculate the next version number for a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @return Next version number
+     */
+    public String calculateNextVersion(String projectId, String testCaseId) {
+        List<TestCaseVersion> versions = findAllByTestCaseId(projectId, testCaseId);
+        
+        if (versions.isEmpty()) {
+            return "1.0";
+        }
+        
+        // Find the highest version number
+        String highestVersion = versions.get(0).getVersion();
+        
+        // Parse version format (e.g., "1.0")
+        String[] parts = highestVersion.split("\\.");
+        if (parts.length != 2) {
+            return "1.0"; // Default if format is unexpected
+        }
+        
+        try {
+            int major = Integer.parseInt(parts[0]);
+            int minor = Integer.parseInt(parts[1]);
+            
+            // Increment minor version
+            minor++;
+            
+            // If minor version reaches 10, increment major version and reset minor
+            if (minor >= 10) {
+                major++;
+                minor = 0;
+            }
+            
+            return major + "." + minor;
+        } catch (NumberFormatException e) {
+            return "1.0"; // Default if parsing fails
+        }
+    }
+
+    /**
+     * Compare two version strings
+     * @param v1 First version
+     * @param v2 Second version
+     * @return Negative if v1 < v2, positive if v1 > v2, 0 if equal
+     */
+    private int compareVersions(String v1, String v2) {
+        String[] parts1 = v1.split("\\.");
+        String[] parts2 = v2.split("\\.");
+        
+        if (parts1.length != 2 || parts2.length != 2) {
+            return v1.compareTo(v2); // Fallback to string comparison
+        }
+        
+        try {
+            int major1 = Integer.parseInt(parts1[0]);
+            int minor1 = Integer.parseInt(parts1[1]);
+            int major2 = Integer.parseInt(parts2[0]);
+            int minor2 = Integer.parseInt(parts2[1]);
+            
+            if (major1 != major2) {
+                return major1 - major2;
+            } else {
+                return minor1 - minor2;
+            }
+        } catch (NumberFormatException e) {
+            return v1.compareTo(v2); // Fallback to string comparison
+        }
+    }
+
+    /**
+     * Get the directory path for versions
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @return Directory path
+     */
+    private String getVersionsDirectory(String projectId, String testCaseId) {
+        return basePath + "/projects/" + projectId + "/testcases/" + testCaseId + "/versions";
+    }
+
+    /**
+     * Get the file path for a version
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @param versionId Version ID
+     * @return File path
+     */
+    private String getVersionFilePath(String projectId, String testCaseId, String versionId) {
+        return getVersionsDirectory(projectId, testCaseId) + "/" + versionId + ".json";
+    }
+
+    /**
+     * Ensure the version directory exists
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     */
+    private void ensureVersionDirectoryExists(String projectId, String testCaseId) {
+        File dir = new File(getVersionsDirectory(projectId, testCaseId));
+        if (!dir.exists() && !dir.mkdirs()) {
+            throw new StorageException("Failed to create directory: " + dir.getPath());
+        }
+    }
+}
+
+/**
+ * Test Case Service Interface
+ */
+package com.cstestforge.service.testcase;
+
+import com.cstestforge.model.testcase.TestCase;
+import com.cstestforge.model.testcase.TestCaseVersion;
+import com.cstestforge.model.testcase.TestStep;
+
+import java.util.List;
+
+public interface TestCaseService {
+    /**
+     * Creates a new test case
+     * @param projectId Project ID
+     * @param testCase Test case to create
+     * @return Created test case
+     */
+    TestCase createTestCase(String projectId, TestCase testCase);
+    
+    /**
+     * Gets a test case by ID
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @return Test case
+     */
+    TestCase getTestCase(String projectId, String testCaseId);
+    
+    /**
+     * Gets all test cases in a project
+     * @param projectId Project ID
+     * @return List of test cases
+     */
+    List<TestCase> getProjectTestCases(String projectId);
+    
+    /**
+     * Updates a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @param testCase Updated test case data
+     * @param changelog Description of changes
+     * @return Updated test case
+     */
+    TestCase updateTestCase(String projectId, String testCaseId, TestCase testCase, String changelog);
+    
+    /**
+     * Deletes a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     */
+    void deleteTestCase(String projectId, String testCaseId);
+    
+    /**
+     * Adds a step to a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @param step Step to add
+     * @return Updated test case
+     */
+    TestCase addStep(String projectId, String testCaseId, TestStep step);
+    
+    /**
+     * Updates a step in a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @param stepId Step ID
+     * @param step Updated step data
+     * @return Updated test case
+     */
+    TestCase updateStep(String projectId, String testCaseId, String stepId, TestStep step);
+    
+    /**
+     * Deletes a step from a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @param stepId Step ID
+     * @return Updated test case
+     */
+    TestCase deleteStep(String projectId, String testCaseId, String stepId);
+    
+    /**
+     * Reorders steps in a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @param stepIds List of step IDs in the new order
+     * @return Updated test case
+     */
+    TestCase reorderSteps(String projectId, String testCaseId, List<String> stepIds);
+    
+    /**
+     * Gets all versions of a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @return List of test case versions
+     */
+    List<TestCaseVersion> getTestCaseVersions(String projectId, String testCaseId);
+    
+    /**
+     * Gets a specific version of a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @param versionId Version ID
+     * @return Test case version
+     */
+    TestCaseVersion getTestCaseVersion(String projectId, String testCaseId, String versionId);
+    
+    /**
+     * Reverts a test case to a previous version
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @param versionId Version ID
+     * @param comment Comment explaining the reversion
+     * @return Updated test case
+     */
+    TestCase revertToVersion(String projectId, String testCaseId, String versionId, String comment);
+}
+
+/**
+ * Test Case Service Implementation
+ */
+package com.cstestforge.service.impl.testcase;
+
+import com.cstestforge.exception.ResourceNotFoundException;
+import com.cstestforge.model.testcase.TestCase;
+import com.cstestforge.model.testcase.TestCaseVersion;
+import com.cstestforge.model.testcase.TestStep;
+import com.cstestforge.repository.impl.FileSystemProjectRepository;
+import com.cstestforge.repository.impl.FileSystemTestCaseRepository;
+import com.cstestforge.repository.impl.FileSystemTestCaseVersionRepository;
+import com.cstestforge.service.testcase.TestCaseService;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+public class TestCaseServiceImpl implements TestCaseService {
+
+    private final FileSystemProjectRepository projectRepository;
+    private final FileSystemTestCaseRepository testCaseRepository;
+    private final FileSystemTestCaseVersionRepository versionRepository;
+
+    /**
+     * Constructor
+     * @param projectRepository Project repository
+     * @param testCaseRepository Test case repository
+     * @param versionRepository Version repository
+     */
+    public TestCaseServiceImpl(
+            FileSystemProjectRepository projectRepository,
+            FileSystemTestCaseRepository testCaseRepository,
+            FileSystemTestCaseVersionRepository versionRepository) {
+        this.projectRepository = projectRepository;
+        this.testCaseRepository = testCaseRepository;
+        this.versionRepository = versionRepository;
+    }
+
+    @Override
+    public TestCase createTestCase(String projectId, TestCase testCase) {
+        // Check if project exists
+        if (!projectRepository.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found: " + projectId);
+        }
+        
+        // Set project ID
+        testCase.setProjectId(projectId);
+        
+        // Ensure each step has an ID
+        ensureStepsHaveIds(testCase);
+        
+        // Initialize timestamps if not set
+        if (testCase.getCreatedAt() == null) {
+            testCase.setCreatedAt(LocalDateTime.now());
+        }
+        if (testCase.getUpdatedAt() == null) {
+            testCase.setUpdatedAt(LocalDateTime.now());
+        }
+        
+        // Save test case
+        TestCase savedTestCase = testCaseRepository.save(testCase);
+        
+        // Create initial version
+        versionRepository.createVersion(savedTestCase, "Initial version", savedTestCase.getCreatedBy());
+        
+        return savedTestCase;
+    }
+
+    @Override
+    public TestCase getTestCase(String projectId, String testCaseId) {
+        return testCaseRepository.findById(projectId, testCaseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Test case not found: " + testCaseId));
+    }
+
+    @Override
+    public List<TestCase> getProjectTestCases(String projectId) {
+        // Check if project exists
+        if (!projectRepository.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found: " + projectId);
+        }
+        
+        return testCaseRepository.findAllByProjectId(projectId);
+    }
+
+    @Override
+    public TestCase updateTestCase(String projectId, String testCaseId, TestCase testCase, String changelog) {
+        // Check if test case exists
+        TestCase existingTestCase = getTestCase(projectId, testCaseId);
+        
+        // Update fields
+        testCase.setId(testCaseId);
+        testCase.setProjectId(projectId);
+        testCase.setCreatedAt(existingTestCase.getCreatedAt());
+        testCase.setCreatedBy(existingTestCase.getCreatedBy());
+        testCase.setUpdatedAt(LocalDateTime.now());
+        
+        // Ensure steps have IDs
+        ensureStepsHaveIds(testCase);
+        
+        // Save test case
+        TestCase updatedTestCase = testCaseRepository.save(testCase);
+        
+        // Create new version
+        versionRepository.createVersion(updatedTestCase, changelog, updatedTestCase.getCreatedBy());
+        
+        return updatedTestCase;
+    }
+
+    @Override
+    public void deleteTestCase(String projectId, String testCaseId) {
+        // Check if test case exists
+        if (!testCaseRepository.existsById(projectId, testCaseId)) {
+            throw new ResourceNotFoundException("Test case not found: " + testCaseId);
+        }
+        
+        // Delete test case
+        testCaseRepository.deleteById(projectId, testCaseId);
+    }
+
+    @Override
+    public TestCase addStep(String projectId, String testCaseId, TestStep step) {
+        // Get test case
+        TestCase testCase = getTestCase(projectId, testCaseId);
+        
+        // Assign ID if not present
+        if (step.getId() == null || step.getId().isEmpty()) {
+            step.setId(UUID.randomUUID().toString());
+        }
+        
+        // Set sequence if not set
+        if (step.getSequence() <= 0) {
+            step.setSequence(testCase.getSteps().size() + 1);
+        }
+        
+        // Add step
+        testCase.getSteps().add(step);
+        
+        // Update timestamp
+        testCase.setUpdatedAt(LocalDateTime.now());
+        
+        // Save test case
+        TestCase updatedTestCase = testCaseRepository.save(testCase);
+        
+        // Create new version
+        versionRepository.createVersion(updatedTestCase, "Added step: " + step.getDescription(), updatedTestCase.getCreatedBy());
+        
+        return updatedTestCase;
+    }
+
+    @Override
+    public TestCase updateStep(String projectId, String testCaseId, String stepId, TestStep step) {
+        // Get test case
+        TestCase testCase = getTestCase(projectId, testCaseId);
+        
+        // Find step
+        boolean found = false;
+        for (int i = 0; i < testCase.getSteps().size(); i++) {
+            if (testCase.getSteps().get(i).getId().equals(stepId)) {
+                // Preserve ID
+                step.setId(stepId);
+                
+                // Update step
+                testCase.getSteps().set(i, step);
+                found = true;
+                break;
+            }
+        }
+        
+        if (!found) {
+            throw new ResourceNotFoundException("Step not found: " + stepId);
+        }
+        
+        // Update timestamp
+        testCase.setUpdatedAt(LocalDateTime.now());
+        
+        // Save test case
+        TestCase updatedTestCase = testCaseRepository.save(testCase);
+        
+        // Create new version
+        versionRepository.createVersion(updatedTestCase, "Updated step: " + step.getDescription(), updatedTestCase.getCreatedBy());
+        
+        return updatedTestCase;
+    }
+
+    @Override
+    public TestCase deleteStep(String projectId, String testCaseId, String stepId) {
+        // Get test case
+        TestCase testCase = getTestCase(projectId, testCaseId);
+        
+        // Find step
+        TestStep removedStep = null;
+        for (int i = 0; i < testCase.getSteps().size(); i++) {
+            if (testCase.getSteps().get(i).getId().equals(stepId)) {
+                // Remove step
+                removedStep = testCase.getSteps().remove(i);
+                break;
+            }
+        }
+        
+        if (removedStep == null) {
+            throw new ResourceNotFoundException("Step not found: " + stepId);
+        }
+        
+        // Resequence remaining steps
+        for (int i = 0; i < testCase.getSteps().size(); i++) {
+            testCase.getSteps().get(i).setSequence(i + 1);
+        }
+        
+        // Update timestamp
+        testCase.setUpdatedAt(LocalDateTime.now());
+        
+        // Save test case
+        TestCase updatedTestCase = testCaseRepository.save(testCase);
+        
+        // Create new version
+        versionRepository.createVersion(updatedTestCase, "Deleted step: " + removedStep.getDescription(), updatedTestCase.getCreatedBy());
+        
+        return updatedTestCase;
+    }
+
+    @Override
+    public TestCase reorderSteps(String projectId, String testCaseId, List<String> stepIds) {
+        // Get test case
+        TestCase testCase = getTestCase(projectId, testCaseId);
+        
+        // Check if all steps are present
+        if (stepIds.size() != testCase.getSteps().size()) {
+            throw new IllegalArgumentException("Step ID list size does not match the number of steps in the test case");
+        }
+        
+        // Create map of steps by ID
+        Map<String, TestStep> stepsMap = new HashMap<>();
+        for (TestStep step : testCase.getSteps()) {
+            stepsMap.put(step.getId(), step);
+        }
+        
+        // Check if all step IDs are valid
+        for (String id : stepIds) {
+            if (!stepsMap.containsKey(id)) {
+                throw new ResourceNotFoundException("Step not found: " + id);
+            }
+        }
+        
+        // Reorder steps
+        List<TestStep> reorderedSteps = new ArrayList<>();
+        for (int i = 0; i < stepIds.size(); i++) {
+            TestStep step = stepsMap.get(stepIds.get(i));
+            step.setSequence(i + 1);
+            reorderedSteps.add(step);
+        }
+        
+        // Update test case
+        testCase.setSteps(reorderedSteps);
+        
+        // Update timestamp
+        testCase.setUpdatedAt(LocalDateTime.now());
+        
+        // Save test case
+        TestCase updatedTestCase = testCaseRepository.save(testCase);
+        
+        // Create new version
+        versionRepository.createVersion(updatedTestCase, "Reordered steps", updatedTestCase.getCreatedBy());
+        
+        return updatedTestCase;
+    }
+
+    @Override
+    public List<TestCaseVersion> getTestCaseVersions(String projectId, String testCaseId) {
+        // Check if test case exists
+        if (!testCaseRepository.existsById(projectId, testCaseId)) {
+            throw new ResourceNotFoundException("Test case not found: " + testCaseId);
+        }
+        
+        return versionRepository.findAllByTestCaseId(projectId, testCaseId);
+    }
+
+    @Override
+    public TestCaseVersion getTestCaseVersion(String projectId, String testCaseId, String versionId) {
+        return versionRepository.findById(projectId, testCaseId, versionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Test case version not found: " + versionId));
+    }
+
+    @Override
+    public TestCase revertToVersion(String projectId, String testCaseId, String versionId, String comment) {
+        // Get version
+        TestCaseVersion version = getTestCaseVersion(projectId, testCaseId, versionId);
+        
+        // Get test case snapshot from version
+        TestCase snapshot = version.getSnapshot();
+        
+        // Update timestamp
+        snapshot.setUpdatedAt(LocalDateTime.now());
+        
+        // Save test case
+        TestCase updatedTestCase = testCaseRepository.save(snapshot);
+        
+        // Create new version
+        String changelog = "Reverted to version " + version.getVersion() + ": " + comment;
+        versionRepository.createVersion(updatedTestCase, changelog, updatedTestCase.getCreatedBy());
+        
+        return updatedTestCase;
+    }
+
+    /**
+     * Ensures all steps in a test case have IDs
+     * @param testCase Test case
+     */
+    private void ensureStepsHaveIds(TestCase testCase) {
+        if (testCase.getSteps() == null) {
+            testCase.setSteps(new ArrayList<>());
+            return;
+        }
+        
+        for (TestStep step : testCase.getSteps()) {
+            if (step.getId() == null || step.getId().isEmpty()) {
+                step.setId(UUID.randomUUID().toString());
+            }
+        }
+    }
+}
+
+/**
+ * Test Case Controller
+ */
+package com.cstestforge.controller;
+
+import com.cstestforge.model.testcase.TestCase;
+import com.cstestforge.model.testcase.TestCaseVersion;
+import com.cstestforge.model.testcase.TestStep;
+import com.cstestforge.service.testcase.TestCaseService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api")
+public class TestCaseController {
+
+    private final TestCaseService testCaseService;
+
+    /**
+     * Constructor
+     * @param testCaseService Test case service
+     */
+    public TestCaseController(TestCaseService testCaseService) {
+        this.testCaseService = testCaseService;
+    }
+
+    /**
+     * Create a new test case
+     * @param projectId Project ID
+     * @param testCase Test case to create
+     * @return Created test case
+     */
+    @PostMapping("/projects/{projectId}/testcases")
+    public ResponseEntity<TestCase> createTestCase(
+            @PathVariable String projectId,
+            @Valid @RequestBody TestCase testCase) {
+        TestCase createdTestCase = testCaseService.createTestCase(projectId, testCase);
+        return new ResponseEntity<>(createdTestCase, HttpStatus.CREATED);
+    }
+
+    /**
+     * Get all test cases in a project
+     * @param projectId Project ID
+     * @return List of test cases
+     */
+    @GetMapping("/projects/{projectId}/testcases")
+    public ResponseEntity<List<TestCase>> getProjectTestCases(@PathVariable String projectId) {
+        List<TestCase> testCases = testCaseService.getProjectTestCases(projectId);
+        return new ResponseEntity<>(testCases, HttpStatus.OK);
+    }
+
+    /**
+     * Get a test case by ID
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @return Test case
+     */
+    @GetMapping("/projects/{projectId}/testcases/{testCaseId}")
+    public ResponseEntity<TestCase> getTestCase(
+            @PathVariable String projectId,
+            @PathVariable String testCaseId) {
+        TestCase testCase = testCaseService.getTestCase(projectId, testCaseId);
+        return new ResponseEntity<>(testCase, HttpStatus.OK);
+    }
+
+    /**
+     * Update a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @param testCase Updated test case data
+     * @param changelog Description of changes
+     * @return Updated test case
+     */
+    @PutMapping("/projects/{projectId}/testcases/{testCaseId}")
+    public ResponseEntity<TestCase> updateTestCase(
+            @PathVariable String projectId,
+            @PathVariable String testCaseId,
+            @Valid @RequestBody TestCase testCase,
+            @RequestParam(required = false, defaultValue = "Updated test case") String changelog) {
+        TestCase updatedTestCase = testCaseService.updateTestCase(projectId, testCaseId, testCase, changelog);
+        return new ResponseEntity<>(updatedTestCase, HttpStatus.OK);
+    }
+
+    /**
+     * Delete a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @return No content
+     */
+    @DeleteMapping("/projects/{projectId}/testcases/{testCaseId}")
+    public ResponseEntity<Void> deleteTestCase(
+            @PathVariable String projectId,
+            @PathVariable String testCaseId) {
+        testCaseService.deleteTestCase(projectId, testCaseId);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * Add a step to a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @param step Step to add
+     * @return Updated test case
+     */
+    @PostMapping("/projects/{projectId}/testcases/{testCaseId}/steps")
+    public ResponseEntity<TestCase> addStep(
+            @PathVariable String projectId,
+            @PathVariable String testCaseId,
+            @Valid @RequestBody TestStep step) {
+        TestCase updatedTestCase = testCaseService.addStep(projectId, testCaseId, step);
+        return new ResponseEntity<>(updatedTestCase, HttpStatus.OK);
+    }
+
+    /**
+     * Update a step in a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @param stepId Step ID
+     * @param step Updated step data
+     * @return Updated test case
+     */
+    @PutMapping("/projects/{projectId}/testcases/{testCaseId}/steps/{stepId}")
+    public ResponseEntity<TestCase> updateStep(
+            @PathVariable String projectId,
+            @PathVariable String testCaseId,
+            @PathVariable String stepId,
+            @Valid @RequestBody TestStep step) {
+        TestCase updatedTestCase = testCaseService.updateStep(projectId, testCaseId, stepId, step);
+        return new ResponseEntity<>(updatedTestCase, HttpStatus.OK);
+    }
+
+    /**
+     * Delete a step from a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @param stepId Step ID
+     * @return Updated test case
+     */
+    @DeleteMapping("/projects/{projectId}/testcases/{testCaseId}/steps/{stepId}")
+    public ResponseEntity<TestCase> deleteStep(
+            @PathVariable String projectId,
+            @PathVariable String testCaseId,
+            @PathVariable String stepId) {
+        TestCase updatedTestCase = testCaseService.deleteStep(projectId, testCaseId, stepId);
+        return new ResponseEntity<>(updatedTestCase, HttpStatus.OK);
+    }
+
+    /**
+     * Reorder steps in a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @param stepIds List of step IDs in the new order
+     * @return Updated test case
+     */
+    @PutMapping("/projects/{projectId}/testcases/{testCaseId}/steps/reorder")
+    public ResponseEntity<TestCase> reorderSteps(
+            @PathVariable String projectId,
+            @PathVariable String testCaseId,
+            @RequestBody List<String> stepIds) {
+        TestCase updatedTestCase = testCaseService.reorderSteps(projectId, testCaseId, stepIds);
+        return new ResponseEntity<>(updatedTestCase, HttpStatus.OK);
+    }
+
+    /**
+     * Get all versions of a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @return List of test case versions
+     */
+    @GetMapping("/projects/{projectId}/testcases/{testCaseId}/versions")
+    public ResponseEntity<List<TestCaseVersion>> getTestCaseVersions(
+            @PathVariable String projectId,
+            @PathVariable String testCaseId) {
+        List<TestCaseVersion> versions = testCaseService.getTestCaseVersions(projectId, testCaseId);
+        return new ResponseEntity<>(versions, HttpStatus.OK);
+    }
+
+    /**
+     * Get a specific version of a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @param versionId Version ID
+     * @return Test case version
+     */
+    @GetMapping("/projects/{projectId}/testcases/{testCaseId}/versions/{versionId}")
+    public ResponseEntity<TestCaseVersion> getTestCaseVersion(
+            @PathVariable String projectId,
+            @PathVariable String testCaseId,
+            @PathVariable String versionId) {
+        TestCaseVersion version = testCaseService.getTestCaseVersion(projectId, testCaseId, versionId);
+        return new ResponseEntity<>(version, HttpStatus.OK);
+    }
+
+    /**
+     * Revert a test case to a previous version
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @param versionId Version ID
+     * @param comment Comment explaining the reversion
+     * @return Updated test case
+     */
+    @PostMapping("/projects/{projectId}/testcases/{testCaseId}/versions/{versionId}/revert")
+    public ResponseEntity<TestCase> revertToVersion(
+            @PathVariable String projectId,
+            @PathVariable String testCaseId,
+            @PathVariable String versionId,
+            @RequestParam(required = false, defaultValue = "Reverted to previous version") String comment) {
+        TestCase updatedTestCase = testCaseService.revertToVersion(projectId, testCaseId, versionId, comment);
+        return new ResponseEntity<>(updatedTestCase, HttpStatus.OK);
+    }
+}
+
+
+/**
+ * Test Case Service
+ * Handles API communication for test case management
+ */
+import { api } from '../utils/api';
+import { TestCase, TestStep, TestCaseVersion } from '../types/testCase';
+
+class TestCaseService {
+  /**
+   * Create a new test case
+   * @param projectId Project ID
+   * @param testCase Test case to create
+   * @returns Created test case
+   */
+  async createTestCase(projectId: string, testCase: TestCase): Promise<TestCase> {
+    const response = await api.post(`/projects/${projectId}/testcases`, testCase);
+    return response.data;
+  }
+
+  /**
+   * Get all test cases in a project
+   * @param projectId Project ID
+   * @returns List of test cases
+   */
+  async getProjectTestCases(projectId: string): Promise<TestCase[]> {
+    const response = await api.get(`/projects/${projectId}/testcases`);
+    return response.data;
+  }
+
+  /**
+   * Get a test case by ID
+   * @param projectId Project ID
+   * @param testCaseId Test case ID
+   * @returns Test case
+   */
+  async getTestCase(projectId: string, testCaseId: string): Promise<TestCase> {
+    const response = await api.get(`/projects/${projectId}/testcases/${testCaseId}`);
+    return response.data;
+  }
+
+  /**
+   * Update a test case
+   * @param projectId Project ID
+   * @param testCaseId Test case ID
+   * @param testCase Updated test case data
+   * @param changelog Description of changes
+   * @returns Updated test case
+   */
+  async updateTestCase(projectId: string, testCaseId: string, testCase: TestCase, changelog: string = 'Updated test case'): Promise<TestCase> {
+    const response = await api.put(`/projects/${projectId}/testcases/${testCaseId}?changelog=${encodeURIComponent(changelog)}`, testCase);
+    return response.data;
+  }
+
+  /**
+   * Delete a test case
+   * @param projectId Project ID
+   * @param testCaseId Test case ID
+   */
+  async deleteTestCase(projectId: string, testCaseId: string): Promise<void> {
+    await api.delete(`/projects/${projectId}/testcases/${testCaseId}`);
+  }
+
+  /**
+   * Add a step to a test case
+   * @param projectId Project ID
+   * @param testCaseId Test case ID
+   * @param step Step to add
+   * @returns Updated test case
+   */
+  async addStep(projectId: string, testCaseId: string, step: TestStep): Promise<TestCase> {
+    const response = await api.post(`/projects/${projectId}/testcases/${testCaseId}/steps`, step);
+    return response.data;
+  }
+
+  /**
+   * Update a step in a test case
+   * @param projectId Project ID
+   * @param testCaseId Test case ID
+   * @param stepId Step ID
+   * @param step Updated step data
+   * @returns Updated test case
+   */
+  async updateStep(projectId: string, testCaseId: string, stepId: string, step: TestStep): Promise<TestCase> {
+    const response = await api.put(`/projects/${projectId}/testcases/${testCaseId}/steps/${stepId}`, step);
+    return response.data;
+  }
+
+  /**
+   * Delete a step from a test case
+   * @param projectId Project ID
+   * @param testCaseId Test case ID
+   * @param stepId Step ID
+   * @returns Updated test case
+   */
+  async deleteStep(projectId: string, testCaseId: string, stepId: string): Promise<TestCase> {
+    const response = await api.delete(`/projects/${projectId}/testcases/${testCaseId}/steps/${stepId}`);
+    return response.data;
+  }
+
+  /**
+   * Reorder steps in a test case
+   * @param projectId Project ID
+   * @param testCaseId Test case ID
+   * @param stepIds List of step IDs in the new order
+   * @returns Updated test case
+   */
+  async reorderSteps(projectId: string, testCaseId: string, stepIds: string[]): Promise<TestCase> {
+    const response = await api.put(`/projects/${projectId}/testcases/${testCaseId}/steps/reorder`, stepIds);
+    return response.data;
+  }
+
+  /**
+   * Get all versions of a test case
+   * @param projectId Project ID
+   * @param testCaseId Test case ID
+   * @returns List of test case versions
+   */
+  async getTestCaseVersions(projectId: string, testCaseId: string): Promise<TestCaseVersion[]> {
+    const response = await api.get(`/projects/${projectId}/testcases/${testCaseId}/versions`);
+    return response.data;
+  }
+
+  /**
+   * Get a specific version of a test case
+   * @param projectId Project ID
+   * @param testCaseId Test case ID
+   * @param versionId Version ID
+   * @returns Test case version
+   */
+  async getTestCaseVersion(projectId: string, testCaseId: string, versionId: string): Promise<TestCaseVersion> {
+    const response = await api.get(`/projects/${projectId}/testcases/${testCaseId}/versions/${versionId}`);
+    return response.data;
+  }
+
+  /**
+   * Revert a test case to a previous version
+   * @param projectId Project ID
+   * @param testCaseId Test case ID
+   * @param versionId Version ID
+   * @param comment Comment explaining the reversion
+   * @returns Updated test case
+   */
+  async revertToVersion(projectId: string, testCaseId: string, versionId: string, comment: string = 'Reverted to previous version'): Promise<TestCase> {
+    const response = await api.post(`/projects/${projectId}/testcases/${testCaseId}/versions/${versionId}/revert?comment=${encodeURIComponent(comment)}`);
+    return response.data;
+  }
+}
+
+export const testCaseService = new TestCaseService();
+
+
+
+/**
+ * Test Case Types
+ * TypeScript type definitions for test case entities
+ */
+
+/**
+ * Test step action types
+ */
+export enum TestStepActionType {
+  NAVIGATE = 'navigate',
+  CLICK = 'click',
+  TYPE = 'type',
+  SELECT = 'select',
+  CHECK = 'check',
+  UNCHECK = 'uncheck',
+  HOVER = 'hover',
+  FOCUS = 'focus',
+  PRESS_KEY = 'press_key',
+  WAIT_FOR_ELEMENT = 'wait_for_element',
+  WAIT_FOR_NAVIGATION = 'wait_for_navigation',
+  WAIT_FOR_TIMEOUT = 'wait_for_timeout',
+  ASSERT_VISIBLE = 'assert_visible',
+  ASSERT_TEXT = 'assert_text',
+  ASSERT_VALUE = 'assert_value',
+  ASSERT_ATTRIBUTE = 'assert_attribute',
+  ASSERT_URL = 'assert_url',
+  ASSERT_TITLE = 'assert_title',
+  EXECUTE_JS = 'execute_js',
+  SCREENSHOT = 'screenshot',
+  CUSTOM = 'custom'
+}
+
+/**
+ * Selector types
+ */
+export enum SelectorType {
+  CSS = 'css',
+  XPATH = 'xpath',
+  ID = 'id',
+  NAME = 'name',
+  CLASS = 'class',
+  TAG = 'tag',
+  LINK_TEXT = 'link_text',
+  PARTIAL_LINK_TEXT = 'partial_link_text',
+  ACCESSIBILITY_ID = 'accessibility_id',
+  TEXT = 'text',
+  CONTAINS_TEXT = 'contains_text'
+}
+
+/**
+ * Test step model
+ */
+export interface TestStep {
+  id?: string;
+  action: string;
+  selector: string;
+  selectorType: string;
+  parameters?: Record<string, string>;
+  description?: string;
+  isScreenshotRequired?: boolean;
+  isOptional?: boolean;
+  isConditional?: boolean;
+  conditionalExpression?: string;
+  sequence: number;
+}
+
+/**
+ * Test case model
+ */
+export interface TestCase {
+  id?: string;
+  projectId: string;
+  name: string;
+  description?: string;
+  createdBy: string;
+  browser?: string;
+  headless?: boolean;
+  defaultTimeout?: number;
+  steps: TestStep[];
+  tags?: Record<string, string>;
+  isActive?: boolean;
+  version?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Test case version model
+ */
+export interface TestCaseVersion {
+  id: string;
+  testCaseId: string;
+  projectId: string;
+  version: string;
+  changelog: string;
+  createdBy: string;
+  snapshot: TestCase;
+  createdAt: string;
+}
+
+
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { 
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, 
+  Paper, Button, IconButton, TextField, Typography, Box, Chip, Dialog,
+  DialogActions, DialogContent, DialogContentText, DialogTitle, 
+  Tooltip, CircularProgress 
+} from '@mui/material';
+import { 
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  PlayArrow as RunIcon,
+  Visibility as ViewIcon,
+  History as HistoryIcon,
+  FilterList as FilterIcon,
+  Search as SearchIcon
+} from '@mui/icons-material';
+import { format } from 'date-fns';
+import { testCaseService } from '../../services/testCaseService';
+import { TestCase } from '../../types/testCase';
+import { useNotification } from '../../contexts/NotificationContext';
+
+const TestCaseList: React.FC = () => {
+  const { projectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
+  const { showNotification } = useNotification();
+  
+  const [testCases, setTestCases] = useState<TestCase[]>([]);
+  const [filteredTestCases, setFilteredTestCases] = useState<TestCase[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
+  const [selectedTestCase, setSelectedTestCase] = useState<TestCase | null>(null);
+  
+  // Load test cases
+  useEffect(() => {
+    const loadTestCases = async () => {
+      if (!projectId) return;
+      
+      try {
+        setIsLoading(true);
+        const data = await testCaseService.getProjectTestCases(projectId);
+        setTestCases(data);
+        setFilteredTestCases(data);
+      } catch (error) {
+        console.error('Error loading test cases:', error);
+        showNotification('Failed to load test cases', 'error');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadTestCases();
+  }, [projectId, showNotification]);
+  
+  // Filter test cases when search query changes
+  useEffect(() => {
+    if (!searchQuery) {
+      setFilteredTestCases(testCases);
+      return;
+    }
+    
+    const query = searchQuery.toLowerCase();
+    const filtered = testCases.filter(testCase => 
+      testCase.name.toLowerCase().includes(query) || 
+      testCase.description?.toLowerCase().includes(query) ||
+      Object.entries(testCase.tags || {}).some(
+        ([key, value]) => key.toLowerCase().includes(query) || value.toLowerCase().includes(query)
+      )
+    );
+    
+    setFilteredTestCases(filtered);
+  }, [searchQuery, testCases]);
+  
+  // Handle search input change
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+  };
+  
+  // Handle create test case button click
+  const handleCreateTestCase = () => {
+    navigate(`/projects/${projectId}/testcases/create`);
+  };
+  
+  // Handle edit test case button click
+  const handleEditTestCase = (testCaseId: string) => {
+    navigate(`/projects/${projectId}/testcases/${testCaseId}/edit`);
+  };
+  
+  // Handle view test case button click
+  const handleViewTestCase = (testCaseId: string) => {
+    navigate(`/projects/${projectId}/testcases/${testCaseId}`);
+  };
+  
+  // Handle run test case button click
+  const handleRunTestCase = (testCaseId: string) => {
+    navigate(`/projects/${projectId}/testcases/${testCaseId}/execute`);
+  };
+  
+  // Handle view version history button click
+  const handleViewVersionHistory = (testCaseId: string) => {
+    navigate(`/projects/${projectId}/testcases/${testCaseId}/versions`);
+  };
+  
+  // Handle delete button click
+  const handleDeleteClick = (testCase: TestCase) => {
+    setSelectedTestCase(testCase);
+    setDeleteDialogOpen(true);
+  };
+  
+  // Handle delete confirmation
+  const handleDeleteConfirm = async () => {
+    if (!selectedTestCase || !projectId) return;
+    
+    try {
+      await testCaseService.deleteTestCase(projectId, selectedTestCase.id!);
+      setTestCases(prevTestCases => 
+        prevTestCases.filter(tc => tc.id !== selectedTestCase.id)
+      );
+      setFilteredTestCases(prevFilteredTestCases => 
+        prevFilteredTestCases.filter(tc => tc.id !== selectedTestCase.id)
+      );
+      showNotification('Test case deleted successfully', 'success');
+    } catch (error) {
+      console.error('Error deleting test case:', error);
+      showNotification('Failed to delete test case', 'error');
+    } finally {
+      setDeleteDialogOpen(false);
+      setSelectedTestCase(null);
+    }
+  };
+  
+  // Handle delete dialog close
+  const handleDeleteDialogClose = () => {
+    setDeleteDialogOpen(false);
+    setSelectedTestCase(null);
+  };
+  
+  // Render tags as chips
+  const renderTags = (tags: Record<string, string>) => {
+    return Object.entries(tags).map(([key, value]) => (
+      <Chip
+        key={key}
+        label={`${key}: ${value}`}
+        size="small"
+        variant="outlined"
+        style={{ margin: '0 4px 4px 0' }}
+      />
+    ));
+  };
+  
+  return (
+    <div>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h4">Test Cases</Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={handleCreateTestCase}
+        >
+          Create Test Case
+        </Button>
+      </Box>
+      
+      <Box display="flex" mb={3}>
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Search test cases..."
+          value={searchQuery}
+          onChange={handleSearchChange}
+          InputProps={{
+            startAdornment: <SearchIcon color="action" style={{ marginRight: 8 }} />
+          }}
+        />
+      </Box>
+      
+      {isLoading ? (
+        <Box display="flex" justifyContent="center" my={4}>
+          <CircularProgress />
+        </Box>
+      ) : filteredTestCases.length === 0 ? (
+        <Paper style={{ padding: 16 }}>
+          <Typography align="center">
+            {searchQuery ? 'No test cases match your search' : 'No test cases found'}
+          </Typography>
+        </Paper>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Name</TableCell>
+                <TableCell>Description</TableCell>
+                <TableCell>Browser</TableCell>
+                <TableCell>Tags</TableCell>
+                <TableCell>Created</TableCell>
+                <TableCell>Last Updated</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredTestCases.map((testCase) => (
+                <TableRow key={testCase.id}>
+                  <TableCell>{testCase.name}</TableCell>
+                  <TableCell>
+                    {testCase.description ? (
+                      testCase.description.length > 100 
+                        ? `${testCase.description.substring(0, 100)}...` 
+                        : testCase.description
+                    ) : '—'}
+                  </TableCell>
+                  <TableCell>
+                    {testCase.browser} {testCase.headless ? '(headless)' : ''}
+                  </TableCell>
+                  <TableCell>
+                    {testCase.tags && Object.keys(testCase.tags).length > 0 
+                      ? renderTags(testCase.tags) 
+                      : '—'}
+                  </TableCell>
+                  <TableCell>
+                    {testCase.createdAt 
+                      ? format(new Date(testCase.createdAt), 'yyyy-MM-dd HH:mm') 
+                      : '—'}
+                  </TableCell>
+                  <TableCell>
+                    {testCase.updatedAt 
+                      ? format(new Date(testCase.updatedAt), 'yyyy-MM-dd HH:mm') 
+                      : '—'}
+                  </TableCell>
+                  <TableCell>
+                    <Box display="flex">
+                      <Tooltip title="View Test Case">
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleViewTestCase(testCase.id!)}
+                        >
+                          <ViewIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Edit Test Case">
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleEditTestCase(testCase.id!)}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Run Test Case">
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleRunTestCase(testCase.id!)}
+                        >
+                          <RunIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Version History">
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleViewVersionHistory(testCase.id!)}
+                        >
+                          <HistoryIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete Test Case">
+                        <IconButton 
+                          size="small" 
+                          color="error" 
+                          onClick={() => handleDeleteClick(testCase)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteDialogClose}
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete the test case "{selectedTestCase?.name}"? 
+            This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteDialogClose} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleDeleteConfirm} color="error">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </div>
+  );
+};
+
+export default TestCaseList;
+
+
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+  Box, Button, TextField, Typography, Paper, Grid, FormControl, 
+  InputLabel, Select, MenuItem, FormControlLabel, Switch, 
+  Divider, CircularProgress, Chip, IconButton, FormHelperText, 
+  Dialog, DialogTitle, DialogContent, DialogActions
+} from '@mui/material';
+import {
+  Save as SaveIcon,
+  Add as AddIcon,
+  ArrowBack as BackIcon,
+  Delete as DeleteIcon,
+  DragIndicator as DragIcon,
+  MoreVert as MoreIcon
+} from '@mui/icons-material';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { testCaseService } from '../../services/testCaseService';
+import { projectService } from '../../services/projectService';
+import { TestCase, TestStep, TestStepActionType, SelectorType } from '../../types/testCase';
+import { useNotification } from '../../contexts/NotificationContext';
+
+interface TestCaseFormProps {
+  isEdit?: boolean;
+}
+
+const TestCaseForm: React.FC<TestCaseFormProps> = ({ isEdit = false }) => {
+  const { projectId, testCaseId } = useParams<{ projectId: string, testCaseId: string }>();
+  const navigate = useNavigate();
+  const { showNotification } = useNotification();
+  
+  const [testCase, setTestCase] = useState<TestCase>({
+    projectId: projectId || '',
+    name: '',
+    description: '',
+    createdBy: 'current-user', // This would be replaced with the actual user
+    browser: 'chrome',
+    headless: false,
+    defaultTimeout: 30000,
+    steps: [],
+    tags: {},
+    isActive: true
+  });
+  
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [stepFormOpen, setStepFormOpen] = useState<boolean>(false);
+  const [currentStep, setCurrentStep] = useState<TestStep | null>(null);
+  const [currentStepIndex, setCurrentStepIndex] = useState<number>(-1);
+  const [changelogDialogOpen, setChangelogDialogOpen] = useState<boolean>(false);
+  const [changelog, setChangelog] = useState<string>('');
+  
+  // Load test case for editing
+  useEffect(() => {
+    const loadTestCase = async () => {
+      if (!isEdit || !projectId || !testCaseId) return;
+      
+      try {
+        setIsLoading(true);
+        const data = await testCaseService.getTestCase(projectId, testCaseId);
+        setTestCase(data);
+      } catch (error) {
+        console.error('Error loading test case:', error);
+        showNotification('Failed to load test case', 'error');
+        navigate(`/projects/${projectId}/testcases`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadTestCase();
+  }, [isEdit, projectId, testCaseId, navigate, showNotification]);
+  
+  // Handle form field changes
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+    const { name, value } = e.target;
+    if (!name) return;
+    
+    setTestCase(prev => ({ ...prev, [name]: value }));
+    
+    // Clear validation error when field is updated
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+  
+  // Handle switch changes (boolean values)
+  const handleSwitchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setTestCase(prev => ({ ...prev, [name]: checked }));
+  };
+  
+  // Handle tag changes
+  const handleTagChange = (key: string, value: string) => {
+    setTestCase(prev => ({
+      ...prev,
+      tags: { ...(prev.tags || {}), [key]: value }
+    }));
+  };
+  
+  // Remove a tag
+  const handleTagDelete = (keyToDelete: string) => {
+    setTestCase(prev => {
+      const newTags = { ...(prev.tags || {}) };
+      delete newTags[keyToDelete];
+      return { ...prev, tags: newTags };
+    });
+  };
+  
+  // Add a new tag
+  const handleAddTag = () => {
+    const key = `tag${Object.keys(testCase.tags || {}).length + 1}`;
+    handleTagChange(key, '');
+  };
+  
+  // Handle drag and drop reordering of steps
+  const handleDragEnd = (result: any) => {
+    if (!result.destination) return;
+    
+    const sourceIndex = result.source.index;
+    const destinationIndex = result.destination.index;
+    
+    if (sourceIndex === destinationIndex) return;
+    
+    const reorderedSteps = Array.from(testCase.steps);
+    const [removed] = reorderedSteps.splice(sourceIndex, 1);
+    reorderedSteps.splice(destinationIndex, 0, removed);
+    
+    // Update sequence numbers
+    const updatedSteps = reorderedSteps.map((step, index) => ({
+      ...step,
+      sequence: index + 1
+    }));
+    
+    setTestCase(prev => ({ ...prev, steps: updatedSteps }));
+  };
+  
+  // Open step form for adding a new step
+  const handleAddStep = () => {
+    setCurrentStep({
+      action: TestStepActionType.CLICK,
+      selector: '',
+      selectorType: SelectorType.CSS,
+      sequence: testCase.steps.length + 1
+    });
+    setCurrentStepIndex(-1);
+    setStepFormOpen(true);
+  };
+  
+  // Open step form for editing an existing step
+  const handleEditStep = (step: TestStep, index: number) => {
+    setCurrentStep({ ...step });
+    setCurrentStepIndex(index);
+    setStepFormOpen(true);
+  };
+  
+  // Delete a step
+  const handleDeleteStep = (index: number) => {
+    const updatedSteps = testCase.steps.filter((_, i) => i !== index);
+    
+    // Update sequence numbers
+    const resequencedSteps = updatedSteps.map((step, i) => ({
+      ...step,
+      sequence: i + 1
+    }));
+    
+    setTestCase(prev => ({ ...prev, steps: resequencedSteps }));
+  };
+  
+  // Save a step (add new or update existing)
+  const handleSaveStep = (step: TestStep) => {
+    let updatedSteps;
+    
+    if (currentStepIndex === -1) {
+      // Add new step
+      updatedSteps = [...testCase.steps, step];
+    } else {
+      // Update existing step
+      updatedSteps = testCase.steps.map((s, i) => 
+        i === currentStepIndex ? step : s
+      );
+    }
+    
+    setTestCase(prev => ({ ...prev, steps: updatedSteps }));
+    setStepFormOpen(false);
+    setCurrentStep(null);
+    setCurrentStepIndex(-1);
+  };
+  
+  // Cancel step form
+  const handleCancelStep = () => {
+    setStepFormOpen(false);
+    setCurrentStep(null);
+    setCurrentStepIndex(-1);
+  };
+  
+  // Validate the form
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    if (!testCase.name.trim()) {
+      errors.name = 'Name is required';
+    }
+    
+    if (!testCase.browser.trim()) {
+      errors.browser = 'Browser is required';
+    }
+    
+    if (testCase.defaultTimeout <= 0) {
+      errors.defaultTimeout = 'Timeout must be greater than 0';
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+  
+  // Handle save button click
+  const handleSave = () => {
+    if (!validateForm()) return;
+    
+    if (isEdit) {
+      // For edit, prompt for changelog
+      setChangelogDialogOpen(true);
+    } else {
+      // For create, save directly
+      saveTestCase();
+    }
+  };
+  
+  // Save the test case
+  const saveTestCase = async (changelogText?: string) => {
+    if (!projectId) return;
+    
+    try {
+      setIsSaving(true);
+      
+      if (isEdit && testCaseId) {
+        await testCaseService.updateTestCase(
+          projectId, 
+          testCaseId, 
+          testCase, 
+          changelogText || 'Updated test case'
+        );
+        showNotification('Test case updated successfully', 'success');
+      } else {
+        await testCaseService.createTestCase(projectId, testCase);
+        showNotification('Test case created successfully', 'success');
+      }
+      
+      navigate(`/projects/${projectId}/testcases`);
+    } catch (error) {
+      console.error('Error saving test case:', error);
+      showNotification('Failed to save test case', 'error');
+    } finally {
+      setIsSaving(false);
+      setChangelogDialogOpen(false);
+    }
+  };
+  
+  // Handle changelog dialog confirm
+  const handleChangelogConfirm = () => {
+    saveTestCase(changelog);
+  };
+  
+  // Handle changelog dialog cancel
+  const handleChangelogCancel = () => {
+    setChangelogDialogOpen(false);
+    setChangelog('');
+  };
+  
+  // Handle back button click
+  const handleBack = () => {
+    navigate(`/projects/${projectId}/testcases`);
+  };
+  
+  if (isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" my={4}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+  
+  return (
+    <div>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Box display="flex" alignItems="center">
+          <IconButton onClick={handleBack} sx={{ mr: 1 }}>
+            <BackIcon />
+          </IconButton>
+          <Typography variant="h4">
+            {isEdit ? 'Edit Test Case' : 'Create Test Case'}
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<SaveIcon />}
+          onClick={handleSave}
+          disabled={isSaving}
+        >
+          {isSaving ? 'Saving...' : 'Save'}
+        </Button>
+      </Box>
+      
+      <Paper sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h6" gutterBottom>
+          Basic Information
+        </Typography>
+        
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Name"
+              name="name"
+              value={testCase.name}
+              onChange={handleChange}
+              error={!!validationErrors.name}
+              helperText={validationErrors.name}
+              required
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth>
+              <InputLabel id="browser-label">Browser</InputLabel>
+              <Select
+                labelId="browser-label"
+                name="browser"
+                value={testCase.browser}
+                onChange={handleChange}
+                error={!!validationErrors.browser}
+              >
+                <MenuItem value="chrome">Chrome</MenuItem>
+                <MenuItem value="firefox">Firefox</MenuItem>
+                <MenuItem value="edge">Edge</MenuItem>
+                <MenuItem value="safari">Safari</MenuItem>
+              </Select>
+              {validationErrors.browser && (
+                <FormHelperText error>{validationErrors.browser}</FormHelperText>
+              )}
+            </FormControl>
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Description"
+              name="description"
+              value={testCase.description || ''}
+              onChange={handleChange}
+              multiline
+              rows={3}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Default Timeout (ms)"
+              name="defaultTimeout"
+              type="number"
+              value={testCase.defaultTimeout}
+              onChange={handleChange}
+              error={!!validationErrors.defaultTimeout}
+              helperText={validationErrors.defaultTimeout}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <FormControlLabel
+              control={
+                <Switch
+                  name="headless"
+                  checked={testCase.headless}
+                  onChange={handleSwitchChange}
+                />
+              }
+              label="Headless Mode"
+            />
+          </Grid>
+        </Grid>
+      </Paper>
+      
+      <Paper sx={{ p: 3, mb: 4 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="h6">Tags</Typography>
+          <Button 
+            startIcon={<AddIcon />} 
+            onClick={handleAddTag}
+            size="small"
+            variant="outlined"
+          >
+            Add Tag
+          </Button>
+        </Box>
+        
+        <Box>
+          {Object.entries(testCase.tags || {}).map(([key, value]) => (
+            <Box key={key} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <TextField
+                label="Tag Name"
+                value={key}
+                sx={{ mr: 1, width: '40%' }}
+                InputProps={{
+                  readOnly: true,
+                }}
+              />
+              <TextField
+                label="Tag Value"
+                value={value}
+                onChange={(e) => handleTagChange(key, e.target.value)}
+                sx={{ flexGrow: 1, mr: 1 }}
+              />
+              <IconButton 
+                color="error" 
+                onClick={() => handleTagDelete(key)}
+                size="small"
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Box>
+          ))}
+          
+          {Object.keys(testCase.tags || {}).length === 0 && (
+            <Typography color="textSecondary" variant="body2">
+              No tags added. Click "Add Tag" to create one.
+            </Typography>
+          )}
+        </Box>
+      </Paper>
+      
+      <Paper sx={{ p: 3, mb: 4 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="h6">Test Steps</Typography>
+          <Button 
+            startIcon={<AddIcon />} 
+            onClick={handleAddStep}
+            variant="outlined"
+          >
+            Add Step
+          </Button>
+        </Box>
+        
+        {testCase.steps.length === 0 ? (
+          <Typography color="textSecondary" variant="body2" align="center" py={4}>
+            No steps added. Click "Add Step" to create one.
+          </Typography>
+        ) : (
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <Droppable droppableId="test-steps">
+              {(provided) => (
+                <div
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                >
+                  {testCase.steps.map((step, index) => (
+                    <Draggable
+                      key={step.id || `step-${index}`}
+                      draggableId={step.id || `step-${index}`}
+                      index={index}
+                    >
+                      {(provided) => (
+                        <Paper
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          elevation={1}
+                          sx={{ 
+                            mb: 2, 
+                            p: 2, 
+                            position: 'relative', 
+                            borderLeft: '4px solid',
+                            borderColor: 'primary.main'
+                          }}
+                        >
+                          <Grid container spacing={2}>
+                            <Grid item sx={{ display: 'flex', alignItems: 'center', pr: 1 }}>
+                              <div {...provided.dragHandleProps}>
+                                <DragIcon color="action" />
+                              </div>
+                              <Typography 
+                                variant="body2" 
+                                color="textSecondary" 
+                                sx={{ ml: 1, minWidth: 24 }}
+                              >
+                                {step.sequence}.
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={10}>
+                              <Typography variant="subtitle1">
+                                {step.action}: {step.selector ? `${step.selector} (${step.selectorType})` : ''}
+                              </Typography>
+                              {step.description && (
+                                <Typography variant="body2" color="textSecondary">
+                                  {step.description}
+                                </Typography>
+                              )}
+                            </Grid>
+                            <Grid item xs={1} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                              <IconButton 
+                                size="small"
+                                onClick={() => handleEditStep(step, index)}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton 
+                                size="small" 
+                                color="error"
+                                onClick={() => handleDeleteStep(index)}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Grid>
+                          </Grid>
+                        </Paper>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
+        )}
+      </Paper>
+      
+      {/* Step Form Dialog */}
+      <Dialog
+        open={stepFormOpen}
+        onClose={handleCancelStep}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          {currentStepIndex === -1 ? 'Add Step' : 'Edit Step'}
+        </DialogTitle>
+        <DialogContent dividers>
+          {currentStep && (
+            <TestStepForm
+              step={currentStep}
+              onSave={handleSaveStep}
+              onCancel={handleCancelStep}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Changelog Dialog */}
+      <Dialog
+        open={changelogDialogOpen}
+        onClose={handleChangelogCancel}
+      >
+        <DialogTitle>Describe Your Changes</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Changelog"
+            fullWidth
+            multiline
+            rows={3}
+            value={changelog}
+            onChange={(e) => setChangelog(e.target.value)}
+            placeholder="Describe what you've changed in this test case..."
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleChangelogCancel} color="primary">
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleChangelogConfirm} 
+            color="primary"
+            disabled={!changelog.trim()}
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </div>
+  );
+}
+
+export default TestCaseForm;
+
+import React, { useState, useEffect } from 'react';
+import {
+  Box, Button, TextField, Typography, Grid, FormControl,
+  InputLabel, Select, MenuItem, FormControlLabel, Switch,
+  FormHelperText, Accordion, AccordionSummary, AccordionDetails,
+  IconButton, Tooltip
+} from '@mui/material';
+import {
+  ExpandMore as ExpandMoreIcon,
+  Help as HelpIcon,
+  Save as SaveIcon,
+  Cancel as CancelIcon
+} from '@mui/icons-material';
+import { TestStep, TestStepActionType, SelectorType } from '../../types/testCase';
+
+interface TestStepFormProps {
+  step: TestStep;
+  onSave: (step: TestStep) => void;
+  onCancel: () => void;
+}
+
+const TestStepForm: React.FC<TestStepFormProps> = ({ step, onSave, onCancel }) => {
+  const [formData, setFormData] = useState<TestStep>({ ...step });
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState<boolean>(false);
+  
+  // Initialize parameters if undefined
+  useEffect(() => {
+    if (!formData.parameters) {
+      setFormData(prev => ({ ...prev, parameters: {} }));
+    }
+  }, [formData.parameters]);
+  
+  // Handle form field changes
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+    const { name, value } = e.target;
+    if (!name) return;
+    
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear validation error when field is updated
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+  
+  // Handle switch changes (boolean values)
+  const handleSwitchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: checked }));
+  };
+  
+  // Handle parameter changes
+  const handleParameterChange = (key: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      parameters: { ...(prev.parameters || {}), [key]: value }
+    }));
+  };
+  
+  // Reset parameter fields when action changes
+  useEffect(() => {
+    // Different actions require different parameters
+    const newParameters: Record<string, string> = {};
+    
+    switch (formData.action) {
+      case TestStepActionType.NAVIGATE:
+        newParameters.url = formData.parameters?.url || '';
+        break;
+      case TestStepActionType.TYPE:
+        newParameters.text = formData.parameters?.text || '';
+        break;
+      case TestStepActionType.SELECT:
+        newParameters.value = formData.parameters?.value || '';
+        break;
+      case TestStepActionType.PRESS_KEY:
+        newParameters.key = formData.parameters?.key || '';
+        break;
+      case TestStepActionType.WAIT_FOR_ELEMENT:
+      case TestStepActionType.WAIT_FOR_NAVIGATION:
+      case TestStepActionType.WAIT_FOR_TIMEOUT:
+        newParameters.timeout = formData.parameters?.timeout || '30000';
+        break;
+      case TestStepActionType.ASSERT_TEXT:
+        newParameters.expectedText = formData.parameters?.expectedText || '';
+        break;
+      case TestStepActionType.ASSERT_VALUE:
+        newParameters.expectedValue = formData.parameters?.expectedValue || '';
+        break;
+      case TestStepActionType.ASSERT_ATTRIBUTE:
+        newParameters.attributeName = formData.parameters?.attributeName || '';
+        newParameters.expectedValue = formData.parameters?.expectedValue || '';
+        break;
+      case TestStepActionType.ASSERT_URL:
+        newParameters.expectedUrl = formData.parameters?.expectedUrl || '';
+        break;
+      case TestStepActionType.ASSERT_TITLE:
+        newParameters.expectedTitle = formData.parameters?.expectedTitle || '';
+        break;
+      case TestStepActionType.EXECUTE_JS:
+        newParameters.script = formData.parameters?.script || '';
+        break;
+    }
+    
+    setFormData(prev => ({ ...prev, parameters: newParameters }));
+  }, [formData.action]);
+  
+  // Determine if action needs a selector
+  const requiresSelector = (action: string): boolean => {
+    const actionsWithoutSelector = [
+      TestStepActionType.NAVIGATE,
+      TestStepActionType.WAIT_FOR_NAVIGATION,
+      TestStepActionType.WAIT_FOR_TIMEOUT,
+      TestStepActionType.ASSERT_URL,
+      TestStepActionType.ASSERT_TITLE,
+      TestStepActionType.EXECUTE_JS,
+      TestStepActionType.SCREENSHOT
+    ];
+    
+    return !actionsWithoutSelector.includes(action as TestStepActionType);
+  };
+  
+  // Validate the form
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    if (!formData.action) {
+      errors.action = 'Action is required';
+    }
+    
+    if (requiresSelector(formData.action) && !formData.selector) {
+      errors.selector = 'Selector is required for this action';
+    }
+    
+    if (requiresSelector(formData.action) && !formData.selectorType) {
+      errors.selectorType = 'Selector type is required';
+    }
+    
+    // Validate parameters based on action
+    switch (formData.action) {
+      case TestStepActionType.NAVIGATE:
+        if (!formData.parameters?.url) {
+          errors['parameters.url'] = 'URL is required';
+        }
+        break;
+      case TestStepActionType.TYPE:
+        if (!formData.parameters?.text) {
+          errors['parameters.text'] = 'Text is required';
+        }
+        break;
+      case TestStepActionType.SELECT:
+        if (!formData.parameters?.value) {
+          errors['parameters.value'] = 'Value is required';
+        }
+        break;
+      case TestStepActionType.PRESS_KEY:
+        if (!formData.parameters?.key) {
+          errors['parameters.key'] = 'Key is required';
+        }
+        break;
+      case TestStepActionType.ASSERT_TEXT:
+        if (!formData.parameters?.expectedText) {
+          errors['parameters.expectedText'] = 'Expected text is required';
+        }
+        break;
+      case TestStepActionType.ASSERT_VALUE:
+        if (!formData.parameters?.expectedValue) {
+          errors['parameters.expectedValue'] = 'Expected value is required';
+        }
+        break;
+      case TestStepActionType.ASSERT_ATTRIBUTE:
+        if (!formData.parameters?.attributeName) {
+          errors['parameters.attributeName'] = 'Attribute name is required';
+        }
+        if (!formData.parameters?.expectedValue) {
+          errors['parameters.expectedValue'] = 'Expected value is required';
+        }
+        break;
+      case TestStepActionType.ASSERT_URL:
+        if (!formData.parameters?.expectedUrl) {
+          errors['parameters.expectedUrl'] = 'Expected URL is required';
+        }
+        break;
+      case TestStepActionType.ASSERT_TITLE:
+        if (!formData.parameters?.expectedTitle) {
+          errors['parameters.expectedTitle'] = 'Expected title is required';
+        }
+        break;
+      case TestStepActionType.EXECUTE_JS:
+        if (!formData.parameters?.script) {
+          errors['parameters.script'] = 'JavaScript code is required';
+        }
+        break;
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+  
+  // Handle save button click
+  const handleSave = () => {
+    if (!validateForm()) return;
+    onSave(formData);
+  };
+  
+  // Render parameter fields based on action
+  const renderParameterFields = () => {
+    switch (formData.action) {
+      case TestStepActionType.NAVIGATE:
+        return (
+          <TextField
+            fullWidth
+            label="URL"
+            name="url"
+            value={formData.parameters?.url || ''}
+            onChange={(e) => handleParameterChange('url', e.target.value)}
+            error={!!validationErrors['parameters.url']}
+            helperText={validationErrors['parameters.url']}
+            required
+            margin="normal"
+          />
+        );
+      
+      case TestStepActionType.TYPE:
+        return (
+          <TextField
+            fullWidth
+            label="Text to Type"
+            name="text"
+            value={formData.parameters?.text || ''}
+            onChange={(e) => handleParameterChange('text', e.target.value)}
+            error={!!validationErrors['parameters.text']}
+            helperText={validationErrors['parameters.text']}
+            required
+            margin="normal"
+          />
+        );
+      
+      case TestStepActionType.SELECT:
+        return (
+          <TextField
+            fullWidth
+            label="Option Value"
+            name="value"
+            value={formData.parameters?.value || ''}
+            onChange={(e) => handleParameterChange('value', e.target.value)}
+            error={!!validationErrors['parameters.value']}
+            helperText={validationErrors['parameters.value']}
+            required
+            margin="normal"
+          />
+        );
+      
+      case TestStepActionType.PRESS_KEY:
+        return (
+          <TextField
+            fullWidth
+            label="Key to Press"
+            name="key"
+            value={formData.parameters?.key || ''}
+            onChange={(e) => handleParameterChange('key', e.target.value)}
+            error={!!validationErrors['parameters.key']}
+            helperText={validationErrors['parameters.key'] || 'Examples: Enter, Tab, ArrowUp, etc.'}
+            required
+            margin="normal"
+          />
+        );
+      
+      case TestStepActionType.WAIT_FOR_ELEMENT:
+      case TestStepActionType.WAIT_FOR_NAVIGATION:
+      case TestStepActionType.WAIT_FOR_TIMEOUT:
+        return (
+          <TextField
+            fullWidth
+            label="Timeout (ms)"
+            name="timeout"
+            type="number"
+            value={formData.parameters?.timeout || '30000'}
+            onChange={(e) => handleParameterChange('timeout', e.target.value)}
+            margin="normal"
+          />
+        );
+      
+      case TestStepActionType.ASSERT_TEXT:
+        return (
+          <TextField
+            fullWidth
+            label="Expected Text"
+            name="expectedText"
+            value={formData.parameters?.expectedText || ''}
+            onChange={(e) => handleParameterChange('expectedText', e.target.value)}
+            error={!!validationErrors['parameters.expectedText']}
+            helperText={validationErrors['parameters.expectedText']}
+            required
+            margin="normal"
+          />
+        );
+      
+      case TestStepActionType.ASSERT_VALUE:
+        return (
+          <TextField
+            fullWidth
+            label="Expected Value"
+            name="expectedValue"
+            value={formData.parameters?.expectedValue || ''}
+            onChange={(e) => handleParameterChange('expectedValue', e.target.value)}
+            error={!!validationErrors['parameters.expectedValue']}
+            helperText={validationErrors['parameters.expectedValue']}
+            required
+            margin="normal"
+          />
+        );
+      
+      case TestStepActionType.ASSERT_ATTRIBUTE:
+        return (
+          <>
+            <TextField
+              fullWidth
+              label="Attribute Name"
+              name="attributeName"
+              value={formData.parameters?.attributeName || ''}
+              onChange={(e) => handleParameterChange('attributeName', e.target.value)}
+              error={!!validationErrors['parameters.attributeName']}
+              helperText={validationErrors['parameters.attributeName']}
+              required
+              margin="normal"
+            />
+            <TextField
+              fullWidth
+              label="Expected Value"
+              name="expectedValue"
+              value={formData.parameters?.expectedValue || ''}
+              onChange={(e) => handleParameterChange('expectedValue', e.target.value)}
+              error={!!validationErrors['parameters.expectedValue']}
+              helperText={validationErrors['parameters.expectedValue']}
+              required
+              margin="normal"
+            />
+          </>
+        );
+      
+      case TestStepActionType.ASSERT_URL:
+        return (
+          <TextField
+            fullWidth
+            label="Expected URL"
+            name="expectedUrl"
+            value={formData.parameters?.expectedUrl || ''}
+            onChange={(e) => handleParameterChange('expectedUrl', e.target.value)}
+            error={!!validationErrors['parameters.expectedUrl']}
+            helperText={validationErrors['parameters.expectedUrl']}
+            required
+            margin="normal"
+          />
+        );
+      
+      case TestStepActionType.ASSERT_TITLE:
+        return (
+          <TextField
+            fullWidth
+            label="Expected Title"
+            name="expectedTitle"
+            value={formData.parameters?.expectedTitle || ''}
+            onChange={(e) => handleParameterChange('expectedTitle', e.target.value)}
+            error={!!validationErrors['parameters.expectedTitle']}
+            helperText={validationErrors['parameters.expectedTitle']}
+            required
+            margin="normal"
+          />
+        );
+      
+      case TestStepActionType.EXECUTE_JS:
+        return (
+          <TextField
+            fullWidth
+            label="JavaScript Code"
+            name="script"
+            value={formData.parameters?.script || ''}
+            onChange={(e) => handleParameterChange('script', e.target.value)}
+            error={!!validationErrors['parameters.script']}
+            helperText={validationErrors['parameters.script']}
+            required
+            multiline
+            rows={4}
+            margin="normal"
+          />
+        );
+      
+      default:
+        return null;
+    }
+  };
+  
+  return (
+    <Box>
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <FormControl fullWidth error={!!validationErrors.action}>
+            <InputLabel id="action-label">Action</InputLabel>
+            <Select
+              labelId="action-label"
+              name="action"
+              value={formData.action}
+              onChange={handleChange}
+              required
+            >
+              <MenuItem value={TestStepActionType.NAVIGATE}>Navigate</MenuItem>
+              <MenuItem value={TestStepActionType.CLICK}>Click</MenuItem>
+              <MenuItem value={TestStepActionType.TYPE}>Type</MenuItem>
+              <MenuItem value={TestStepActionType.SELECT}>Select</MenuItem>
+              <MenuItem value={TestStepActionType.CHECK}>Check</MenuItem>
+              <MenuItem value={TestStepActionType.UNCHECK}>Uncheck</MenuItem>
+              <MenuItem value={TestStepActionType.HOVER}>Hover</MenuItem>
+              <MenuItem value={TestStepActionType.FOCUS}>Focus</MenuItem>
+              <MenuItem value={TestStepActionType.PRESS_KEY}>Press Key</MenuItem>
+              <MenuItem value={TestStepActionType.WAIT_FOR_ELEMENT}>Wait for Element</MenuItem>
+              <MenuItem value={TestStepActionType.WAIT_FOR_NAVIGATION}>Wait for Navigation</MenuItem>
+              <MenuItem value={TestStepActionType.WAIT_FOR_TIMEOUT}>Wait Timeout</MenuItem>
+              <MenuItem value={TestStepActionType.ASSERT_VISIBLE}>Assert Visible</MenuItem>
+              <MenuItem value={TestStepActionType.ASSERT_TEXT}>Assert Text</MenuItem>
+              <MenuItem value={TestStepActionType.ASSERT_VALUE}>Assert Value</MenuItem>
+              <MenuItem value={TestStepActionType.ASSERT_ATTRIBUTE}>Assert Attribute</MenuItem>
+              <MenuItem value={TestStepActionType.ASSERT_URL}>Assert URL</MenuItem>
+              <MenuItem value={TestStepActionType.ASSERT_TITLE}>Assert Title</MenuItem>
+              <MenuItem value={TestStepActionType.EXECUTE_JS}>Execute JavaScript</MenuItem>
+              <MenuItem value={TestStepActionType.SCREENSHOT}>Take Screenshot</MenuItem>
+            </Select>
+            {validationErrors.action && (
+              <FormHelperText error>{validationErrors.action}</FormHelperText>
+            )}
+          </FormControl>
+        </Grid>
+        
+        {requiresSelector(formData.action) && (
+          <>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth error={!!validationErrors.selectorType}>
+                <InputLabel id="selector-type-label">Selector Type</InputLabel>
+                <Select
+                  labelId="selector-type-label"
+                  name="selectorType"
+                  value={formData.selectorType}
+                  onChange={handleChange}
+                  required
+                >
+                  <MenuItem value={SelectorType.CSS}>CSS</MenuItem>
+                  <MenuItem value={SelectorType.XPATH}>XPath</MenuItem>
+                  <MenuItem value={SelectorType.ID}>ID</MenuItem>
+                  <MenuItem value={SelectorType.NAME}>Name</MenuItem>
+                  <MenuItem value={SelectorType.CLASS}>Class</MenuItem>
+                  <MenuItem value={SelectorType.TAG}>Tag</MenuItem>
+                  <MenuItem value={SelectorType.LINK_TEXT}>Link Text</MenuItem>
+                  <MenuItem value={SelectorType.PARTIAL_LINK_TEXT}>Partial Link Text</MenuItem>
+                  <MenuItem value={SelectorType.TEXT}>Text</MenuItem>
+                  <MenuItem value={SelectorType.CONTAINS_TEXT}>Contains Text</MenuItem>
+                </Select>
+                {validationErrors.selectorType && (
+                  <FormHelperText error>{validationErrors.selectorType}</FormHelperText>
+                )}
+              </FormControl>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Selector"
+                name="selector"
+                value={formData.selector}
+                onChange={handleChange}
+                error={!!validationErrors.selector}
+                helperText={validationErrors.selector}
+                required
+              />
+            </Grid>
+          </>
+        )}
+        
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Description"
+            name="description"
+            value={formData.description || ''}
+            onChange={handleChange}
+          />
+        </Grid>
+        
+        <Grid item xs={12}>
+          {renderParameterFields()}
+        </Grid>
+        
+        <Grid item xs={12}>
+          <Accordion 
+            expanded={advancedSettingsOpen} 
+            onChange={() => setAdvancedSettingsOpen(!advancedSettingsOpen)}
+          >
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography>Advanced Settings</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={4}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        name="isScreenshotRequired"
+                        checked={formData.isScreenshotRequired || false}
+                        onChange={handleSwitchChange}
+                      />
+                    }
+                    label={
+                      <Box display="flex" alignItems="center">
+                        Screenshot Required
+                        <Tooltip title="Capture screenshot when this step executes">
+                          <IconButton size="small">
+                            <HelpIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    }
+                  />
+                </Grid>
+                
+                <Grid item xs={12} md={4}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        name="isOptional"
+                        checked={formData.isOptional || false}
+                        onChange={handleSwitchChange}
+                      />
+                    }
+                    label={
+                      <Box display="flex" alignItems="center">
+                        Optional Step
+                        <Tooltip title="Test will continue even if this step fails">
+                          <IconButton size="small">
+                            <HelpIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    }
+                  />
+                </Grid>
+                
+                <Grid item xs={12} md={4}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        name="isConditional"
+                        checked={formData.isConditional || false}
+                        onChange={handleSwitchChange}
+                      />
+                    }
+                    label={
+                      <Box display="flex" alignItems="center">
+                        Conditional
+                        <Tooltip title="This step will only execute if the condition is met">
+                          <IconButton size="small">
+                            <HelpIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    }
+                  />
+                </Grid>
+                
+                {formData.isConditional && (
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Condition Expression"
+                      name="conditionalExpression"
+                      value={formData.conditionalExpression || ''}
+                      onChange={handleChange}
+                      helperText="JavaScript expression that must evaluate to true"
+                    />
+                  </Grid>
+                )}
+              </Grid>
+            </AccordionDetails>
+          </Accordion>
+        </Grid>
+      </Grid>
+      
+      <Box display="flex" justifyContent="flex-end" mt={3}>
+        <Button
+          variant="outlined"
+          color="secondary"
+          onClick={onCancel}
+          startIcon={<CancelIcon />}
+          sx={{ mr: 1 }}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSave}
+          startIcon={<SaveIcon />}
+        >
+          Save Step
+        </Button>
+      </Box>
+    </Box>
+  );
+};
+
+export default TestStepForm;
+
+
