@@ -1,0 +1,342 @@
+@echo off
+echo Creating CSTestForge project structure with Java 17 support...
+
+REM Root project directory
+mkdir CSTestForge
+cd CSTestForge
+
+REM Create backend structure (Java 17/Spring Boot)
+mkdir backend
+cd backend
+
+REM Maven configuration
+echo // Maven project configuration file > pom.xml
+
+REM Main source code structure
+mkdir src
+cd src
+mkdir main
+mkdir test
+cd main
+
+REM Java source code
+mkdir java
+cd java
+mkdir com
+cd com
+mkdir cstestforge
+cd cstestforge
+
+REM Main application class
+mkdir application
+cd application
+echo // Main application class > CSTestForgeApplication.java
+cd ..
+
+REM Controllers
+mkdir controllers
+cd controllers
+echo // Main application controller > MainController.java
+echo // Project controller > ProjectController.java
+echo // Test case controller > TestCaseController.java
+echo // Test execution controller > TestExecutionController.java
+echo // API testing controller > ApiTestingController.java
+echo // Database testing controller > DatabaseTestingController.java
+echo // BDD testing controller > BddTestingController.java
+echo // Test recorder controller > TestRecorderController.java
+echo // Integration controller > IntegrationController.java
+cd ..
+
+REM Services
+mkdir services
+cd services
+echo // Self-healing service > SelfHealingService.java
+echo // Playwright browser service > PlaywrightBrowserService.java
+echo // Custom reporting service > ReportingService.java
+echo // NLP service > NlpService.java
+echo // Project management service > ProjectManagementService.java
+echo // File system repository service > FileSystemRepository.java
+echo // Test suite service > TestSuiteService.java
+echo // Execution service > ExecutionService.java
+cd ..
+
+REM Models
+mkdir models
+cd models
+echo // Project model > Project.java
+echo // Test case model > TestCase.java
+echo // Test step model > TestStep.java
+echo // Test suite model > TestSuite.java
+echo // Test execution model > TestExecution.java
+echo // API test model > ApiTest.java
+echo // Database test model > DatabaseTest.java
+echo // BDD feature model > BddFeature.java
+echo // Integration model > Integration.java
+cd ..
+
+REM Repository
+mkdir repository
+cd repository
+echo // File system repository implementation > FileSystemRepositoryImpl.java
+cd ..
+
+REM Configuration
+mkdir config
+cd config
+echo // Spring Boot configuration > ApplicationConfig.java
+echo // WebSocket configuration > WebSocketConfig.java
+echo // Security configuration > SecurityConfig.java
+cd ..
+
+REM Utils
+mkdir utils
+cd utils
+echo // Browser utilities > BrowserUtils.java
+echo // Selector utilities > SelectorUtils.java
+echo // Test data utilities > TestDataUtils.java
+echo // NLP utilities > NlpUtils.java
+cd ..
+
+REM Exceptions
+mkdir exceptions
+cd exceptions
+echo // Custom exceptions > CSTestForgeException.java
+cd ..
+
+REM DTO (Data Transfer Objects)
+mkdir dto
+cd dto
+echo // Test case DTO > TestCaseDto.java
+echo // Execution request DTO > ExecutionRequestDto.java
+echo // API test DTO > ApiTestDto.java
+cd ..
+
+REM Back to src/main
+cd ../../../../
+
+REM Resources
+mkdir resources
+cd resources
+echo // Application properties > application.properties
+echo // Logging configuration > logback.xml
+
+REM Static resources folder
+mkdir static
+cd static
+echo // Static placeholder > placeholder.txt
+cd ..
+
+REM Templates
+mkdir templates
+cd templates
+echo // Template placeholder > placeholder.txt
+cd ..
+
+REM Back to backend root
+cd ../../../
+
+REM Create frontend structure (React/TypeScript)
+cd ..
+mkdir frontend
+cd frontend
+
+REM Package configuration
+echo // Package configuration > package.json
+echo // TypeScript configuration > tsconfig.json
+echo // React configuration > .env
+echo // ESLint configuration > .eslintrc.js
+echo // Prettier configuration > .prettierrc.js
+echo // Build script > build.bat
+
+REM Source code
+mkdir public
+cd public
+echo // HTML entry point > index.html
+echo // Manifest > manifest.json
+echo // Favicon > favicon.ico
+cd ..
+
+REM Source directory
+mkdir src
+cd src
+
+REM React entry points
+echo // React main entry point > index.tsx
+echo // App component > App.tsx
+
+REM Components directory
+mkdir components
+cd components
+
+REM Common components
+mkdir common
+cd common
+echo // Code editor component > CodeEditor.tsx
+echo // Navigation component > Navigation.tsx
+echo // Header component > Header.tsx
+echo // Footer component > Footer.tsx
+echo // Sidebar component > Sidebar.tsx
+echo // Layout component > Layout.tsx
+cd ..
+
+REM Recorder components
+mkdir recorder
+cd recorder
+echo // Element inspector component > ElementInspector.tsx
+echo // Selector generator component > SelectorGenerator.tsx
+echo // Assertion panel component > AssertionPanel.tsx
+echo // Wait condition panel component > WaitConditionPanel.tsx
+echo // Data input panel component > DataInputPanel.tsx
+echo // Recorder panel component > RecorderPanel.tsx
+cd ..
+
+REM BDD components
+mkdir bdd
+cd bdd
+echo // Feature editor component > FeatureEditor.tsx
+echo // Scenario builder component > ScenarioBuilder.tsx
+echo // Scenario editor component > ScenarioEditor.tsx
+cd ..
+
+REM Self-healing components
+mkdir selfHealing
+cd selfHealing
+echo // Healing history component > HealingHistory.tsx
+echo // Selector optimizer component > SelectorOptimizer.tsx
+echo // Healing rules component > HealingRules.tsx
+cd ..
+
+REM NLP components
+mkdir nlp
+cd nlp
+echo // Text to test component > TextToTest.tsx
+echo // NLP results component > NLPResults.tsx
+echo // Step mapping component > StepMapping.tsx
+cd ..
+
+REM Integration components
+mkdir integration
+cd integration
+echo // Git integration component > GitIntegration.tsx
+echo // Azure DevOps integration component > AzureDevOpsIntegration.tsx
+cd ..
+
+REM Back to components
+cd ..
+
+REM Pages directory
+mkdir pages
+cd pages
+
+REM Main pages
+echo // Dashboard page > Dashboard.tsx
+echo // Database testing page > DatabaseTesting.tsx
+echo // BDD testing page > BddTesting.tsx
+echo // API testing page > ApiTesting.tsx
+echo // Integration page > Integration.tsx
+echo // Test suite page > TestSuite.tsx
+echo // Login page > Login.tsx
+echo // Register page > Register.tsx
+echo // User profile page > UserProfile.tsx
+echo // Test cases page > TestCases.tsx
+echo // Test case editor page > TestCaseEditor.tsx
+echo // Test execution page > TestExecution.tsx
+
+cd ..
+
+REM Contexts directory
+mkdir contexts
+cd contexts
+echo // API context > ApiContext.tsx
+echo // Authentication context > AuthContext.tsx
+echo // Project context > ProjectContext.tsx
+echo // Test context > TestContext.tsx
+cd ..
+
+REM Hooks directory
+mkdir hooks
+cd hooks
+echo // Use API hook > useApi.ts
+echo // Use WebSocket hook > useWebSocket.ts
+echo // Use Browser hook > useBrowser.ts
+cd ..
+
+REM Utils directory
+mkdir utils
+cd utils
+echo // Date utilities > date.ts
+echo // Validation utilities > validation.ts
+echo // Formatter utilities > formatter.ts
+echo // Object utilities > object.ts
+echo // Browser utilities > browser.ts
+echo // WebSocket utilities > websocket.ts
+cd ..
+
+REM Types directory
+mkdir types
+cd types
+echo // Test case types > testcase.ts
+echo // Project types > project.ts
+echo // Auth types > auth.ts
+echo // API types > api.ts
+cd ..
+
+REM Styles directory
+mkdir styles
+cd styles
+echo // Global styles > global.css
+echo // Theme configuration > theme.ts
+cd ..
+
+REM Asset directory
+mkdir assets
+cd assets
+mkdir images
+cd images
+echo // Logo placeholder > logo.svg
+cd ..
+mkdir icons
+cd icons
+echo // Icon placeholder > icon.svg
+cd ..
+cd ..
+
+REM Services directory
+mkdir services
+cd services
+echo // API service > api.ts
+echo // Authentication service > auth.ts
+echo // WebSocket service > websocket.ts
+echo // Browser service > browser.ts
+cd ..
+
+REM Config directory
+mkdir config
+cd config
+echo // Application configuration > config.ts
+echo // Routes configuration > routes.ts
+cd ..
+
+REM Back to frontend root
+cd ..
+
+REM Testing directory
+mkdir __tests__
+cd __tests__
+echo // Test setup > setup.ts
+mkdir components
+mkdir pages
+mkdir utils
+cd ..
+
+REM Back to project root
+cd ..
+
+echo CSTestForge project structure created successfully!
+echo.
+echo To set up the project:
+echo 1. Navigate to the frontend directory and run: npm install
+echo 2. Build frontend with: npm run build
+echo 3. Navigate to backend directory and run: mvn clean package
+echo 4. The complete application will be available in backend/target/cstestforge-1.0.0-SNAPSHOT.jar
+echo.
