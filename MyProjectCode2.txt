@@ -1,0 +1,5768 @@
+/**
+ * API Utilities
+ * Provides a configured Axios instance for API communication
+ */
+import axios, { AxiosInstance, AxiosError, AxiosResponse } from 'axios';
+
+// Default config for the API
+const config = {
+  baseURL: process.env.REACT_APP_API_BASE_URL || '/api',
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+};
+
+// Create a preconfigured Axios instance
+const instance: AxiosInstance = axios.create(config);
+
+// Request interceptor for API calls
+instance.interceptors.request.use(
+  config => {
+    // Get the auth token from local storage if it exists
+    const token = localStorage.getItem('authToken');
+    
+    // If token exists, add it to the headers
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    return config;
+  },
+  error => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor for API calls
+instance.interceptors.response.use(
+  (response: AxiosResponse) => {
+    return response;
+  },
+  (error: AxiosError) => {
+    // Handle session expiration (401 Unauthorized)
+    if (error.response?.status === 401) {
+      // Clear the auth token
+      localStorage.removeItem('authToken');
+      
+      // Redirect to login page
+      window.location.href = '/login';
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+/**
+ * Extract error message from API error
+ * @param error The error object from the API call
+ * @returns A user-friendly error message
+ */
+export const extractErrorMessage = (error: any): string => {
+  // If the error has a response with data and message, use that
+  if (error.response?.data?.message) {
+    return error.response.data.message;
+  }
+  
+  // If the error has a response with data and error, use that
+  if (error.response?.data?.error) {
+    return error.response.data.error;
+  }
+  
+  // If the error has a response with data that is a string, use that
+  if (error.response?.data && typeof error.response.data === 'string') {
+    return error.response.data;
+  }
+  
+  // If the error has a message property (like a regular JavaScript Error), use that
+  if (error.message) {
+    // For network errors (e.g., server not available)
+    if (error.message === 'Network Error') {
+      return 'Unable to connect to the server. Please check your internet connection.';
+    }
+    
+    // For request timeout
+    if (error.message.includes('timeout')) {
+      return 'Request timed out. Please try again.';
+    }
+    
+    return error.message;
+  }
+  
+  // Default fallback message
+  return 'An unexpected error occurred. Please try again.';
+};
+
+/**
+ * Check if the error is a validation error (400 Bad Request)
+ * @param error The error object from the API call
+ * @returns True if the error is a validation error, false otherwise
+ */
+export const isValidationError = (error: any): boolean => {
+  return error.response?.status === 400;
+};
+
+/**
+ * Get validation errors from API error
+ * @param error The error object from the API call
+ * @returns An object with field names as keys and error messages as values
+ */
+export const getValidationErrors = (error: any): Record<string, string> => {
+  if (!isValidationError(error)) {
+    return {};
+  }
+  
+  // Different APIs may format validation errors differently
+  // Adjust this based on your API response format
+  if (error.response?.data?.errors) {
+    const result: Record<string, string> = {};
+    
+    // Handle Spring Boot validation errors format
+    if (Array.isArray(error.response.data.errors)) {
+      error.response.data.errors.forEach((err: any) => {
+        if (err.field && err.defaultMessage) {
+          result[err.field] = err.defaultMessage;
+        }
+      });
+    } else if (typeof error.response.data.errors === 'object') {
+      // Handle simple object format
+      return error.response.data.errors;
+    }
+    
+    return result;
+  }
+  
+  return {};
+};
+
+export const api = instance;
+
+/**
+ * Notification Context
+ * Provides a global notification system for the application
+ */
+import React, { createContext, useState, useContext, useCallback, ReactNode } from 'react';
+import { Snackbar, Alert, AlertColor } from '@mui/material';
+
+interface NotificationContextProps {
+  showNotification: (message: string, severity?: AlertColor, duration?: number) => void;
+  hideNotification: () => void;
+}
+
+interface NotificationProviderProps {
+  children: ReactNode;
+}
+
+interface NotificationState {
+  open: boolean;
+  message: string;
+  severity: AlertColor;
+  duration: number;
+}
+
+// Create the context
+const NotificationContext = createContext<NotificationContextProps>({
+  showNotification: () => {},
+  hideNotification: () => {},
+});
+
+// Custom hook to use the notification context
+export const useNotification = () => useContext(NotificationContext);
+
+// Provider component
+export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
+  const [notification, setNotification] = useState<NotificationState>({
+    open: false,
+    message: '',
+    severity: 'info',
+    duration: 6000, // Default duration: 6 seconds
+  });
+
+  // Show a notification
+  const showNotification = useCallback((
+    message: string,
+    severity: AlertColor = 'info',
+    duration: number = 6000
+  ) => {
+    setNotification({
+      open: true,
+      message,
+      severity,
+      duration,
+    });
+  }, []);
+
+  // Hide the current notification
+  const hideNotification = useCallback(() => {
+    setNotification(prev => ({ ...prev, open: false }));
+  }, []);
+
+  // Handle snackbar close
+  const handleClose = (event?: React.SyntheticEvent | Event, reason?: string) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    hideNotification();
+  };
+
+  return (
+    <NotificationContext.Provider value={{ showNotification, hideNotification }}>
+      {children}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={notification.duration}
+        onClose={handleClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={handleClose} severity={notification.severity} sx={{ width: '100%' }}>
+          {notification.message}
+        </Alert>
+      </Snackbar>
+    </NotificationContext.Provider>
+  );
+};
+
+export default NotificationContext;
+
+
+package com.cstestforge.service.execution;
+
+import com.cstestforge.model.execution.*;
+import com.cstestforge.model.test.TestCase;
+import com.cstestforge.model.test.TestStep;
+import com.cstestforge.model.test.TestSuite;
+import com.cstestforge.repository.ExecutionRepository;
+import com.cstestforge.repository.TestCaseRepository;
+import com.cstestforge.repository.TestSuiteRepository;
+import com.cstestforge.service.browser.BrowserService;
+import com.cstestforge.service.selfhealing.SelfHealingService;
+import com.cstestforge.utils.FileUtils;
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.Page;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.*;
+
+@Service
+public class ExecutionServiceImpl implements ExecutionService {
+    private static final Logger logger = LoggerFactory.getLogger(ExecutionServiceImpl.class);
+
+    @Autowired
+    private ExecutionRepository executionRepository;
+
+    @Autowired
+    private TestCaseRepository testCaseRepository;
+
+    @Autowired
+    private TestSuiteRepository testSuiteRepository;
+
+    @Autowired
+    private BrowserService browserService;
+
+    @Autowired
+    private SelfHealingService selfHealingService;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
+    @Value("${application.storage.executions-dir}")
+    private String executionsDirectory;
+
+    // Map to store active executions
+    private final Map<String, ExecutionContext> activeExecutions = new ConcurrentHashMap<>();
+    
+    // Thread pool for parallel test execution
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
+
+    @Override
+    public ExecutionPlan createExecutionPlan(ExecutionPlan plan) {
+        logger.info("Creating execution plan: {}", plan.getName());
+        return executionRepository.saveExecutionPlan(plan);
+    }
+
+    @Override
+    public ExecutionPlan getExecutionPlan(String planId) {
+        logger.debug("Getting execution plan: {}", planId);
+        return executionRepository.getExecutionPlan(planId);
+    }
+
+    @Override
+    public List<ExecutionPlan> getProjectExecutionPlans(String projectId) {
+        logger.debug("Getting execution plans for project: {}", projectId);
+        return executionRepository.getProjectExecutionPlans(projectId);
+    }
+
+    @Override
+    @Async
+    public ExecutionResult executeTests(String planId) {
+        logger.info("Executing tests according to plan: {}", planId);
+        
+        // Get execution plan
+        ExecutionPlan plan = executionRepository.getExecutionPlan(planId);
+        if (plan == null) {
+            logger.error("Execution plan not found: {}", planId);
+            throw new IllegalArgumentException("Execution plan not found: " + planId);
+        }
+        
+        // Create execution result
+        ExecutionResult result = new ExecutionResult();
+        result.setExecutionPlanId(planId);
+        result.setProjectId(plan.getProjectId());
+        result.setBrowser(plan.getBrowser());
+        result.setEnvironment("default"); // Could be parametrized
+        result.setExecutedBy(plan.getCreatedBy());
+        
+        // Initialize execution context
+        ExecutionContext context = new ExecutionContext(result.getId(), plan, result);
+        activeExecutions.put(result.getId(), context);
+        
+        // Save initial result
+        executionRepository.saveExecutionResult(result);
+        
+        // Create execution directory
+        createExecutionDirectory(result.getId());
+        
+        // Update execution status
+        ExecutionStatus status = new ExecutionStatus();
+        status.setExecutionId(result.getId());
+        status.setStartTime(result.getStartTime());
+        status.setStatus("running");
+        context.setStatus(status);
+        
+        // Send initial status update
+        sendStatusUpdate(status);
+        
+        // Start execution in a separate thread
+        CompletableFuture.runAsync(() -> {
+            try {
+                // Execute test cases
+                executeTestCasesFromPlan(context);
+                
+                // Update execution result
+                result.setEndTime(LocalDateTime.now());
+                result.setStatus("completed");
+                executionRepository.saveExecutionResult(result);
+                
+                // Update execution status
+                status.setEndTime(LocalDateTime.now());
+                status.setStatus("completed");
+                status.setProgress(100);
+                sendStatusUpdate(status);
+            } catch (Exception e) {
+                logger.error("Error executing tests", e);
+                
+                // Update execution result with error
+                result.setEndTime(LocalDateTime.now());
+                result.setStatus("failed");
+                executionRepository.saveExecutionResult(result);
+                
+                // Update execution status with error
+                status.setEndTime(LocalDateTime.now());
+                status.setStatus("failed");
+                sendStatusUpdate(status);
+            } finally {
+                // Remove from active executions
+                activeExecutions.remove(result.getId());
+            }
+        });
+        
+        return result;
+    }
+
+    @Override
+    @Async
+    public ExecutionResult executeTestCase(String projectId, String testCaseId, Map<String, String> variables) {
+        logger.info("Executing test case: {} in project: {}", testCaseId, projectId);
+        
+        // Get test case
+        TestCase testCase = testCaseRepository.getTestCase(projectId, testCaseId);
+        if (testCase == null) {
+            logger.error("Test case not found: {} in project: {}", testCaseId, projectId);
+            throw new IllegalArgumentException("Test case not found: " + testCaseId);
+        }
+        
+        // Create execution result
+        ExecutionResult result = new ExecutionResult();
+        result.setProjectId(projectId);
+        result.setBrowser(testCase.getBrowserSettings() != null ? 
+                testCase.getBrowserSettings().getBrowser() : "chromium");
+        result.setEnvironment("default"); // Could be parametrized
+        
+        // Create execution plan on the fly
+        ExecutionPlan plan = new ExecutionPlan();
+        plan.setProjectId(projectId);
+        plan.setName("Single Test Case Execution: " + testCase.getName());
+        plan.setTestCaseIds(Collections.singletonList(testCaseId));
+        plan.setBrowser(result.getBrowser());
+        plan.setHeadless(testCase.getBrowserSettings() != null ? 
+                testCase.getBrowserSettings().isHeadless() : false);
+        
+        if (variables != null) {
+            plan.setEnvironmentVariables(variables);
+        }
+        
+        // Initialize execution context
+        ExecutionContext context = new ExecutionContext(result.getId(), plan, result);
+        activeExecutions.put(result.getId(), context);
+        
+        // Save initial result
+        executionRepository.saveExecutionResult(result);
+        
+        // Create execution directory
+        createExecutionDirectory(result.getId());
+        
+        // Update execution status
+        ExecutionStatus status = new ExecutionStatus();
+        status.setExecutionId(result.getId());
+        status.setStartTime(result.getStartTime());
+        status.setStatus("running");
+        context.setStatus(status);
+        
+        // Send initial status update
+        sendStatusUpdate(status);
+        
+        // Start execution in a separate thread
+        CompletableFuture.runAsync(() -> {
+            try {
+                // Execute test case
+                TestCaseResult testCaseResult = executeTestCase(context, testCase);
+                result.addTestCaseResult(testCaseResult);
+                
+                // Update execution result
+                result.setEndTime(LocalDateTime.now());
+                result.setStatus(testCaseResult.getStatus());
+                executionRepository.saveExecutionResult(result);
+                
+                // Update execution status
+                status.setEndTime(LocalDateTime.now());
+                status.setStatus(testCaseResult.getStatus());
+                status.setProgress(100);
+                sendStatusUpdate(status);
+            } catch (Exception e) {
+                logger.error("Error executing test case", e);
+                
+                // Update execution result with error
+                result.setEndTime(LocalDateTime.now());
+                result.setStatus("failed");
+                executionRepository.saveExecutionResult(result);
+                
+                // Update execution status with error
+                status.setEndTime(LocalDateTime.now());
+                status.setStatus("failed");
+                sendStatusUpdate(status);
+            } finally {
+                // Remove from active executions
+                activeExecutions.remove(result.getId());
+            }
+        });
+        
+        return result;
+    }
+
+    @Override
+    @Async
+    public ExecutionResult executeTestSuite(String projectId, String testSuiteId, Map<String, String> variables) {
+        logger.info("Executing test suite: {} in project: {}", testSuiteId, projectId);
+        
+        // Get test suite
+        TestSuite testSuite = testSuiteRepository.getTestSuite(projectId, testSuiteId);
+        if (testSuite == null) {
+            logger.error("Test suite not found: {} in project: {}", testSuiteId, projectId);
+            throw new IllegalArgumentException("Test suite not found: " + testSuiteId);
+        }
+        
+        // Create execution result
+        ExecutionResult result = new ExecutionResult();
+        result.setProjectId(projectId);
+        result.setBrowser("chromium"); // Default, could be parametrized
+        result.setEnvironment("default"); // Could be parametrized
+        
+        // Create execution plan on the fly
+        ExecutionPlan plan = new ExecutionPlan();
+        plan.setProjectId(projectId);
+        plan.setName("Test Suite Execution: " + testSuite.getName());
+        plan.setTestSuiteIds(Collections.singletonList(testSuiteId));
+        plan.setBrowser(result.getBrowser());
+        
+        if (variables != null) {
+            plan.setEnvironmentVariables(variables);
+        }
+        
+        // Initialize execution context
+        ExecutionContext context = new ExecutionContext(result.getId(), plan, result);
+        activeExecutions.put(result.getId(), context);
+        
+        // Save initial result
+        executionRepository.saveExecutionResult(result);
+        
+        // Create execution directory
+        createExecutionDirectory(result.getId());
+        
+        // Update execution status
+        ExecutionStatus status = new ExecutionStatus();
+        status.setExecutionId(result.getId());
+        status.setStartTime(result.getStartTime());
+        status.setStatus("running");
+        context.setStatus(status);
+        
+        // Send initial status update
+        sendStatusUpdate(status);
+        
+        // Start execution in a separate thread
+        CompletableFuture.runAsync(() -> {
+            try {
+                // Execute test cases in the suite
+                List<TestCase> testCases = new ArrayList<>();
+                
+                // Resolve test cases from test suite
+                for (String testCaseId : testSuite.getTestCaseIds()) {
+                    TestCase testCase = testCaseRepository.getTestCase(projectId, testCaseId);
+                    if (testCase != null) {
+                        testCases.add(testCase);
+                    } else {
+                        logger.warn("Test case not found: {} in suite: {}", testCaseId, testSuiteId);
+                    }
+                }
+                
+                // Update total steps count in status
+                int totalSteps = testCases.stream()
+                        .mapToInt(tc -> tc.getSteps().size())
+                        .sum();
+                status.setTotalSteps(totalSteps);
+                
+                // Execute test cases
+                for (TestCase testCase : testCases) {
+                    status.setCurrentTestCase(testCase.getName());
+                    sendStatusUpdate(status);
+                    
+                    TestCaseResult testCaseResult = executeTestCase(context, testCase);
+                    result.addTestCaseResult(testCaseResult);
+                    
+                    // Update status after each test case
+                    status.getTestCaseStatuses().put(testCase.getId(), testCaseResult.getStatus());
+                    status.setProgress((int) ((double) status.getCompletedSteps() / totalSteps * 100));
+                    sendStatusUpdate(status);
+                }
+                
+                // Update execution result
+                result.setEndTime(LocalDateTime.now());
+                result.calculateStats(); // Recalculate stats based on test case results
+                executionRepository.saveExecutionResult(result);
+                
+                // Update execution status
+                status.setEndTime(LocalDateTime.now());
+                status.setStatus(result.getStatus());
+                status.setProgress(100);
+                sendStatusUpdate(status);
+            } catch (Exception e) {
+                logger.error("Error executing test suite", e);
+                
+                // Update execution result with error
+                result.setEndTime(LocalDateTime.now());
+                result.setStatus("failed");
+                executionRepository.saveExecutionResult(result);
+                
+                // Update execution status with error
+                status.setEndTime(LocalDateTime.now());
+                status.setStatus("failed");
+                sendStatusUpdate(status);
+            } finally {
+                // Remove from active executions
+                activeExecutions.remove(result.getId());
+            }
+        });
+        
+        return result;
+    }
+
+    @Override
+    public ExecutionResult getExecutionResult(String executionId) {
+        logger.debug("Getting execution result: {}", executionId);
+        return executionRepository.getExecutionResult(executionId);
+    }
+
+    @Override
+    public List<ExecutionResult> getProjectExecutionResults(String projectId) {
+        logger.debug("Getting execution results for project: {}", projectId);
+        return executionRepository.getProjectExecutionResults(projectId);
+    }
+
+    @Override
+    public void stopExecution(String executionId) {
+        logger.info("Stopping execution: {}", executionId);
+        
+        ExecutionContext context = activeExecutions.get(executionId);
+        if (context == null) {
+            logger.warn("Execution not found or already completed: {}", executionId);
+            return;
+        }
+        
+        context.setStopRequested(true);
+        
+        // Close browser if open
+        if (context.getBrowser() != null) {
+            try {
+                context.getBrowser().close();
+            } catch (Exception e) {
+                logger.error("Error closing browser", e);
+            }
+        }
+        
+        // Update execution result
+        ExecutionResult result = context.getResult();
+        result.setEndTime(LocalDateTime.now());
+        result.setStatus("stopped");
+        executionRepository.saveExecutionResult(result);
+        
+        // Update execution status
+        ExecutionStatus status = context.getStatus();
+        status.setEndTime(LocalDateTime.now());
+        status.setStatus("stopped");
+        sendStatusUpdate(status);
+        
+        // Remove from active executions
+        activeExecutions.remove(executionId);
+    }
+
+    @Override
+    public ExecutionStatus getExecutionStatus(String executionId) {
+        logger.debug("Getting execution status: {}", executionId);
+        
+        ExecutionContext context = activeExecutions.get(executionId);
+        if (context != null) {
+            return context.getStatus();
+        }
+        
+        // If execution is not active, try to reconstruct status from result
+        ExecutionResult result = executionRepository.getExecutionResult(executionId);
+        if (result != null) {
+            ExecutionStatus status = new ExecutionStatus();
+            status.setExecutionId(executionId);
+            status.setStartTime(result.getStartTime());
+            status.setEndTime(result.getEndTime());
+            status.setStatus(result.getStatus());
+            status.setProgress(result.getEndTime() != null ? 100 : 0);
+            
+            // Populate test case statuses
+            for (TestCaseResult tcResult : result.getTestCaseResults()) {
+                status.getTestCaseStatuses().put(tcResult.getTestCaseId(), tcResult.getStatus());
+                
+                // Populate step statuses
+                for (TestStepResult stepResult : tcResult.getStepResults()) {
+                    status.getStepStatuses().put(stepResult.getStepId(), stepResult.getStatus());
+                }
+            }
+            
+            return status;
+        }
+        
+        return null;
+    }
+
+    @Override
+    public byte[] getExecutionScreenshot(String executionId, String screenshotPath) {
+        logger.debug("Getting execution screenshot: {} - {}", executionId, screenshotPath);
+        
+        try {
+            Path path = Paths.get(executionsDirectory, executionId, "screenshots", screenshotPath);
+            if (Files.exists(path)) {
+                return Files.readAllBytes(path);
+            }
+        } catch (IOException e) {
+            logger.error("Error reading screenshot", e);
+        }
+        
+        return null;
+    }
+
+    @Override
+    public byte[] getExecutionVideo(String executionId, String videoPath) {
+        logger.debug("Getting execution video: {} - {}", executionId, videoPath);
+        
+        try {
+            Path path = Paths.get(executionsDirectory, executionId, "videos", videoPath);
+            if (Files.exists(path)) {
+                return Files.readAllBytes(path);
+            }
+        } catch (IOException e) {
+            logger.error("Error reading video", e);
+        }
+        
+        return null;
+    }
+
+    /**
+     * Execute test cases from execution plan
+     * @param context Execution context
+     */
+    private void executeTestCasesFromPlan(ExecutionContext context) {
+        ExecutionPlan plan = context.getPlan();
+        ExecutionResult result = context.getResult();
+        ExecutionStatus status = context.getStatus();
+        
+        List<TestCase> testCases = new ArrayList<>();
+        
+        // Resolve test cases from plan
+        if (plan.getTestCaseIds() != null) {
+            for (String testCaseId : plan.getTestCaseIds()) {
+                TestCase testCase = testCaseRepository.getTestCase(plan.getProjectId(), testCaseId);
+                if (testCase != null) {
+                    testCases.add(testCase);
+                } else {
+                    logger.warn("Test case not found: {}", testCaseId);
+                }
+            }
+        }
+        
+        // Resolve test cases from test suites
+        if (plan.getTestSuiteIds() != null) {
+            for (String testSuiteId : plan.getTestSuiteIds()) {
+                TestSuite testSuite = testSuiteRepository.getTestSuite(plan.getProjectId(), testSuiteId);
+                if (testSuite != null && testSuite.getTestCaseIds() != null) {
+                    for (String testCaseId : testSuite.getTestCaseIds()) {
+                        // Avoid duplicates
+                        if (testCases.stream().noneMatch(tc -> tc.getId().equals(testCaseId))) {
+                            TestCase testCase = testCaseRepository.getTestCase(plan.getProjectId(), testCaseId);
+                            if (testCase != null) {
+                                testCases.add(testCase);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Update total steps count in status
+        int totalSteps = testCases.stream()
+                .mapToInt(tc -> tc.getSteps().size())
+                .sum();
+        status.setTotalSteps(totalSteps);
+        
+        // Execute test cases
+        if (plan.isParallel() && testCases.size() > 1) {
+            // Parallel execution
+            executeTestCasesInParallel(context, testCases);
+        } else {
+            // Sequential execution
+            for (TestCase testCase : testCases) {
+                if (context.isStopRequested()) {
+                    logger.info("Execution stopped by user: {}", result.getId());
+                    break;
+                }
+                
+                status.setCurrentTestCase(testCase.getName());
+                sendStatusUpdate(status);
+                
+                TestCaseResult testCaseResult = executeTestCase(context, testCase);
+                result.addTestCaseResult(testCaseResult);
+                
+                // Update status after each test case
+                status.getTestCaseStatuses().put(testCase.getId(), testCaseResult.getStatus());
+                status.setProgress((int) ((double) status.getCompletedSteps() / totalSteps * 100));
+                sendStatusUpdate(status);
+            }
+        }
+    }
+
+    /**
+     * Execute test cases in parallel
+     * @param context Execution context
+     * @param testCases Test cases to execute
+     */
+    private void executeTestCasesInParallel(ExecutionContext context, List<TestCase> testCases) {
+        ExecutionPlan plan = context.getPlan();
+        ExecutionResult result = context.getResult();
+        ExecutionStatus status = context.getStatus();
+        
+        int maxWorkers = Math.min(plan.getMaxWorkers(), testCases.size());
+        
+        // Create a thread pool with the number of workers
+        ExecutorService executor = Executors.newFixedThreadPool(maxWorkers);
+        
+        // Submit test cases for execution
+        List<Future<TestCaseResult>> futures = new ArrayList<>();
+        for (TestCase testCase : testCases) {
+            if (context.isStopRequested()) {
+                logger.info("Execution stopped by user: {}", result.getId());
+                break;
+            }
+            
+            Future<TestCaseResult> future = executor.submit(() -> {
+                // Create a copy of execution context for this thread
+                ExecutionContext threadContext = new ExecutionContext(
+                        context.getExecutionId(), 
+                        context.getPlan(), 
+                        context.getResult()
+                );
+                
+                // Execute test case
+                return executeTestCase(threadContext, testCase);
+            });
+            
+            futures.add(future);
+        }
+        
+        // Wait for all test cases to complete
+        for (Future<TestCaseResult> future : futures) {
+            try {
+                TestCaseResult testCaseResult = future.get();
+                result.addTestCaseResult(testCaseResult);
+                
+                // Update status
+                status.getTestCaseStatuses().put(testCaseResult.getTestCaseId(), testCaseResult.getStatus());
+                status.setProgress((int) ((double) status.getCompletedSteps() / status.getTotalSteps() * 100));
+                sendStatusUpdate(status);
+            } catch (Exception e) {
+                logger.error("Error executing test case in parallel", e);
+            }
+        }
+        
+        // Shutdown executor
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(1, TimeUnit.MINUTES)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * Execute a single test case
+     * @param context Execution context
+     * @param testCase Test case to execute
+     * @return Test case result
+     */
+    private TestCaseResult executeTestCase(ExecutionContext context, TestCase testCase) {
+        ExecutionPlan plan = context.getPlan();
+        ExecutionStatus status = context.getStatus();
+        
+        TestCaseResult result = new TestCaseResult();
+        result.setTestCaseId(testCase.getId());
+        result.setTestCaseName(testCase.getName());
+        result.setExecutionId(context.getExecutionId());
+        
+        logger.info("Executing test case: {}", testCase.getName());
+        
+        // Send event that test case execution started
+        sendTestCaseStarted(context.getExecutionId(), result);
+        
+        try {
+            // Launch browser if not already launched
+            if (context.getBrowser() == null) {
+                Browser browser = launchBrowser(context);
+                context.setBrowser(browser);
+            }
+            
+            // Create a new page for this test case
+            Page page = context.getBrowser().newPage();
+            context.setPage(page);
+            
+            // Set timeout
+            double timeoutMultiplier = plan.getTimeoutMultiplier() > 0 ? plan.getTimeoutMultiplier() : 1.0;
+            int timeout = (int) (30000 * timeoutMultiplier); // Default timeout is 30 seconds
+            page.setDefaultTimeout(timeout);
+            
+            // Start video recording if needed
+            String videoPath = null;
+            if (testCase.isRecordVideo()) {
+                videoPath = startVideoRecording(context, testCase);
+                result.setVideoPath(videoPath);
+            }
+            
+            // Execute steps
+            for (TestStep step : testCase.getSteps()) {
+                if (context.isStopRequested()) {
+                    logger.info("Test case execution stopped by user: {}", testCase.getName());
+                    result.setStatus("stopped");
+                    break;
+                }
+                
+                TestStepResult stepResult = executeTestStep(context, step);
+                result.addStepResult(stepResult);
+                
+                // Update status
+                status.setCurrentStep(step.getName());
+                status.updateStepStatus(testCase.getId(), step.getId(), stepResult.getStatus());
+                sendStatusUpdate(status);
+                
+                // Send step result
+                sendStepResult(context.getExecutionId(), stepResult);
+                
+                // If step failed and failFast is enabled, stop execution
+                if (stepResult.getStatus().equals("failed") && testCase.isFailFast()) {
+                    logger.info("Test case failed due to step failure and failFast enabled: {}", testCase.getName());
+                    result.setStatus("failed");
+                    result.setError(stepResult.getError());
+                    break;
+                }
+            }
+            
+            // Stop video recording if started
+            if (videoPath != null) {
+                stopVideoRecording(context);
+            }
+            
+            // Close page
+            page.close();
+            
+            // Set end time and status
+            result.setEndTime(LocalDateTime.now());
+            if (result.getStatus() == null || result.getStatus().equals("running")) {
+                result.setStatus("passed");
+            }
+        } catch (Exception e) {
+            logger.error("Error executing test case: {}", testCase.getName(), e);
+            
+            // Set failure result
+            result.setStatus("failed");
+            result.setError(e.getMessage());
+            
+            // Take screenshot of failure if possible
+            if (context.getPage() != null) {
+                try {
+                    String screenshotPath = takeScreenshot(context, "failure");
+                    result.getScreenshotPaths().add(screenshotPath);
+                } catch (Exception ex) {
+                    logger.error("Error taking failure screenshot", ex);
+                }
+            }
+        }
+        
+        // Set end time if not already set
+        if (result.getEndTime() == null) {
+            result.setEndTime(LocalDateTime.now());
+        }
+        
+        // Send event that test case execution completed
+        sendTestCaseCompleted(context.getExecutionId(), result);
+        
+        return result;
+    }
+
+    /**
+     * Execute a single test step
+     * @param context Execution context
+     * @param step Test step to execute
+     * @return Test step result
+     */
+    private TestStepResult executeTestStep(ExecutionContext context, TestStep step) {
+        TestStepResult result = new TestStepResult();
+        result.setStepId(step.getId());
+        result.setAction(step.getType());
+        result.setSelector(step.getSelector());
+        result.setDescription(step.getName());
+        
+        logger.debug("Executing step: {}", step.getName());
+        
+        // Send event that step execution started
+        sendStepStarted(context.getExecutionId(), result);
+        
+        // Take screenshot before step execution if needed
+        if (step.isScreenshotBefore()) {
+            try {
+                String screenshotPath = takeScreenshot(context, "before_" + step.getId());
+                result.setScreenshotPath(screenshotPath);
+            } catch (Exception e) {
+                logger.error("Error taking before screenshot", e);
+            }
+        }
+        
+        try {
+            // Prepare retries
+            int maxRetries = context.getPlan().isRetryFailedTests() ? context.getPlan().getMaxRetries() : 0;
+            if (step.getRetryCount() != null && step.getRetryCount() > 0) {
+                maxRetries = step.getRetryCount();
+            }
+            
+            // Execute step with retries and self-healing
+            executeStepWithRetryAndHealing(context, step, result, maxRetries);
+            
+            // If step execution was successful
+            if (!result.getStatus().equals("failed")) {
+                // Take screenshot after step execution if needed
+                if (step.isScreenshotAfter()) {
+                    try {
+                        String screenshotPath = takeScreenshot(context, "after_" + step.getId());
+                        result.setScreenshotPath(screenshotPath);
+                    } catch (Exception e) {
+                        logger.error("Error taking after screenshot", e);
+                    }
+                }
+                
+                // Set success result
+                result.setStatus("passed");
+            }
+        } catch (Exception e) {
+            logger.error("Error executing step: {}", step.getName(), e);
+            
+            // Set failure result
+            result.setStatus("failed");
+            result.setError(e.getMessage());
+            
+            // Take screenshot of failure
+            try {
+                String screenshotPath = takeScreenshot(context, "failure_" + step.getId());
+                result.setScreenshotPath(screenshotPath);
+            } catch (Exception ex) {
+                logger.error("Error taking failure screenshot", ex);
+            }
+        }
+        
+        // Set end time
+        result.setEndTime(LocalDateTime.now());
+        
+        // Send event that step execution completed
+        sendStepCompleted(context.getExecutionId(), result);
+        
+        return result;
+    }
+
+    /**
+     * Execute step with retry and self-healing
+     * @param context Execution context
+     * @param step Test step
+     * @param result Step result
+     * @param maxRetries Maximum retries
+     */
+    private void executeStepWithRetryAndHealing(ExecutionContext context, TestStep step, TestStepResult result, int maxRetries) {
+        boolean success = false;
+        String originalSelector = step.getSelector();
+        String currentSelector = originalSelector;
+        
+        // Try to execute step
+        for (int retry = 0; retry <= maxRetries && !success; retry++) {
+            try {
+                // Execute step
+                executeStepAction(context, step, currentSelector);
+                success = true;
+            } catch (Exception e) {
+                logger.debug("Step execution failed, attempt {}/{}: {}", retry + 1, maxRetries + 1, e.getMessage());
+                
+                // If this is the last retry, set failure result
+                if (retry == maxRetries) {
+                    result.setStatus("failed");
+                    result.setError(e.getMessage());
+                    break;
+                }
+                
+                // Try self-healing if enabled and appropriate
+                TestCase testCase = findTestCaseByStepId(context, step.getId());
+                if (testCase != null && testCase.isSelfHealing()) {
+                    try {
+                        String healedSelector = selfHealingService.healSelector(
+                                context.getPage(), currentSelector, step.getType());
+                        
+                        if (healedSelector != null && !healedSelector.equals(currentSelector)) {
+                            logger.info("Self-healing applied, new selector: {}", healedSelector);
+                            currentSelector = healedSelector;
+                            result.setHealedSelector(healedSelector);
+                            result.setHealingApplied(true);
+                            
+                            // Record healing event
+                            selfHealingService.recordHealingEvent(
+                                    context.getExecutionId(), 
+                                    step.getId(), 
+                                    originalSelector, 
+                                    healedSelector);
+                            
+                            // Send healing event
+                            sendHealingEvent(context.getExecutionId(), step.getId(), originalSelector, healedSelector);
+                        }
+                    } catch (Exception healingEx) {
+                        logger.error("Error during self-healing", healingEx);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Execute step action
+     * @param context Execution context
+     * @param step Test step
+     * @param selector Selector to use
+     */
+    private void executeStepAction(ExecutionContext context, TestStep step, String selector) {
+        Page page = context.getPage();
+        
+        switch (step.getType()) {
+            case "navigate":
+                String url = replaceVariables(step.getValue(), context.getPlan().getEnvironmentVariables());
+                page.navigate(url);
+                break;
+                
+            case "click":
+                page.click(selector);
+                break;
+                
+            case "type":
+                String text = replaceVariables(step.getValue(), context.getPlan().getEnvironmentVariables());
+                page.fill(selector, text);
+                break;
+                
+            case "select":
+                String value = replaceVariables(step.getValue(), context.getPlan().getEnvironmentVariables());
+                page.selectOption(selector, value);
+                break;
+                
+            case "assert":
+                if (step.getAssertion() != null) {
+                    executeAssertion(context, step, selector);
+                }
+                break;
+                
+            case "wait":
+                if (step.getWaitCondition() != null) {
+                    executeWaitCondition(context, step, selector);
+                } else {
+                    // Default wait
+                    try {
+                        Thread.sleep(Integer.parseInt(step.getValue()));
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException("Wait interrupted", e);
+                    } catch (NumberFormatException e) {
+                        throw new RuntimeException("Invalid wait time: " + step.getValue(), e);
+                    }
+                }
+                break;
+                
+            case "screenshot":
+                takeScreenshot(context, "manual_" + step.getId());
+                break;
+                
+            default:
+                throw new UnsupportedOperationException("Unsupported step type: " + step.getType());
+        }
+    }
+
+    /**
+     * Execute assertion
+     * @param context Execution context
+     * @param step Test step
+     * @param selector Selector to use
+     */
+    private void executeAssertion(ExecutionContext context, TestStep step, String selector) {
+        Page page = context.getPage();
+        String expected = replaceVariables(step.getAssertion().getExpected(), context.getPlan().getEnvironmentVariables());
+        
+        switch (step.getAssertion().getType()) {
+            case "equals":
+                String actual = page.textContent(selector);
+                if (!actual.equals(expected)) {
+                    throw new AssertionError("Expected text '" + expected + "' but got '" + actual + "'");
+                }
+                break;
+                
+            case "contains":
+                String text = page.textContent(selector);
+                if (!text.contains(expected)) {
+                    throw new AssertionError("Expected text to contain '" + expected + "' but got '" + text + "'");
+                }
+                break;
+                
+            case "exists":
+                if (page.querySelector(selector) == null) {
+                    throw new AssertionError("Element does not exist: " + selector);
+                }
+                break;
+                
+            case "not-exists":
+                if (page.querySelector(selector) != null) {
+                    throw new AssertionError("Element exists but should not: " + selector);
+                }
+                break;
+                
+            case "visible":
+                if (!page.isVisible(selector)) {
+                    throw new AssertionError("Element is not visible: " + selector);
+                }
+                break;
+                
+            case "not-visible":
+                if (page.isVisible(selector)) {
+                    throw new AssertionError("Element is visible but should not be: " + selector);
+                }
+                break;
+                
+            default:
+                throw new UnsupportedOperationException("Unsupported assertion type: " + step.getAssertion().getType());
+        }
+    }
+
+    /**
+     * Execute wait condition
+     * @param context Execution context
+     * @param step Test step
+     * @param selector Selector to use
+     */
+    private void executeWaitCondition(ExecutionContext context, TestStep step, String selector) {
+        Page page = context.getPage();
+        int timeout = step.getWaitCondition().getTimeout() != null ? 
+                step.getWaitCondition().getTimeout() : 30000;
+        
+        switch (step.getWaitCondition().getType()) {
+            case "visible":
+                page.waitForSelector(selector, new Page.WaitForSelectorOptions().setState("visible").setTimeout(timeout));
+                break;
+                
+            case "hidden":
+                page.waitForSelector(selector, new Page.WaitForSelectorOptions().setState("hidden").setTimeout(timeout));
+                break;
+                
+            case "navigation":
+                page.waitForNavigation(new Page.WaitForNavigationOptions().setTimeout(timeout));
+                break;
+                
+            case "load":
+                page.waitForLoadState(new Page.WaitForLoadStateOptions().setState("load").setTimeout(timeout));
+                break;
+                
+            case "networkidle":
+                page.waitForLoadState(new Page.WaitForLoadStateOptions().setState("networkidle").setTimeout(timeout));
+                break;
+                
+            default:
+                throw new UnsupportedOperationException("Unsupported wait condition type: " + step.getWaitCondition().getType());
+        }
+    }
+
+    /**
+     * Replace variables in a string
+     * @param value String to replace variables in
+     * @param variables Variables to use
+     * @return String with variables replaced
+     */
+    private String replaceVariables(String value, Map<String, String> variables) {
+        if (value == null || variables == null || variables.isEmpty()) {
+            return value;
+        }
+        
+        String result = value;
+        for (Map.Entry<String, String> entry : variables.entrySet()) {
+            result = result.replace("${" + entry.getKey() + "}", entry.getValue());
+        }
+        
+        return result;
+    }
+
+    /**
+     * Find test case by step ID
+     * @param context Execution context
+     * @param stepId Step ID
+     * @return Test case or null if not found
+     */
+    private TestCase findTestCaseByStepId(ExecutionContext context, String stepId) {
+        String projectId = context.getPlan().getProjectId();
+        
+        // Get all test cases from the execution plan
+        List<String> testCaseIds = new ArrayList<>();
+        
+        if (context.getPlan().getTestCaseIds() != null) {
+            testCaseIds.addAll(context.getPlan().getTestCaseIds());
+        }
+        
+        if (context.getPlan().getTestSuiteIds() != null) {
+            for (String testSuiteId : context.getPlan().getTestSuiteIds()) {
+                TestSuite testSuite = testSuiteRepository.getTestSuite(projectId, testSuiteId);
+                if (testSuite != null && testSuite.getTestCaseIds() != null) {
+                    testCaseIds.addAll(testSuite.getTestCaseIds());
+                }
+            }
+        }
+        
+        // Remove duplicates
+        testCaseIds = new ArrayList<>(new HashSet<>(testCaseIds));
+        
+        // Find test case containing the step
+        for (String testCaseId : testCaseIds) {
+            TestCase testCase = testCaseRepository.getTestCase(projectId, testCaseId);
+            if (testCase != null) {
+                for (TestStep step : testCase.getSteps()) {
+                    if (step.getId().equals(stepId)) {
+                        return testCase;
+                    }
+                }
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Launch browser
+     * @param context Execution context
+     * @return Browser instance
+     */
+    private Browser launchBrowser(ExecutionContext context) {
+        ExecutionPlan plan = context.getPlan();
+        
+        return browserService.launchBrowser(
+                plan.getBrowser(), 
+                plan.isHeadless(), 
+                context.getExecutionId());
+    }
+
+    /**
+     * Take screenshot
+     * @param context Execution context
+     * @param name Screenshot name
+     * @return Screenshot path
+     */
+    private String takeScreenshot(ExecutionContext context, String name) {
+        Page page = context.getPage();
+        String executionId = context.getExecutionId();
+        
+        // Create screenshots directory if it doesn't exist
+        String screenshotsDir = Paths.get(executionsDirectory, executionId, "screenshots").toString();
+        new File(screenshotsDir).mkdirs();
+        
+        // Generate screenshot path
+        String filename = name + "_" + System.currentTimeMillis() + ".png";
+        String path = Paths.get(screenshotsDir, filename).toString();
+        
+        // Take screenshot
+        page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get(path)));
+        
+        return filename;
+    }
+
+    /**
+     * Start video recording
+     * @param context Execution context
+     * @param testCase Test case
+     * @return Video path
+     */
+    private String startVideoRecording(ExecutionContext context, TestCase testCase) {
+        // Create videos directory if it doesn't exist
+        String videosDir = Paths.get(executionsDirectory, context.getExecutionId(), "videos").toString();
+        new File(videosDir).mkdirs();
+        
+        // Generate video path
+        String filename = "video_" + testCase.getId() + "_" + System.currentTimeMillis() + ".webm";
+        String path = Paths.get(videosDir, filename).toString();
+        
+        // Start recording
+        context.getPage().video().startRecording(new Page.VideoStartRecordingOptions().setPath(Paths.get(path)));
+        
+        return filename;
+    }
+
+    /**
+     * Stop video recording
+     * @param context Execution context
+     */
+    private void stopVideoRecording(ExecutionContext context) {
+        if (context.getPage() != null) {
+            context.getPage().video().stopRecording();
+        }
+    }
+
+    /**
+     * Create execution directory
+     * @param executionId Execution ID
+     */
+    private void createExecutionDirectory(String executionId) {
+        // Create execution directory
+        String executionDir = Paths.get(executionsDirectory, executionId).toString();
+        new File(executionDir).mkdirs();
+        
+        // Create subdirectories
+        new File(Paths.get(executionDir, "screenshots").toString()).mkdirs();
+        new File(Paths.get(executionDir, "videos").toString()).mkdirs();
+    }
+
+    /**
+     * Send status update
+     * @param status Execution status
+     */
+    private void sendStatusUpdate(ExecutionStatus status) {
+        messagingTemplate.convertAndSend(
+                "/topic/executions/" + status.getExecutionId() + "/status", 
+                status);
+    }
+
+    /**
+     * Send test case started event
+     * @param executionId Execution ID
+     * @param result Test case result
+     */
+    private void sendTestCaseStarted(String executionId, TestCaseResult result) {
+        messagingTemplate.convertAndSend(
+                "/topic/executions/" + executionId + "/testcases", 
+                Map.of(
+                        "type", "started",
+                        "testCaseId", result.getTestCaseId(),
+                        "testCaseName", result.getTestCaseName(),
+                        "timestamp", LocalDateTime.now()
+                ));
+    }
+
+    /**
+     * Send test case completed event
+     * @param executionId Execution ID
+     * @param result Test case result
+     */
+    private void sendTestCaseCompleted(String executionId, TestCaseResult result) {
+        messagingTemplate.convertAndSend(
+                "/topic/executions/" + executionId + "/testcases", 
+                Map.of(
+                        "type", "completed",
+                        "testCaseId", result.getTestCaseId(),
+                        "testCaseName", result.getTestCaseName(),
+                        "status", result.getStatus(),
+                        "duration", result.getDuration(),
+                        "timestamp", LocalDateTime.now()
+                ));
+    }
+
+    /**
+     * Send step started event
+     * @param executionId Execution ID
+     * @param result Step result
+     */
+    private void sendStepStarted(String executionId, TestStepResult result) {
+        messagingTemplate.convertAndSend(
+                "/topic/executions/" + executionId + "/steps", 
+                Map.of(
+                        "type", "started",
+                        "stepId", result.getStepId(),
+                        "action", result.getAction(),
+                        "description", result.getDescription(),
+                        "timestamp", LocalDateTime.now()
+                ));
+    }
+
+    /**
+     * Send step completed event
+     * @param executionId Execution ID
+     * @param result Step result
+     */
+    private void sendStepCompleted(String executionId, TestStepResult result) {
+        messagingTemplate.convertAndSend(
+                "/topic/executions/" + executionId + "/steps", 
+                Map.of(
+                        "type", "completed",
+                        "stepId", result.getStepId(),
+                        "action", result.getAction(),
+                        "description", result.getDescription(),
+                        "status", result.getStatus(),
+                        "duration", result.getDuration(),
+                        "screenshotPath", result.getScreenshotPath(),
+                        "error", result.getError(),
+                        "timestamp", LocalDateTime.now()
+                ));
+    }
+
+    /**
+     * Send step result
+     * @param executionId Execution ID
+     * @param result Step result
+     */
+    private void sendStepResult(String executionId, TestStepResult result) {
+        messagingTemplate.convertAndSend(
+                "/topic/executions/" + executionId + "/stepresults", 
+                result);
+    }
+
+    /**
+     * Send healing event
+     * @param executionId Execution ID
+     * @param stepId Step ID
+     * @param originalSelector Original selector
+     * @param healedSelector Healed selector
+     */
+    private void sendHealingEvent(String executionId, String stepId, String originalSelector, String healedSelector) {
+        messagingTemplate.convertAndSend(
+                "/topic/executions/" + executionId + "/healing", 
+                Map.of(
+                        "stepId", stepId,
+                        "originalSelector", originalSelector,
+                        "healedSelector", healedSelector,
+                        "timestamp", LocalDateTime.now()
+                ));
+    }
+
+    /**
+     * Execution context
+     */
+    private static class ExecutionContext {
+        private final String executionId;
+        private final ExecutionPlan plan;
+        private final ExecutionResult result;
+        private ExecutionStatus status;
+        private Browser browser;
+        private Page page;
+        private boolean stopRequested;
+
+        public ExecutionContext(String executionId, ExecutionPlan plan, ExecutionResult result) {
+            this.executionId = executionId;
+            this.plan = plan;
+            this.result = result;
+            this.stopRequested = false;
+        }
+
+        public String getExecutionId() {
+            return executionId;
+        }
+
+        public ExecutionPlan getPlan() {
+            return plan;
+        }
+
+        public ExecutionResult getResult() {
+            return result;
+        }
+
+        public ExecutionStatus getStatus() {
+            return status;
+        }
+
+        public void setStatus(ExecutionStatus status) {
+            this.status = status;
+        }
+
+        public Browser getBrowser() {
+            return browser;
+        }
+
+        public void setBrowser(Browser browser) {
+            this.browser = browser;
+        }
+
+        public Page getPage() {
+            return page;
+        }
+
+        public void setPage(Page page) {
+            this.page = page;
+        }
+
+        public boolean isStopRequested() {
+            return stopRequested;
+        }
+
+        public void setStopRequested(boolean stopRequested) {
+            this.stopRequested = stopRequested;
+        }
+    }
+}
+
+package com.cstestforge.model.execution;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Execution Plan Model
+ * Defines how tests should be executed
+ */
+public class ExecutionPlan {
+    private String id;
+    private String projectId;
+    private String name;
+    private String description;
+    private List<String> testCaseIds;
+    private List<String> testSuiteIds;
+    private Map<String, String> environmentVariables;
+    private String browser;
+    private boolean headless;
+    private boolean parallel;
+    private int maxWorkers;
+    private boolean retryFailedTests;
+    private int maxRetries;
+    private double timeoutMultiplier;
+    private String createdBy;
+    private LocalDateTime createdAt;
+
+    /**
+     * Default constructor
+     */
+    public ExecutionPlan() {
+        this.id = UUID.randomUUID().toString();
+        this.environmentVariables = new HashMap<>();
+        this.parallel = false;
+        this.maxWorkers = 4;
+        this.retryFailedTests = false;
+        this.maxRetries = 3;
+        this.timeoutMultiplier = 1.0;
+        this.createdAt = LocalDateTime.now();
+    }
+
+    // Getters and Setters
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public List<String> getTestCaseIds() {
+        return testCaseIds;
+    }
+
+    public void setTestCaseIds(List<String> testCaseIds) {
+        this.testCaseIds = testCaseIds;
+    }
+
+    public List<String> getTestSuiteIds() {
+        return testSuiteIds;
+    }
+
+    public void setTestSuiteIds(List<String> testSuiteIds) {
+        this.testSuiteIds = testSuiteIds;
+    }
+
+    public Map<String, String> getEnvironmentVariables() {
+        return environmentVariables;
+    }
+
+    public void setEnvironmentVariables(Map<String, String> environmentVariables) {
+        this.environmentVariables = environmentVariables;
+    }
+
+    public String getBrowser() {
+        return browser;
+    }
+
+    public void setBrowser(String browser) {
+        this.browser = browser;
+    }
+
+    public boolean isHeadless() {
+        return headless;
+    }
+
+    public void setHeadless(boolean headless) {
+        this.headless = headless;
+    }
+
+    public boolean isParallel() {
+        return parallel;
+    }
+
+    public void setParallel(boolean parallel) {
+        this.parallel = parallel;
+    }
+
+    public int getMaxWorkers() {
+        return maxWorkers;
+    }
+
+    public void setMaxWorkers(int maxWorkers) {
+        this.maxWorkers = maxWorkers;
+    }
+
+    public boolean isRetryFailedTests() {
+        return retryFailedTests;
+    }
+
+    public void setRetryFailedTests(boolean retryFailedTests) {
+        this.retryFailedTests = retryFailedTests;
+    }
+
+    public int getMaxRetries() {
+        return maxRetries;
+    }
+
+    public void setMaxRetries(int maxRetries) {
+        this.maxRetries = maxRetries;
+    }
+
+    public double getTimeoutMultiplier() {
+        return timeoutMultiplier;
+    }
+
+    public void setTimeoutMultiplier(double timeoutMultiplier) {
+        this.timeoutMultiplier = timeoutMultiplier;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+}
+
+/**
+ * Execution Result Model
+ * Contains the overall results of an execution
+ */
+package com.cstestforge.model.execution;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+public class ExecutionResult {
+    private String id;
+    private String executionPlanId;
+    private String projectId;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
+    private String status;
+    private List<TestCaseResult> testCaseResults;
+    private String browser;
+    private String environment;
+    private int totalTests;
+    private int passed;
+    private int failed;
+    private int skipped;
+    private String executedBy;
+
+    /**
+     * Default constructor
+     */
+    public ExecutionResult() {
+        this.id = UUID.randomUUID().toString();
+        this.startTime = LocalDateTime.now();
+        this.status = "running";
+        this.testCaseResults = new ArrayList<>();
+        this.totalTests = 0;
+        this.passed = 0;
+        this.failed = 0;
+        this.skipped = 0;
+    }
+
+    /**
+     * Adds a test case result
+     * @param result Test case result to add
+     */
+    public void addTestCaseResult(TestCaseResult result) {
+        this.testCaseResults.add(result);
+        calculateStats();
+    }
+
+    /**
+     * Calculates execution statistics
+     */
+    public void calculateStats() {
+        this.totalTests = this.testCaseResults.size();
+        this.passed = 0;
+        this.failed = 0;
+        this.skipped = 0;
+
+        for (TestCaseResult result : this.testCaseResults) {
+            switch (result.getStatus()) {
+                case "passed":
+                    this.passed++;
+                    break;
+                case "failed":
+                    this.failed++;
+                    break;
+                case "skipped":
+                    this.skipped++;
+                    break;
+            }
+        }
+
+        // Update overall status
+        if (this.totalTests == 0) {
+            this.status = "empty";
+        } else if (this.failed > 0) {
+            this.status = "failed";
+        } else if (this.skipped == this.totalTests) {
+            this.status = "skipped";
+        } else {
+            this.status = "passed";
+        }
+    }
+
+    /**
+     * Gets the execution duration
+     * @return Duration in milliseconds
+     */
+    public long getDuration() {
+        if (this.startTime == null) {
+            return 0;
+        }
+
+        LocalDateTime end = this.endTime != null ? this.endTime : LocalDateTime.now();
+        return Duration.between(this.startTime, end).toMillis();
+    }
+
+    // Getters and Setters
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getExecutionPlanId() {
+        return executionPlanId;
+    }
+
+    public void setExecutionPlanId(String executionPlanId) {
+        this.executionPlanId = executionPlanId;
+    }
+
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
+    }
+
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public List<TestCaseResult> getTestCaseResults() {
+        return testCaseResults;
+    }
+
+    public void setTestCaseResults(List<TestCaseResult> testCaseResults) {
+        this.testCaseResults = testCaseResults;
+        calculateStats();
+    }
+
+    public String getBrowser() {
+        return browser;
+    }
+
+    public void setBrowser(String browser) {
+        this.browser = browser;
+    }
+
+    public String getEnvironment() {
+        return environment;
+    }
+
+    public void setEnvironment(String environment) {
+        this.environment = environment;
+    }
+
+    public int getTotalTests() {
+        return totalTests;
+    }
+
+    public void setTotalTests(int totalTests) {
+        this.totalTests = totalTests;
+    }
+
+    public int getPassed() {
+        return passed;
+    }
+
+    public void setPassed(int passed) {
+        this.passed = passed;
+    }
+
+    public int getFailed() {
+        return failed;
+    }
+
+    public void setFailed(int failed) {
+        this.failed = failed;
+    }
+
+    public int getSkipped() {
+        return skipped;
+    }
+
+    public void setSkipped(int skipped) {
+        this.skipped = skipped;
+    }
+
+    public String getExecutedBy() {
+        return executedBy;
+    }
+
+    public void setExecutedBy(String executedBy) {
+        this.executedBy = executedBy;
+    }
+}
+
+/**
+ * Test Case Result Model
+ * Contains results for a specific test case
+ */
+package com.cstestforge.model.execution;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+public class TestCaseResult {
+    private String id;
+    private String testCaseId;
+    private String testCaseName;
+    private String executionId;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
+    private String status;
+    private List<TestStepResult> stepResults;
+    private String error;
+    private List<String> screenshotPaths;
+    private String videoPath;
+    private int retryCount;
+    private long duration;
+
+    /**
+     * Default constructor
+     */
+    public TestCaseResult() {
+        this.id = UUID.randomUUID().toString();
+        this.startTime = LocalDateTime.now();
+        this.status = "running";
+        this.stepResults = new ArrayList<>();
+        this.screenshotPaths = new ArrayList<>();
+        this.retryCount = 0;
+    }
+
+    /**
+     * Adds a step result
+     * @param result Step result to add
+     */
+    public void addStepResult(TestStepResult result) {
+        this.stepResults.add(result);
+        
+        // If a step failed, mark the test case as failed
+        if (result.getStatus().equals("failed") && !this.status.equals("failed")) {
+            this.status = "failed";
+        }
+    }
+
+    // Getters and Setters
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getTestCaseId() {
+        return testCaseId;
+    }
+
+    public void setTestCaseId(String testCaseId) {
+        this.testCaseId = testCaseId;
+    }
+
+    public String getTestCaseName() {
+        return testCaseName;
+    }
+
+    public void setTestCaseName(String testCaseName) {
+        this.testCaseName = testCaseName;
+    }
+
+    public String getExecutionId() {
+        return executionId;
+    }
+
+    public void setExecutionId(String executionId) {
+        this.executionId = executionId;
+    }
+
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+        
+        // Calculate duration when end time is set
+        if (this.startTime != null && endTime != null) {
+            this.duration = Duration.between(this.startTime, endTime).toMillis();
+        }
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public List<TestStepResult> getStepResults() {
+        return stepResults;
+    }
+
+    public void setStepResults(List<TestStepResult> stepResults) {
+        this.stepResults = stepResults;
+    }
+
+    public String getError() {
+        return error;
+    }
+
+    public void setError(String error) {
+        this.error = error;
+    }
+
+    public List<String> getScreenshotPaths() {
+        return screenshotPaths;
+    }
+
+    public void setScreenshotPaths(List<String> screenshotPaths) {
+        this.screenshotPaths = screenshotPaths;
+    }
+
+    public String getVideoPath() {
+        return videoPath;
+    }
+
+    public void setVideoPath(String videoPath) {
+        this.videoPath = videoPath;
+    }
+
+    public int getRetryCount() {
+        return retryCount;
+    }
+
+    public void setRetryCount(int retryCount) {
+        this.retryCount = retryCount;
+    }
+
+    public long getDuration() {
+        return duration;
+    }
+
+    public void setDuration(long duration) {
+        this.duration = duration;
+    }
+}
+
+/**
+ * Test Step Result Model
+ * Contains results for a specific test step
+ */
+package com.cstestforge.model.execution;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+public class TestStepResult {
+    private String id;
+    private String stepId;
+    private String testCaseResultId;
+    private String action;
+    private String selector;
+    private String description;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
+    private String status;
+    private String error;
+    private String screenshotPath;
+    private String healedSelector;
+    private boolean healingApplied;
+    private long duration;
+
+    /**
+     * Default constructor
+     */
+    public TestStepResult() {
+        this.id = UUID.randomUUID().toString();
+        this.startTime = LocalDateTime.now();
+        this.status = "running";
+        this.healingApplied = false;
+    }
+
+    // Getters and Setters
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getStepId() {
+        return stepId;
+    }
+
+    public void setStepId(String stepId) {
+        this.stepId = stepId;
+    }
+
+    public String getTestCaseResultId() {
+        return testCaseResultId;
+    }
+
+    public void setTestCaseResultId(String testCaseResultId) {
+        this.testCaseResultId = testCaseResultId;
+    }
+
+    public String getAction() {
+        return action;
+    }
+
+    public void setAction(String action) {
+        this.action = action;
+    }
+
+    public String getSelector() {
+        return selector;
+    }
+
+    public void setSelector(String selector) {
+        this.selector = selector;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+        
+        // Calculate duration when end time is set
+        if (this.startTime != null && endTime != null) {
+            this.duration = Duration.between(this.startTime, endTime).toMillis();
+        }
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getError() {
+        return error;
+    }
+
+    public void setError(String error) {
+        this.error = error;
+    }
+
+    public String getScreenshotPath() {
+        return screenshotPath;
+    }
+
+    public void setScreenshotPath(String screenshotPath) {
+        this.screenshotPath = screenshotPath;
+    }
+
+    public String getHealedSelector() {
+        return healedSelector;
+    }
+
+    public void setHealedSelector(String healedSelector) {
+        this.healedSelector = healedSelector;
+    }
+
+    public boolean isHealingApplied() {
+        return healingApplied;
+    }
+
+    public void setHealingApplied(boolean healingApplied) {
+        this.healingApplied = healingApplied;
+    }
+
+    public long getDuration() {
+        return duration;
+    }
+
+    public void setDuration(long duration) {
+        this.duration = duration;
+    }
+}
+
+/**
+ * Execution Status Model
+ * Provides real-time status information about an ongoing execution
+ */
+package com.cstestforge.model.execution;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+public class ExecutionStatus {
+    private String executionId;
+    private String status;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
+    private int progress;
+    private Map<String, String> testCaseStatuses;
+    private Map<String, String> stepStatuses;
+    private int totalSteps;
+    private int completedSteps;
+    private String currentTestCase;
+    private String currentStep;
+
+    /**
+     * Default constructor
+     */
+    public ExecutionStatus() {
+        this.status = "pending";
+        this.progress = 0;
+        this.testCaseStatuses = new HashMap<>();
+        this.stepStatuses = new HashMap<>();
+        this.totalSteps = 0;
+        this.completedSteps = 0;
+    }
+
+    /**
+     * Update step status
+     * @param testCaseId Test case ID
+     * @param stepId Step ID
+     * @param status Status
+     */
+    public void updateStepStatus(String testCaseId, String stepId, String status) {
+        this.stepStatuses.put(stepId, status);
+        this.currentStep = stepId;
+        
+        // Update completed steps count
+        if (status.equals("passed") || status.equals("failed") || status.equals("skipped")) {
+            this.completedSteps++;
+        }
+        
+        // Update test case status
+        if (status.equals("failed")) {
+            this.testCaseStatuses.put(testCaseId, "failed");
+        } else if (!this.testCaseStatuses.containsKey(testCaseId) || 
+                !this.testCaseStatuses.get(testCaseId).equals("failed")) {
+            this.testCaseStatuses.put(testCaseId, status);
+        }
+    }
+
+    // Getters and Setters
+
+    public String getExecutionId() {
+        return executionId;
+    }
+
+    public void setExecutionId(String executionId) {
+        this.executionId = executionId;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+    }
+
+    public int getProgress() {
+        return progress;
+    }
+
+    public void setProgress(int progress) {
+        this.progress = progress;
+    }
+
+    public Map<String, String> getTestCaseStatuses() {
+        return testCaseStatuses;
+    }
+
+    public void setTestCaseStatuses(Map<String, String> testCaseStatuses) {
+        this.testCaseStatuses = testCaseStatuses;
+    }
+
+    public Map<String, String> getStepStatuses() {
+        return stepStatuses;
+    }
+
+    public void setStepStatuses(Map<String, String> stepStatuses) {
+        this.stepStatuses = stepStatuses;
+    }
+
+    public int getTotalSteps() {
+        return totalSteps;
+    }
+
+    public void setTotalSteps(int totalSteps) {
+        this.totalSteps = totalSteps;
+    }
+
+    public int getCompletedSteps() {
+        return completedSteps;
+    }
+
+    public void setCompletedSteps(int completedSteps) {
+        this.completedSteps = completedSteps;
+    }
+
+    public String getCurrentTestCase() {
+        return currentTestCase;
+    }
+
+    public void setCurrentTestCase(String currentTestCase) {
+        this.currentTestCase = currentTestCase;
+    }
+
+    public String getCurrentStep() {
+        return currentStep;
+    }
+
+    public void setCurrentStep(String currentStep) {
+        this.currentStep = currentStep;
+    }
+}
+
+
+package com.cstestforge.model.test;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Test Case Model
+ * Represents a test case with its steps and configuration
+ */
+public class TestCase {
+    private String id;
+    private String projectId;
+    private String name;
+    private String description;
+    private List<TestStep> steps;
+    private BrowserSettings browserSettings;
+    private List<String> tags;
+    private boolean selfHealing;
+    private boolean failFast;
+    private boolean recordVideo;
+    private String createdBy;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private int timeout;
+    private String priority;
+    private LastRun lastRun;
+
+    /**
+     * Default constructor
+     */
+    public TestCase() {
+        this.id = UUID.randomUUID().toString();
+        this.steps = new ArrayList<>();
+        this.tags = new ArrayList<>();
+        this.selfHealing = true;
+        this.failFast = false;
+        this.recordVideo = false;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+        this.timeout = 30000; // 30 seconds default timeout
+        this.priority = "medium";
+    }
+    
+    /**
+     * Add a test step to this test case
+     * @param step Step to add
+     */
+    public void addStep(TestStep step) {
+        this.steps.add(step);
+    }
+    
+    /**
+     * Remove a test step from this test case
+     * @param stepId Step ID to remove
+     * @return true if removed, false otherwise
+     */
+    public boolean removeStep(String stepId) {
+        return this.steps.removeIf(step -> step.getId().equals(stepId));
+    }
+    
+    /**
+     * Get a test step by its ID
+     * @param stepId Step ID
+     * @return TestStep or null if not found
+     */
+    public TestStep getStepById(String stepId) {
+        for (TestStep step : this.steps) {
+            if (step.getId().equals(stepId)) {
+                return step;
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * Add a tag to this test case
+     * @param tag Tag to add
+     */
+    public void addTag(String tag) {
+        if (!this.tags.contains(tag)) {
+            this.tags.add(tag);
+        }
+    }
+    
+    /**
+     * Remove a tag from this test case
+     * @param tag Tag to remove
+     */
+    public void removeTag(String tag) {
+        this.tags.remove(tag);
+    }
+    
+    /**
+     * Update the last run information
+     * @param status Run status
+     * @param executionId Execution ID
+     * @param startTime Start time
+     * @param endTime End time
+     * @param error Error message if failed
+     */
+    public void updateLastRun(String status, String executionId, LocalDateTime startTime, 
+                             LocalDateTime endTime, String error) {
+        this.lastRun = new LastRun();
+        this.lastRun.setStatus(status);
+        this.lastRun.setExecutionId(executionId);
+        this.lastRun.setStartTime(startTime);
+        this.lastRun.setEndTime(endTime);
+        this.lastRun.setError(error);
+        
+        // Update timestamp
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // Getters and Setters
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public List<TestStep> getSteps() {
+        return steps;
+    }
+
+    public void setSteps(List<TestStep> steps) {
+        this.steps = steps;
+    }
+
+    public BrowserSettings getBrowserSettings() {
+        return browserSettings;
+    }
+
+    public void setBrowserSettings(BrowserSettings browserSettings) {
+        this.browserSettings = browserSettings;
+    }
+
+    public List<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<String> tags) {
+        this.tags = tags;
+    }
+
+    public boolean isSelfHealing() {
+        return selfHealing;
+    }
+
+    public void setSelfHealing(boolean selfHealing) {
+        this.selfHealing = selfHealing;
+    }
+
+    public boolean isFailFast() {
+        return failFast;
+    }
+
+    public void setFailFast(boolean failFast) {
+        this.failFast = failFast;
+    }
+
+    public boolean isRecordVideo() {
+        return recordVideo;
+    }
+
+    public void setRecordVideo(boolean recordVideo) {
+        this.recordVideo = recordVideo;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public int getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(int timeout) {
+        this.timeout = timeout;
+    }
+
+    public String getPriority() {
+        return priority;
+    }
+
+    public void setPriority(String priority) {
+        this.priority = priority;
+    }
+
+    public LastRun getLastRun() {
+        return lastRun;
+    }
+
+    public void setLastRun(LastRun lastRun) {
+        this.lastRun = lastRun;
+    }
+    
+    /**
+     * Inner class for last run information
+     */
+    public static class LastRun {
+        private String status;
+        private String executionId;
+        private LocalDateTime startTime;
+        private LocalDateTime endTime;
+        private String error;
+        
+        // Getters and Setters
+        
+        public String getStatus() {
+            return status;
+        }
+        
+        public void setStatus(String status) {
+            this.status = status;
+        }
+        
+        public String getExecutionId() {
+            return executionId;
+        }
+        
+        public void setExecutionId(String executionId) {
+            this.executionId = executionId;
+        }
+        
+        public LocalDateTime getStartTime() {
+            return startTime;
+        }
+        
+        public void setStartTime(LocalDateTime startTime) {
+            this.startTime = startTime;
+        }
+        
+        public LocalDateTime getEndTime() {
+            return endTime;
+        }
+        
+        public void setEndTime(LocalDateTime endTime) {
+            this.endTime = endTime;
+        }
+        
+        public String getError() {
+            return error;
+        }
+        
+        public void setError(String error) {
+            this.error = error;
+        }
+        
+        /**
+         * Get the duration of the run in milliseconds
+         * @return Duration in milliseconds
+         */
+        public long getDurationMillis() {
+            if (startTime == null || endTime == null) {
+                return 0;
+            }
+            return java.time.Duration.between(startTime, endTime).toMillis();
+        }
+    }
+}
+
+/**
+ * Test Step Model
+ * Represents a single step in a test case
+ */
+package com.cstestforge.model.test;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+public class TestStep {
+    private String id;
+    private String name;
+    private String type;
+    private String selector;
+    private String value;
+    private Map<String, String> attributes;
+    private boolean screenshotBefore;
+    private boolean screenshotAfter;
+    private int retryCount;
+    private int timeout;
+    private Assertion assertion;
+    private WaitCondition waitCondition;
+    private boolean disabled;
+    
+    /**
+     * Default constructor
+     */
+    public TestStep() {
+        this.id = UUID.randomUUID().toString();
+        this.attributes = new HashMap<>();
+        this.screenshotBefore = false;
+        this.screenshotAfter = false;
+        this.retryCount = 0;
+        this.timeout = 30000; // 30 seconds default timeout
+        this.disabled = false;
+    }
+    
+    // Getters and Setters
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getSelector() {
+        return selector;
+    }
+
+    public void setSelector(String selector) {
+        this.selector = selector;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
+
+    public Map<String, String> getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(Map<String, String> attributes) {
+        this.attributes = attributes;
+    }
+
+    public boolean isScreenshotBefore() {
+        return screenshotBefore;
+    }
+
+    public void setScreenshotBefore(boolean screenshotBefore) {
+        this.screenshotBefore = screenshotBefore;
+    }
+
+    public boolean isScreenshotAfter() {
+        return screenshotAfter;
+    }
+
+    public void setScreenshotAfter(boolean screenshotAfter) {
+        this.screenshotAfter = screenshotAfter;
+    }
+
+    public int getRetryCount() {
+        return retryCount;
+    }
+
+    public void setRetryCount(int retryCount) {
+        this.retryCount = retryCount;
+    }
+
+    public int getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(int timeout) {
+        this.timeout = timeout;
+    }
+
+    public Assertion getAssertion() {
+        return assertion;
+    }
+
+    public void setAssertion(Assertion assertion) {
+        this.assertion = assertion;
+    }
+
+    public WaitCondition getWaitCondition() {
+        return waitCondition;
+    }
+
+    public void setWaitCondition(WaitCondition waitCondition) {
+        this.waitCondition = waitCondition;
+    }
+
+    public boolean isDisabled() {
+        return disabled;
+    }
+
+    public void setDisabled(boolean disabled) {
+        this.disabled = disabled;
+    }
+    
+    /**
+     * Assertion settings for test steps
+     */
+    public static class Assertion {
+        private String type;
+        private String target;
+        private String expected;
+        
+        // Getters and Setters
+        
+        public String getType() {
+            return type;
+        }
+        
+        public void setType(String type) {
+            this.type = type;
+        }
+        
+        public String getTarget() {
+            return target;
+        }
+        
+        public void setTarget(String target) {
+            this.target = target;
+        }
+        
+        public String getExpected() {
+            return expected;
+        }
+        
+        public void setExpected(String expected) {
+            this.expected = expected;
+        }
+    }
+    
+    /**
+     * Wait condition settings for test steps
+     */
+    public static class WaitCondition {
+        private String type;
+        private Integer timeout;
+        private String target;
+        private String value;
+        
+        // Getters and Setters
+        
+        public String getType() {
+            return type;
+        }
+        
+        public void setType(String type) {
+            this.type = type;
+        }
+        
+        public Integer getTimeout() {
+            return timeout;
+        }
+        
+        public void setTimeout(Integer timeout) {
+            this.timeout = timeout;
+        }
+        
+        public String getTarget() {
+            return target;
+        }
+        
+        public void setTarget(String target) {
+            this.target = target;
+        }
+        
+        public String getValue() {
+            return value;
+        }
+        
+        public void setValue(String value) {
+            this.value = value;
+        }
+    }
+}
+
+/**
+ * Browser Settings Model
+ * Configures browser settings for test execution
+ */
+package com.cstestforge.model.test;
+
+public class BrowserSettings {
+    private String browser;
+    private int viewportWidth;
+    private int viewportHeight;
+    private boolean headless;
+    private String userAgent;
+    private boolean ignoreCertificateErrors;
+    private boolean recordHar;
+    private boolean recordVideo;
+    private boolean recordNetwork;
+    private Map<String, String> extraHeaders;
+    private String proxyServer;
+    
+    /**
+     * Default constructor
+     */
+    public BrowserSettings() {
+        this.browser = "chromium";
+        this.viewportWidth = 1280;
+        this.viewportHeight = 720;
+        this.headless = false;
+        this.ignoreCertificateErrors = false;
+        this.recordHar = false;
+        this.recordVideo = false;
+        this.recordNetwork = false;
+        this.extraHeaders = new HashMap<>();
+    }
+    
+    // Getters and Setters
+
+    public String getBrowser() {
+        return browser;
+    }
+
+    public void setBrowser(String browser) {
+        this.browser = browser;
+    }
+
+    public int getViewportWidth() {
+        return viewportWidth;
+    }
+
+    public void setViewportWidth(int viewportWidth) {
+        this.viewportWidth = viewportWidth;
+    }
+
+    public int getViewportHeight() {
+        return viewportHeight;
+    }
+
+    public void setViewportHeight(int viewportHeight) {
+        this.viewportHeight = viewportHeight;
+    }
+
+    public boolean isHeadless() {
+        return headless;
+    }
+
+    public void setHeadless(boolean headless) {
+        this.headless = headless;
+    }
+
+    public String getUserAgent() {
+        return userAgent;
+    }
+
+    public void setUserAgent(String userAgent) {
+        this.userAgent = userAgent;
+    }
+
+    public boolean isIgnoreCertificateErrors() {
+        return ignoreCertificateErrors;
+    }
+
+    public void setIgnoreCertificateErrors(boolean ignoreCertificateErrors) {
+        this.ignoreCertificateErrors = ignoreCertificateErrors;
+    }
+
+    public boolean isRecordHar() {
+        return recordHar;
+    }
+
+    public void setRecordHar(boolean recordHar) {
+        this.recordHar = recordHar;
+    }
+
+    public boolean isRecordVideo() {
+        return recordVideo;
+    }
+
+    public void setRecordVideo(boolean recordVideo) {
+        this.recordVideo = recordVideo;
+    }
+
+    public boolean isRecordNetwork() {
+        return recordNetwork;
+    }
+
+    public void setRecordNetwork(boolean recordNetwork) {
+        this.recordNetwork = recordNetwork;
+    }
+
+    public Map<String, String> getExtraHeaders() {
+        return extraHeaders;
+    }
+
+    public void setExtraHeaders(Map<String, String> extraHeaders) {
+        this.extraHeaders = extraHeaders;
+    }
+
+    public String getProxyServer() {
+        return proxyServer;
+    }
+
+    public void setProxyServer(String proxyServer) {
+        this.proxyServer = proxyServer;
+    }
+}
+
+/**
+ * Test Suite Model
+ * Represents a collection of test cases
+ */
+package com.cstestforge.model.test;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+public class TestSuite {
+    private String id;
+    private String projectId;
+    private String name;
+    private String description;
+    private List<String> testCaseIds;
+    private List<String> tags;
+    private boolean parallel;
+    private int maxWorkers;
+    private boolean retryFailedTests;
+    private int maxRetries;
+    private String createdBy;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private int timeout;
+    private LastRun lastRun;
+    
+    /**
+     * Default constructor
+     */
+    public TestSuite() {
+        this.id = UUID.randomUUID().toString();
+        this.testCaseIds = new ArrayList<>();
+        this.tags = new ArrayList<>();
+        this.parallel = false;
+        this.maxWorkers = 4;
+        this.retryFailedTests = false;
+        this.maxRetries = 3;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+        this.timeout = 0; // No timeout by default
+    }
+    
+    /**
+     * Add a test case to this test suite
+     * @param testCaseId Test case ID to add
+     */
+    public void addTestCase(String testCaseId) {
+        if (!this.testCaseIds.contains(testCaseId)) {
+            this.testCaseIds.add(testCaseId);
+        }
+    }
+    
+    /**
+     * Remove a test case from this test suite
+     * @param testCaseId Test case ID to remove
+     * @return true if removed, false otherwise
+     */
+    public boolean removeTestCase(String testCaseId) {
+        return this.testCaseIds.remove(testCaseId);
+    }
+    
+    /**
+     * Add a tag to this test suite
+     * @param tag Tag to add
+     */
+    public void addTag(String tag) {
+        if (!this.tags.contains(tag)) {
+            this.tags.add(tag);
+        }
+    }
+    
+    /**
+     * Remove a tag from this test suite
+     * @param tag Tag to remove
+     */
+    public void removeTag(String tag) {
+        this.tags.remove(tag);
+    }
+    
+    /**
+     * Update the last run information
+     * @param status Run status
+     * @param executionId Execution ID
+     * @param startTime Start time
+     * @param endTime End time
+     * @param passed Number of passed tests
+     * @param failed Number of failed tests
+     * @param skipped Number of skipped tests
+     */
+    public void updateLastRun(String status, String executionId, LocalDateTime startTime, 
+                             LocalDateTime endTime, int passed, int failed, int skipped) {
+        this.lastRun = new LastRun();
+        this.lastRun.setStatus(status);
+        this.lastRun.setExecutionId(executionId);
+        this.lastRun.setStartTime(startTime);
+        this.lastRun.setEndTime(endTime);
+        this.lastRun.setPassed(passed);
+        this.lastRun.setFailed(failed);
+        this.lastRun.setSkipped(skipped);
+        this.lastRun.setTotal(passed + failed + skipped);
+        
+        // Update timestamp
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    // Getters and Setters
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public List<String> getTestCaseIds() {
+        return testCaseIds;
+    }
+
+    public void setTestCaseIds(List<String> testCaseIds) {
+        this.testCaseIds = testCaseIds;
+    }
+
+    public List<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<String> tags) {
+        this.tags = tags;
+    }
+
+    public boolean isParallel() {
+        return parallel;
+    }
+
+    public void setParallel(boolean parallel) {
+        this.parallel = parallel;
+    }
+
+    public int getMaxWorkers() {
+        return maxWorkers;
+    }
+
+    public void setMaxWorkers(int maxWorkers) {
+        this.maxWorkers = maxWorkers;
+    }
+
+    public boolean isRetryFailedTests() {
+        return retryFailedTests;
+    }
+
+    public void setRetryFailedTests(boolean retryFailedTests) {
+        this.retryFailedTests = retryFailedTests;
+    }
+
+    public int getMaxRetries() {
+        return maxRetries;
+    }
+
+    public void setMaxRetries(int maxRetries) {
+        this.maxRetries = maxRetries;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public int getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(int timeout) {
+        this.timeout = timeout;
+    }
+
+    public LastRun getLastRun() {
+        return lastRun;
+    }
+
+    public void setLastRun(LastRun lastRun) {
+        this.lastRun = lastRun;
+    }
+    
+    /**
+     * Inner class for last run information
+     */
+    public static class LastRun {
+        private String status;
+        private String executionId;
+        private LocalDateTime startTime;
+        private LocalDateTime endTime;
+        private int passed;
+        private int failed;
+        private int skipped;
+        private int total;
+        
+        // Getters and Setters
+        
+        public String getStatus() {
+            return status;
+        }
+        
+        public void setStatus(String status) {
+            this.status = status;
+        }
+        
+        public String getExecutionId() {
+            return executionId;
+        }
+        
+        public void setExecutionId(String executionId) {
+            this.executionId = executionId;
+        }
+        
+        public LocalDateTime getStartTime() {
+            return startTime;
+        }
+        
+        public void setStartTime(LocalDateTime startTime) {
+            this.startTime = startTime;
+        }
+        
+        public LocalDateTime getEndTime() {
+            return endTime;
+        }
+        
+        public void setEndTime(LocalDateTime endTime) {
+            this.endTime = endTime;
+        }
+        
+        public int getPassed() {
+            return passed;
+        }
+        
+        public void setPassed(int passed) {
+            this.passed = passed;
+        }
+        
+        public int getFailed() {
+            return failed;
+        }
+        
+        public void setFailed(int failed) {
+            this.failed = failed;
+        }
+        
+        public int getSkipped() {
+            return skipped;
+        }
+        
+        public void setSkipped(int skipped) {
+            this.skipped = skipped;
+        }
+        
+        public int getTotal() {
+            return total;
+        }
+        
+        public void setTotal(int total) {
+            this.total = total;
+        }
+        
+        /**
+         * Get the duration of the run in milliseconds
+         * @return Duration in milliseconds
+         */
+        public long getDurationMillis() {
+            if (startTime == null || endTime == null) {
+                return 0;
+            }
+            return java.time.Duration.between(startTime, endTime).toMillis();
+        }
+    }
+}
+
+
+package com.cstestforge.model.execution;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Execution Status Model
+ * Provides real-time status information about an ongoing execution
+ */
+public class ExecutionStatus {
+    private String executionId;
+    private String status;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
+    private int progress;
+    private Map<String, String> testCaseStatuses;
+    private Map<String, String> stepStatuses;
+    private int totalSteps;
+    private int completedSteps;
+    private String currentTestCase;
+    private String currentStep;
+
+    /**
+     * Default constructor
+     */
+    public ExecutionStatus() {
+        this.status = "pending";
+        this.progress = 0;
+        this.testCaseStatuses = new HashMap<>();
+        this.stepStatuses = new HashMap<>();
+        this.totalSteps = 0;
+        this.completedSteps = 0;
+    }
+
+    /**
+     * Update step status
+     * @param testCaseId Test case ID
+     * @param stepId Step ID
+     * @param status Status
+     */
+    public void updateStepStatus(String testCaseId, String stepId, String status) {
+        this.stepStatuses.put(stepId, status);
+        this.currentStep = stepId;
+        
+        // Update completed steps count
+        if (status.equals("passed") || status.equals("failed") || status.equals("skipped")) {
+            this.completedSteps++;
+        }
+        
+        // Update test case status
+        if (status.equals("failed")) {
+            this.testCaseStatuses.put(testCaseId, "failed");
+        } else if (!this.testCaseStatuses.containsKey(testCaseId) || 
+                !this.testCaseStatuses.get(testCaseId).equals("failed")) {
+            this.testCaseStatuses.put(testCaseId, status);
+        }
+    }
+
+    // Getters and Setters
+
+    public String getExecutionId() {
+        return executionId;
+    }
+
+    public void setExecutionId(String executionId) {
+        this.executionId = executionId;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+    }
+
+    public int getProgress() {
+        return progress;
+    }
+
+    public void setProgress(int progress) {
+        this.progress = progress;
+    }
+
+    public Map<String, String> getTestCaseStatuses() {
+        return testCaseStatuses;
+    }
+
+    public void setTestCaseStatuses(Map<String, String> testCaseStatuses) {
+        this.testCaseStatuses = testCaseStatuses;
+    }
+
+    public Map<String, String> getStepStatuses() {
+        return stepStatuses;
+    }
+
+    public void setStepStatuses(Map<String, String> stepStatuses) {
+        this.stepStatuses = stepStatuses;
+    }
+
+    public int getTotalSteps() {
+        return totalSteps;
+    }
+
+    public void setTotalSteps(int totalSteps) {
+        this.totalSteps = totalSteps;
+    }
+
+    public int getCompletedSteps() {
+        return completedSteps;
+    }
+
+    public void setCompletedSteps(int completedSteps) {
+        this.completedSteps = completedSteps;
+    }
+
+    public String getCurrentTestCase() {
+        return currentTestCase;
+    }
+
+    public void setCurrentTestCase(String currentTestCase) {
+        this.currentTestCase = currentTestCase;
+    }
+
+    public String getCurrentStep() {
+        return currentStep;
+    }
+
+    public void setCurrentStep(String currentStep) {
+        this.currentStep = currentStep;
+    }
+}
+
+
+package com.cstestforge.service.execution;
+
+import com.cstestforge.model.execution.ExecutionPlan;
+import com.cstestforge.model.execution.ExecutionResult;
+import com.cstestforge.model.execution.ExecutionStatus;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Service interface for test execution functionality
+ */
+public interface ExecutionService {
+    /**
+     * Creates a new execution plan
+     * @param plan Execution plan to create
+     * @return Created execution plan
+     */
+    ExecutionPlan createExecutionPlan(ExecutionPlan plan);
+    
+    /**
+     * Gets an execution plan by ID
+     * @param planId Plan ID
+     * @return Execution plan
+     */
+    ExecutionPlan getExecutionPlan(String planId);
+    
+    /**
+     * Gets all execution plans in a project
+     * @param projectId Project ID
+     * @return List of execution plans
+     */
+    List<ExecutionPlan> getProjectExecutionPlans(String projectId);
+    
+    /**
+     * Executes tests according to an execution plan
+     * @param planId Plan ID
+     * @return Execution result
+     */
+    ExecutionResult executeTests(String planId);
+    
+    /**
+     * Executes a single test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @param variables Environment variables
+     * @return Execution result
+     */
+    ExecutionResult executeTestCase(String projectId, String testCaseId, Map<String, String> variables);
+    
+    /**
+     * Executes a test suite
+     * @param projectId Project ID
+     * @param testSuiteId Test suite ID
+     * @param variables Environment variables
+     * @return Execution result
+     */
+    ExecutionResult executeTestSuite(String projectId, String testSuiteId, Map<String, String> variables);
+    
+    /**
+     * Gets an execution result by ID
+     * @param executionId Execution ID
+     * @return Execution result
+     */
+    ExecutionResult getExecutionResult(String executionId);
+    
+    /**
+     * Gets all execution results in a project
+     * @param projectId Project ID
+     * @return List of execution results
+     */
+    List<ExecutionResult> getProjectExecutionResults(String projectId);
+    
+    /**
+     * Stops an ongoing execution
+     * @param executionId Execution ID
+     */
+    void stopExecution(String executionId);
+    
+    /**
+     * Gets the status of an execution
+     * @param executionId Execution ID
+     * @return Execution status
+     */
+    ExecutionStatus getExecutionStatus(String executionId);
+    
+    /**
+     * Gets a screenshot from an execution
+     * @param executionId Execution ID
+     * @param screenshotPath Screenshot path
+     * @return Screenshot data
+     */
+    byte[] getExecutionScreenshot(String executionId, String screenshotPath);
+    
+    /**
+     * Gets a video from an execution
+     * @param executionId Execution ID
+     * @param videoPath Video path
+     * @return Video data
+     */
+    byte[] getExecutionVideo(String executionId, String videoPath);
+}
+
+package com.cstestforge.model.execution;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Execution Plan Model
+ * Defines how tests should be executed
+ */
+public class ExecutionPlan {
+    private String id;
+    private String projectId;
+    private String name;
+    private String description;
+    private List<String> testCaseIds;
+    private List<String> testSuiteIds;
+    private Map<String, String> environmentVariables;
+    private String browser;
+    private boolean headless;
+    private boolean parallel;
+    private int maxWorkers;
+    private boolean retryFailedTests;
+    private int maxRetries;
+    private double timeoutMultiplier;
+    private String createdBy;
+    private LocalDateTime createdAt;
+
+    /**
+     * Default constructor
+     */
+    public ExecutionPlan() {
+        this.id = UUID.randomUUID().toString();
+        this.environmentVariables = new HashMap<>();
+        this.parallel = false;
+        this.maxWorkers = 4;
+        this.retryFailedTests = false;
+        this.maxRetries = 3;
+        this.timeoutMultiplier = 1.0;
+        this.createdAt = LocalDateTime.now();
+    }
+
+    // Getters and Setters
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public List<String> getTestCaseIds() {
+        return testCaseIds;
+    }
+
+    public void setTestCaseIds(List<String> testCaseIds) {
+        this.testCaseIds = testCaseIds;
+    }
+
+    public List<String> getTestSuiteIds() {
+        return testSuiteIds;
+    }
+
+    public void setTestSuiteIds(List<String> testSuiteIds) {
+        this.testSuiteIds = testSuiteIds;
+    }
+
+    public Map<String, String> getEnvironmentVariables() {
+        return environmentVariables;
+    }
+
+    public void setEnvironmentVariables(Map<String, String> environmentVariables) {
+        this.environmentVariables = environmentVariables;
+    }
+
+    public String getBrowser() {
+        return browser;
+    }
+
+    public void setBrowser(String browser) {
+        this.browser = browser;
+    }
+
+    public boolean isHeadless() {
+        return headless;
+    }
+
+    public void setHeadless(boolean headless) {
+        this.headless = headless;
+    }
+
+    public boolean isParallel() {
+        return parallel;
+    }
+
+    public void setParallel(boolean parallel) {
+        this.parallel = parallel;
+    }
+
+    public int getMaxWorkers() {
+        return maxWorkers;
+    }
+
+    public void setMaxWorkers(int maxWorkers) {
+        this.maxWorkers = maxWorkers;
+    }
+
+    public boolean isRetryFailedTests() {
+        return retryFailedTests;
+    }
+
+    public void setRetryFailedTests(boolean retryFailedTests) {
+        this.retryFailedTests = retryFailedTests;
+    }
+
+    public int getMaxRetries() {
+        return maxRetries;
+    }
+
+    public void setMaxRetries(int maxRetries) {
+        this.maxRetries = maxRetries;
+    }
+
+    public double getTimeoutMultiplier() {
+        return timeoutMultiplier;
+    }
+
+    public void setTimeoutMultiplier(double timeoutMultiplier) {
+        this.timeoutMultiplier = timeoutMultiplier;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+}
+
+
+/**
+ * Execution Service
+ * Handles API communication for test execution
+ */
+import { api } from '../utils/api';
+import { 
+  ExecutionPlan, 
+  ExecutionResult, 
+  ExecutionStatus 
+} from '../types/execution';
+
+class ExecutionService {
+  /**
+   * Create a new execution plan
+   * @param plan Execution plan to create
+   * @returns Created execution plan
+   */
+  async createExecutionPlan(plan: ExecutionPlan): Promise<ExecutionPlan> {
+    const response = await api.post('/executions/plans', plan);
+    return response.data;
+  }
+
+  /**
+   * Get an execution plan by ID
+   * @param planId Plan ID
+   * @returns Execution plan
+   */
+  async getExecutionPlan(planId: string): Promise<ExecutionPlan> {
+    const response = await api.get(`/executions/plans/${planId}`);
+    return response.data;
+  }
+
+  /**
+   * Get all execution plans in a project
+   * @param projectId Project ID
+   * @returns List of execution plans
+   */
+  async getProjectExecutionPlans(projectId: string): Promise<ExecutionPlan[]> {
+    const response = await api.get(`/projects/${projectId}/executions/plans`);
+    return response.data;
+  }
+
+  /**
+   * Execute tests according to an execution plan
+   * @param planId Plan ID
+   * @returns Execution result
+   */
+  async executeTests(planId: string): Promise<ExecutionResult> {
+    const response = await api.post(`/executions/plans/${planId}/execute`);
+    return response.data;
+  }
+
+  /**
+   * Execute a single test case
+   * @param projectId Project ID
+   * @param testCaseId Test case ID
+   * @param variables Environment variables
+   * @returns Execution result
+   */
+  async executeTestCase(
+    projectId: string, 
+    testCaseId: string, 
+    variables?: Record<string, string>
+  ): Promise<ExecutionResult> {
+    const response = await api.post(`/projects/${projectId}/testcases/${testCaseId}/execute`, { variables });
+    return response.data;
+  }
+
+  /**
+   * Execute a test suite
+   * @param projectId Project ID
+   * @param testSuiteId Test suite ID
+   * @param variables Environment variables
+   * @returns Execution result
+   */
+  async executeTestSuite(
+    projectId: string, 
+    testSuiteId: string, 
+    variables?: Record<string, string>
+  ): Promise<ExecutionResult> {
+    const response = await api.post(`/projects/${projectId}/testsuites/${testSuiteId}/execute`, { variables });
+    return response.data;
+  }
+
+  /**
+   * Get an execution result by ID
+   * @param executionId Execution ID
+   * @returns Execution result
+   */
+  async getExecutionResult(executionId: string): Promise<ExecutionResult> {
+    const response = await api.get(`/executions/results/${executionId}`);
+    return response.data;
+  }
+
+  /**
+   * Get all execution results in a project
+   * @param projectId Project ID
+   * @returns List of execution results
+   */
+  async getProjectExecutionResults(projectId: string): Promise<ExecutionResult[]> {
+    const response = await api.get(`/projects/${projectId}/executions/results`);
+    return response.data;
+  }
+
+  /**
+   * Stop an ongoing execution
+   * @param executionId Execution ID
+   */
+  async stopExecution(executionId: string): Promise<void> {
+    await api.post(`/executions/${executionId}/stop`);
+  }
+
+  /**
+   * Get the status of an execution
+   * @param executionId Execution ID
+   * @returns Execution status
+   */
+  async getExecutionStatus(executionId: string): Promise<ExecutionStatus> {
+    const response = await api.get(`/executions/${executionId}/status`);
+    return response.data;
+  }
+
+  /**
+   * Get the URL for a screenshot
+   * @param executionId Execution ID
+   * @param filename Screenshot filename
+   * @returns Screenshot URL
+   */
+  getScreenshotUrl(executionId: string, filename: string): string {
+    return `${api.defaults.baseURL}/executions/${executionId}/screenshots/${filename}`;
+  }
+
+  /**
+   * Get the URL for a video
+   * @param executionId Execution ID
+   * @param filename Video filename
+   * @returns Video URL
+   */
+  getVideoUrl(executionId: string, filename: string): string {
+    return `${api.defaults.baseURL}/executions/${executionId}/videos/${filename}`;
+  }
+}
+
+export const executionService = new ExecutionService();
+
+
+/**
+ * Execution Types
+ * TypeScript type definitions for execution entities
+ */
+
+/**
+ * Execution plan model
+ */
+export interface ExecutionPlan {
+  id?: string;
+  projectId: string;
+  name: string;
+  description?: string;
+  testCaseIds?: string[];
+  testSuiteIds?: string[];
+  environmentVariables?: Record<string, string>;
+  browser?: string;
+  headless?: boolean;
+  parallel?: boolean;
+  maxWorkers?: number;
+  retryFailedTests?: boolean;
+  maxRetries?: number;
+  timeoutMultiplier?: number;
+  createdBy?: string;
+  createdAt?: string;
+}
+
+/**
+ * Execution result model
+ */
+export interface ExecutionResult {
+  id: string;
+  executionPlanId: string;
+  projectId: string;
+  startTime: string;
+  endTime?: string;
+  status: ExecutionResultStatus;
+  testCaseResults: TestCaseResult[];
+  browser: string;
+  environment?: string;
+  totalTests: number;
+  passed: number;
+  failed: number;
+  skipped: number;
+  executedBy?: string;
+}
+
+/**
+ * Test case result model
+ */
+export interface TestCaseResult {
+  id: string;
+  testCaseId: string;
+  testCaseName: string;
+  executionId: string;
+  startTime: string;
+  endTime?: string;
+  status: ExecutionResultStatus;
+  stepResults: TestStepResult[];
+  error?: string;
+  screenshotPaths: string[];
+  videoPath?: string;
+  retryCount: number;
+  duration: number;
+}
+
+/**
+ * Test step result model
+ */
+export interface TestStepResult {
+  id: string;
+  stepId: string;
+  testCaseResultId: string;
+  action: string;
+  selector?: string;
+  description?: string;
+  startTime: string;
+  endTime?: string;
+  status: ExecutionResultStatus;
+  error?: string;
+  screenshotPath?: string;
+  healedSelector?: string;
+  healingApplied: boolean;
+  duration: number;
+}
+
+/**
+ * Execution status model
+ */
+export interface ExecutionStatus {
+  executionId: string;
+  status: ExecutionResultStatus;
+  startTime: string;
+  endTime?: string;
+  progress: number;
+  testCaseStatuses: Record<string, string>;
+  stepStatuses: Record<string, string>;
+  totalSteps: number;
+  completedSteps: number;
+  currentTestCase?: string;
+  currentStep?: string;
+}
+
+/**
+ * Execution result status types
+ */
+export type ExecutionResultStatus = 
+  | 'pending'
+  | 'running'
+  | 'passed'
+  | 'failed'
+  | 'skipped'
+  | 'stopped'
+  | 'empty';
+
+/**
+ * Execution filter options
+ */
+export interface ExecutionFilterOptions {
+  status?: ExecutionResultStatus;
+  browser?: string;
+  startDate?: string;
+  endDate?: string;
+  executedBy?: string;
+}
+
+
+
+/**
+ * WebSocket Hook
+ * Custom hook for WebSocket communication
+ */
+import { useEffect, useRef, useState, useCallback } from 'react';
+import SockJS from 'sockjs-client';
+import { Client, IMessage } from '@stomp/stompjs';
+
+interface UseWebSocketProps {
+  topic: string;
+  onMessage: (data: any) => void;
+  onConnect?: () => void;
+  onDisconnect?: () => void;
+  onError?: (error: any) => void;
+  enabled?: boolean;
+}
+
+/**
+ * Hook for WebSocket communication using STOMP over SockJS
+ */
+export const useWebSocket = ({
+  topic,
+  onMessage,
+  onConnect,
+  onDisconnect,
+  onError,
+  enabled = true
+}: UseWebSocketProps) => {
+  const [connected, setConnected] = useState<boolean>(false);
+  const stompClient = useRef<Client | null>(null);
+  const subscription = useRef<any>(null);
+
+  // Connect to WebSocket
+  const connect = useCallback(() => {
+    if (!enabled) return;
+
+    // Create STOMP client
+    const client = new Client({
+      webSocketFactory: () => new SockJS('/api/websocket'),
+      debug: (str) => {
+        // console.log(str); // Uncomment for debugging
+      },
+      reconnectDelay: 5000, // 5 seconds
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000
+    });
+
+    // Set connect callback
+    client.onConnect = (frame) => {
+      // Subscribe to topic
+      subscription.current = client.subscribe(topic, (message: IMessage) => {
+        if (message.body) {
+          try {
+            const data = JSON.parse(message.body);
+            onMessage(data);
+          } catch (error) {
+            console.error('Error parsing WebSocket message:', error);
+            if (onError) onError(error);
+          }
+        }
+      });
+
+      setConnected(true);
+      if (onConnect) onConnect();
+    };
+
+    // Set error callback
+    client.onStompError = (frame) => {
+      console.error('STOMP error:', frame);
+      if (onError) onError(frame);
+    };
+
+    // Set WebSocket close callback
+    client.onWebSocketClose = () => {
+      setConnected(false);
+      if (onDisconnect) onDisconnect();
+    };
+
+    // Activate client
+    client.activate();
+    stompClient.current = client;
+
+    return () => disconnect();
+  }, [topic, onMessage, onConnect, onDisconnect, onError, enabled]);
+
+  // Disconnect from WebSocket
+  const disconnect = useCallback(() => {
+    if (subscription.current) {
+      subscription.current.unsubscribe();
+      subscription.current = null;
+    }
+
+    if (stompClient.current) {
+      if (stompClient.current.active) {
+        stompClient.current.deactivate();
+      }
+      stompClient.current = null;
+    }
+
+    setConnected(false);
+    if (onDisconnect) onDisconnect();
+  }, [onDisconnect]);
+
+  // Send message to WebSocket
+  const sendMessage = useCallback((destination: string, body: any) => {
+    if (stompClient.current && stompClient.current.active && connected) {
+      stompClient.current.publish({
+        destination,
+        body: JSON.stringify(body)
+      });
+      return true;
+    }
+    return false;
+  }, [connected]);
+
+  // Connect and disconnect on mount/unmount
+  useEffect(() => {
+    if (enabled) {
+      connect();
+    }
+    
+    return () => {
+      if (enabled) {
+        disconnect();
+      }
+    };
+  }, [connect, disconnect, enabled]);
+
+  // Reconnect when topic changes
+  useEffect(() => {
+    if (connected && subscription.current) {
+      subscription.current.unsubscribe();
+      
+      subscription.current = stompClient.current?.subscribe(topic, (message: IMessage) => {
+        if (message.body) {
+          try {
+            const data = JSON.parse(message.body);
+            onMessage(data);
+          } catch (error) {
+            console.error('Error parsing WebSocket message:', error);
+            if (onError) onError(error);
+          }
+        }
+      });
+    }
+  }, [topic, onMessage, onError, connected]);
+
+  return {
+    connected,
+    connect,
+    disconnect,
+    sendMessage
+  };
+};
+
+
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  Box, Paper, Typography, LinearProgress, Divider, Button, 
+  List, ListItem, ListItemText, ListItemIcon, Chip, Grid,
+  CircularProgress, Card, CardContent, Avatar, IconButton,
+  Tooltip, Dialog, DialogTitle, DialogContent, DialogActions
+} from '@mui/material';
+import {
+  PlayArrow as PlayIcon,
+  Stop as StopIcon,
+  Check as CheckIcon,
+  Close as CloseIcon,
+  Warning as WarningIcon,
+  ArrowBack as ArrowBackIcon,
+  Pause as PauseIcon,
+  Screenshot as ScreenshotIcon,
+  Visibility as ViewIcon,
+  ViewTimeline as TimelineIcon,
+  Report as ReportIcon
+} from '@mui/icons-material';
+import { format, formatDistance } from 'date-fns';
+import { executionService } from '../../services/executionService';
+import { testCaseService } from '../../services/testCaseService';
+import { useWebSocket } from '../../hooks/useWebSocket';
+import { useNotification } from '../../contexts/NotificationContext';
+import { ExecutionResult, ExecutionStatus, TestCaseResult, TestStepResult } from '../../types/execution';
+import { TestCase } from '../../types/testCase';
+
+const ExecutionStatusPage: React.FC = () => {
+  const { executionId } = useParams<{ executionId: string }>();
+  const navigate = useNavigate();
+  const { showNotification } = useNotification();
+
+  const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
+  const [executionStatus, setExecutionStatus] = useState<ExecutionStatus | null>(null);
+  const [testCases, setTestCases] = useState<Record<string, TestCase>>({});
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [selectedTestCase, setSelectedTestCase] = useState<string | null>(null);
+  const [stopDialogOpen, setStopDialogOpen] = useState<boolean>(false);
+  const [screenshotDialogOpen, setScreenshotDialogOpen] = useState<boolean>(false);
+  const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
+  
+  // Calculate execution duration
+  const [duration, setDuration] = useState<string>('');
+  
+  // Set up WebSocket for real-time updates
+  const { connected } = useWebSocket({
+    topic: `/topic/executions/${executionId}`,
+    onMessage: (data: ExecutionStatus) => {
+      setExecutionStatus(data);
+    },
+    enabled: !!executionId
+  });
+  
+  // Load execution result and status initially
+  useEffect(() => {
+    const loadExecutionData = async () => {
+      if (!executionId) return;
+      
+      try {
+        setIsLoading(true);
+        
+        // Load execution result
+        const result = await executionService.getExecutionResult(executionId);
+        setExecutionResult(result);
+        
+        // Load execution status
+        try {
+          const status = await executionService.getExecutionStatus(executionId);
+          setExecutionStatus(status);
+        } catch (error) {
+          console.error('Error loading execution status:', error);
+          // Create a status from result if not available
+          if (result) {
+            const syntheticStatus: ExecutionStatus = {
+              executionId: result.id,
+              status: result.status,
+              startTime: result.startTime,
+              endTime: result.endTime,
+              progress: result.endTime ? 100 : 0,
+              testCaseStatuses: {},
+              stepStatuses: {},
+              totalSteps: 0,
+              completedSteps: 0
+            };
+            
+            // Extract test case statuses
+            result.testCaseResults.forEach(tcr => {
+              syntheticStatus.testCaseStatuses[tcr.testCaseId] = tcr.status;
+              syntheticStatus.totalSteps += tcr.stepResults.length;
+              syntheticStatus.completedSteps += tcr.stepResults.filter(
+                sr => sr.status !== 'running' && sr.status !== 'pending'
+              ).length;
+              
+              // Extract step statuses
+              tcr.stepResults.forEach(sr => {
+                syntheticStatus.stepStatuses[sr.stepId] = sr.status;
+              });
+            });
+            
+            setExecutionStatus(syntheticStatus);
+          }
+        }
+        
+        // Load test cases
+        if (result) {
+          const testCaseIds = result.testCaseResults.map(tcr => tcr.testCaseId);
+          const testCasesMap: Record<string, TestCase> = {};
+          
+          await Promise.all(testCaseIds.map(async tcId => {
+            try {
+              const testCase = await testCaseService.getTestCase(result.projectId, tcId);
+              testCasesMap[tcId] = testCase;
+            } catch (error) {
+              console.error(`Error loading test case ${tcId}:`, error);
+            }
+          }));
+          
+          setTestCases(testCasesMap);
+        }
+      } catch (error) {
+        console.error('Error loading execution data:', error);
+        showNotification('Failed to load execution data', 'error');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadExecutionData();
+  }, [executionId, showNotification]);
+  
+  // Update duration every second
+  useEffect(() => {
+    if (!executionStatus?.startTime) return;
+    
+    const updateDuration = () => {
+      const start = new Date(executionStatus.startTime);
+      const end = executionStatus.endTime ? new Date(executionStatus.endTime) : new Date();
+      setDuration(formatDistance(start, end, { addSuffix: false }));
+    };
+    
+    updateDuration();
+    
+    // If execution is still running, update duration every second
+    if (!executionStatus.endTime) {
+      const interval = setInterval(updateDuration, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [executionStatus?.startTime, executionStatus?.endTime]);
+  
+  // Handle stop execution
+  const handleStopExecution = async () => {
+    if (!executionId) return;
+    
+    try {
+      await executionService.stopExecution(executionId);
+      showNotification('Execution stopped successfully', 'success');
+      setStopDialogOpen(false);
+    } catch (error) {
+      console.error('Error stopping execution:', error);
+      showNotification('Failed to stop execution', 'error');
+    }
+  };
+  
+  // Handle view report
+  const handleViewReport = () => {
+    if (!executionId || !executionResult) return;
+    navigate(`/projects/${executionResult.projectId}/reports/executions/${executionId}`);
+  };
+  
+  // Handle view screenshot
+  const handleViewScreenshot = (path: string) => {
+    setSelectedScreenshot(path);
+    setScreenshotDialogOpen(true);
+  };
+  
+  // Handle back button
+  const handleBack = () => {
+    if (!executionResult) return;
+    navigate(`/projects/${executionResult.projectId}/executions`);
+  };
+  
+  // Get test case result by ID
+  const getTestCaseResult = (testCaseId: string): TestCaseResult | undefined => {
+    if (!executionResult) return undefined;
+    return executionResult.testCaseResults.find(tcr => tcr.testCaseId === testCaseId);
+  };
+  
+  // Status colors
+  const statusColors: Record<string, string> = {
+    pending: 'default',
+    running: 'info',
+    passed: 'success',
+    failed: 'error',
+    skipped: 'warning',
+    stopped: 'default',
+    empty: 'default'
+  };
+  
+  // Status icons
+  const StatusIcon: React.FC<{ status: string }> = ({ status }) => {
+    switch (status) {
+      case 'pending':
+        return <PauseIcon color="disabled" />;
+      case 'running':
+        return <CircularProgress size={20} color="info" />;
+      case 'passed':
+        return <CheckIcon color="success" />;
+      case 'failed':
+        return <CloseIcon color="error" />;
+      case 'skipped':
+        return <WarningIcon color="warning" />;
+      case 'stopped':
+        return <StopIcon color="disabled" />;
+      default:
+        return <PauseIcon color="disabled" />;
+    }
+  };
+  
+  // Format date
+  const formatDate = (dateString?: string): string => {
+    if (!dateString) return 'N/A';
+    return format(new Date(dateString), 'yyyy-MM-dd HH:mm:ss');
+  };
+  
+  // Render loading state
+  if (isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+  
+  // Render not found state
+  if (!executionResult || !executionStatus) {
+    return (
+      <Box>
+        <Typography variant="h4" align="center" my={4}>
+          Execution Not Found
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate(-1)}
+        >
+          Go Back
+        </Button>
+      </Box>
+    );
+  }
+  
+  // Get selected test case
+  const selectedTestCaseResult = selectedTestCase ? 
+    getTestCaseResult(selectedTestCase) : undefined;
+  
+  return (
+    <Box>
+      {/* Header */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Box display="flex" alignItems="center">
+          <IconButton onClick={handleBack} sx={{ mr: 1 }}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h4">
+            Execution Status
+          </Typography>
+        </Box>
+        <Box>
+          {executionStatus.status === 'running' && (
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<StopIcon />}
+              onClick={() => setStopDialogOpen(true)}
+              sx={{ mr: 1 }}
+            >
+              Stop Execution
+            </Button>
+          )}
+          {executionStatus.status !== 'running' && (
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<ReportIcon />}
+              onClick={handleViewReport}
+            >
+              View Report
+            </Button>
+          )}
+        </Box>
+      </Box>
+      
+      {/* Execution Info */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Box>
+                <Typography variant="subtitle2" color="textSecondary">
+                  Execution ID
+                </Typography>
+                <Typography variant="body1">
+                  {executionResult.id}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Box>
+                <Typography variant="subtitle2" color="textSecondary">
+                  Status
+                </Typography>
+                <Chip
+                  label={executionStatus.status.toUpperCase()}
+                  color={statusColors[executionStatus.status] as any}
+                  icon={<StatusIcon status={executionStatus.status} />}
+                />
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Box>
+                <Typography variant="subtitle2" color="textSecondary">
+                  Start Time
+                </Typography>
+                <Typography variant="body1">
+                  {formatDate(executionStatus.startTime)}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Box>
+                <Typography variant="subtitle2" color="textSecondary">
+                  End Time
+                </Typography>
+                <Typography variant="body1">
+                  {executionStatus.endTime ? formatDate(executionStatus.endTime) : 'Running...'}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Box>
+                <Typography variant="subtitle2" color="textSecondary">
+                  Duration
+                </Typography>
+                <Typography variant="body1">
+                  {duration}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Box>
+                <Typography variant="subtitle2" color="textSecondary">
+                  Browser
+                </Typography>
+                <Typography variant="body1">
+                  {executionResult.browser} {executionResult.environment ? `(${executionResult.environment})` : ''}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12}>
+              <Box>
+                <Typography variant="subtitle2" color="textSecondary">
+                  Progress
+                </Typography>
+                <Box display="flex" alignItems="center">
+                  <LinearProgress
+                    variant="determinate"
+                    value={executionStatus.progress}
+                    sx={{ flexGrow: 1, mr: 2, height: 10, borderRadius: 5 }}
+                  />
+                  <Typography variant="body2">
+                    {executionStatus.progress}%
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+            <Grid item xs={12}>
+              <Box display="flex" justifyContent="space-between">
+                <Chip 
+                  label={`Total: ${executionResult.totalTests}`}
+                  variant="outlined"
+                />
+                <Chip 
+                  label={`Passed: ${executionResult.passed}`}
+                  color="success"
+                  variant="outlined"
+                />
+                <Chip 
+                  label={`Failed: ${executionResult.failed}`}
+                  color="error"
+                  variant="outlined"
+                />
+                <Chip 
+                  label={`Skipped: ${executionResult.skipped}`}
+                  color="warning"
+                  variant="outlined"
+                />
+              </Box>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+      
+      {/* Test Cases */}
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 2, height: '70vh', overflowY: 'auto' }}>
+            <Typography variant="h6" gutterBottom>
+              Test Cases
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            
+            <List>
+              {executionResult.testCaseResults.map(tcr => {
+                const testCase = testCases[tcr.testCaseId];
+                const status = executionStatus.testCaseStatuses[tcr.testCaseId] || 'pending';
+                
+                return (
+                  <ListItem
+                    key={tcr.testCaseId}
+                    button
+                    selected={selectedTestCase === tcr.testCaseId}
+                    onClick={() => setSelectedTestCase(tcr.testCaseId)}
+                    sx={{
+                      borderLeft: '4px solid',
+                      borderColor: `${statusColors[status]}.main`,
+                      mb: 1,
+                      backgroundColor: theme => 
+                        selectedTestCase === tcr.testCaseId ? 
+                        theme.palette.action.selected : 'inherit'
+                    }}
+                  >
+                    <ListItemIcon>
+                      <StatusIcon status={status} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={testCase?.name || tcr.testCaseName}
+                      secondary={
+                        <React.Fragment>
+                          <Typography variant="body2" component="span">
+                            {`${tcr.stepResults.length} steps`} |&nbsp; 
+                          </Typography>
+                          <Typography variant="body2" component="span" color="textSecondary">
+                            {status === 'running' ? 'Running...' : 
+                             tcr.duration ? `${(tcr.duration / 1000).toFixed(2)}s` : ''}
+                          </Typography>
+                        </React.Fragment>
+                      }
+                    />
+                  </ListItem>
+                );
+              })}
+            </List>
+          </Paper>
+        </Grid>
+        
+        <Grid item xs={12} md={8}>
+          <Paper sx={{ p: 2, height: '70vh', overflowY: 'auto' }}>
+            {selectedTestCaseResult ? (
+              <React.Fragment>
+                <Typography variant="h6" gutterBottom>
+                  {testCases[selectedTestCaseResult.testCaseId]?.name || selectedTestCaseResult.testCaseName}
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+                
+                {selectedTestCaseResult.error && (
+                  <Box sx={{ 
+                    backgroundColor: 'error.light',
+                    color: 'error.contrastText',
+                    p: 2,
+                    mb: 2,
+                    borderRadius: 1
+                  }}>
+                    <Typography variant="subtitle2">Error:</Typography>
+                    <Typography variant="body2" component="pre" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {selectedTestCaseResult.error}
+                    </Typography>
+                  </Box>
+                )}
+                
+                <List>
+                  {selectedTestCaseResult.stepResults.map((sr, index) => {
+                    const testCase = testCases[selectedTestCaseResult.testCaseId];
+                    const step = testCase?.steps.find(s => s.id === sr.stepId);
+                    const status = executionStatus.stepStatuses[sr.stepId] || 'pending';
+                    
+                    return (
+                      <ListItem
+                        key={sr.id}
+                        sx={{
+                          borderLeft: '4px solid',
+                          borderColor: `${statusColors[status]}.main`,
+                          mb: 1,
+                          position: 'relative'
+                        }}
+                      >
+                        <ListItemIcon>
+                          <Avatar sx={{ bgcolor: 'primary.main', width: 28, height: 28 }}>
+                            {index + 1}
+                          </Avatar>
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={
+                            <Box display="flex" alignItems="center">
+                              <Typography variant="subtitle1">
+                                {sr.action}
+                                {sr.selector ? `: ${sr.selector}` : ''}
+                              </Typography>
+                              <Box ml={1}>
+                                <StatusIcon status={status} />
+                              </Box>
+                            </Box>
+                          }
+                          secondary={
+                            <React.Fragment>
+                              <Typography variant="body2" component="div">
+                                {sr.description || step?.description || ''}
+                              </Typography>
+                              {sr.duration > 0 && (
+                                <Typography variant="body2" color="textSecondary">
+                                  Duration: {(sr.duration / 1000).toFixed(2)}s
+                                </Typography>
+                              )}
+                              {sr.error && (
+                                <Typography 
+                                  variant="body2" 
+                                  color="error" 
+                                  component="pre"
+                                  sx={{ 
+                                    whiteSpace: 'pre-wrap',
+                                    backgroundColor: 'error.light',
+                                    color: 'error.contrastText',
+                                    p: 1,
+                                    mt: 1,
+                                    borderRadius: 1
+                                  }}
+                                >
+                                  {sr.error}
+                                </Typography>
+                              )}
+                              {sr.healingApplied && (
+                                <Chip 
+                                  label={`Self-healed: ${sr.healedSelector}`}
+                                  color="info"
+                                  size="small"
+                                  sx={{ mt: 1 }}
+                                />
+                              )}
+                            </React.Fragment>
+                          }
+                        />
+                        {sr.screenshotPath && (
+                          <Box position="absolute" right={16}>
+                            <Tooltip title="View Screenshot">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleViewScreenshot(sr.screenshotPath!)}
+                              >
+                                <ScreenshotIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        )}
+                      </ListItem>
+                    );
+                  })}
+                </List>
+              </React.Fragment>
+            ) : (
+              <Box 
+                display="flex" 
+                flexDirection="column" 
+                justifyContent="center" 
+                alignItems="center" 
+                height="100%"
+              >
+                <Typography color="textSecondary">
+                  Select a test case to view details
+                </Typography>
+              </Box>
+            )}
+          </Paper>
+        </Grid>
+      </Grid>
+      
+      {/* Stop Execution Dialog */}
+      <Dialog
+        open={stopDialogOpen}
+        onClose={() => setStopDialogOpen(false)}
+      >
+        <DialogTitle>Stop Execution</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to stop this execution? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setStopDialogOpen(false)} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleStopExecution} color="error">
+            Stop Execution
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* Screenshot Dialog */}
+      <Dialog
+        open={screenshotDialogOpen}
+        onClose={() => setScreenshotDialogOpen(false)}
+        maxWidth="lg"
+      >
+        <DialogTitle>Screenshot</DialogTitle>
+        <DialogContent>
+          {selectedScreenshot && (
+            <Box 
+              component="img" 
+              src={executionService.getScreenshotUrl(
+                executionId!, 
+                selectedScreenshot.split('/').pop()!
+              )}
+              alt="Test Screenshot"
+              sx={{ maxWidth: '100%' }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setScreenshotDialogOpen(false)} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+export default ExecutionStatusPage;
+
+
+
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+  Box, Button, TextField, Typography, Paper, Grid, FormControl,
+  InputLabel, Select, MenuItem, FormControlLabel, Switch,
+  Divider, CircularProgress, Chip, Autocomplete, Card, CardContent,
+  IconButton, FormHelperText, Tooltip, Tab, Tabs, Accordion,
+  AccordionSummary, AccordionDetails, Alert, Dialog, DialogTitle, 
+  DialogContent, DialogActions, List, ListItem, ListItemText, ListItemIcon,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  PlayArrow as PlayIcon,
+  ArrowBack as BackIcon,
+  ExpandMore as ExpandMoreIcon,
+  Info as InfoIcon,
+  Check as CheckIcon,
+  Warning as WarningIcon
+} from '@mui/icons-material';
+import { executionService } from '../../services/executionService';
+import { projectService } from '../../services/projectService';
+import { testCaseService } from '../../services/testCaseService';
+import { testSuiteService } from '../../services/testSuiteService';
+import { useNotification } from '../../contexts/NotificationContext';
+import { ExecutionPlan } from '../../types/execution';
+import { TestCase } from '../../types/testCase';
+import { TestSuite } from '../../types/testSuite';
+import { Project, ProjectSettings } from '../../types/project';
+
+interface ExecutionFormProps {
+  isEdit?: boolean;
+}
+
+const ExecutionForm: React.FC<ExecutionFormProps> = ({ isEdit = false }) => {
+  const { projectId, planId } = useParams<{ projectId: string, planId: string }>();
+  const navigate = useNavigate();
+  const { showNotification } = useNotification();
+
+  const [tabValue, setTabValue] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isExecuting, setIsExecuting] = useState<boolean>(false);
+
+  const [project, setProject] = useState<Project | null>(null);
+  const [projectSettings, setProjectSettings] = useState<ProjectSettings | null>(null);
+  const [testCases, setTestCases] = useState<TestCase[]>([]);
+  const [testSuites, setTestSuites] = useState<TestSuite[]>([]);
+  const [selectedTestCases, setSelectedTestCases] = useState<TestCase[]>([]);
+  const [selectedTestSuites, setSelectedTestSuites] = useState<TestSuite[]>([]);
+  const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState<boolean>(false);
+  const [environmentVariables, setEnvironmentVariables] = useState<Record<string, string>>({});
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [confirmExecuteDialog, setConfirmExecuteDialog] = useState<boolean>(false);
+  const [testCasesDialog, setTestCasesDialog] = useState<boolean>(false);
+  const [allIncludedTestCases, setAllIncludedTestCases] = useState<TestCase[]>([]);
+
+  const [executionPlan, setExecutionPlan] = useState<ExecutionPlan>({
+    projectId: projectId || '',
+    name: 'New Execution',
+    description: '',
+    testCaseIds: [],
+    testSuiteIds: [],
+    environmentVariables: {},
+    browser: 'chrome',
+    headless: false,
+    parallel: false,
+    maxWorkers: 4,
+    retryFailedTests: false,
+    maxRetries: 3,
+    timeoutMultiplier: 1.0,
+  });
+
+  // Load project, settings, test cases, and test suites
+  useEffect(() => {
+    const loadData = async () => {
+      if (!projectId) return;
+
+      try {
+        setIsLoading(true);
+
+        // Load project
+        const projectData = await projectService.getProject(projectId);
+        setProject(projectData);
+
+        // Load project settings
+        const settingsData = await projectService.getProjectSettings(projectId);
+        setProjectSettings(settingsData);
+
+        // Load test cases
+        const testCasesData = await testCaseService.getProjectTestCases(projectId);
+        setTestCases(testCasesData.filter(tc => tc.isActive !== false));
+
+        // Load test suites
+        const testSuitesData = await testSuiteService.getProjectTestSuites(projectId);
+        setTestSuites(testSuitesData);
+
+        // Load execution plan if editing
+        if (isEdit && planId) {
+          const plan = await executionService.getExecutionPlan(planId);
+          setExecutionPlan(plan);
+
+          // Set selected test cases
+          const selectedTestCasesList = testCasesData.filter(
+            tc => plan.testCaseIds?.includes(tc.id!)
+          );
+          setSelectedTestCases(selectedTestCasesList);
+
+          // Set selected test suites
+          const selectedTestSuitesList = testSuitesData.filter(
+            ts => plan.testSuiteIds?.includes(ts.id!)
+          );
+          setSelectedTestSuites(selectedTestSuitesList);
+
+          // Set environment variables
+          setEnvironmentVariables(plan.environmentVariables || {});
+        } else {
+          // Set defaults from project settings for new execution
+          if (settingsData) {
+            setExecutionPlan(prev => ({
+              ...prev,
+              browser: settingsData.defaultBrowser || 'chrome',
+              headless: settingsData.headlessMode || false,
+              parallel: settingsData.parallelExecutionSettings?.enabled || false,
+              maxWorkers: settingsData.parallelExecutionSettings?.maxWorkers || 4,
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+        showNotification('Failed to load data', 'error');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [projectId, planId, isEdit, showNotification]);
+
+  // Update included test cases when selections change
+  useEffect(() => {
+    const updateIncludedTestCases = async () => {
+      try {
+        const testCasesList: TestCase[] = [...selectedTestCases];
+        
+        // Add test cases from test suites
+        for (const suite of selectedTestSuites) {
+          if (suite.testCaseIds) {
+            for (const tcId of suite.testCaseIds) {
+              const testCase = testCases.find(tc => tc.id === tcId);
+              if (testCase && !testCasesList.some(tc => tc.id === tcId)) {
+                testCasesList.push(testCase);
+              }
+            }
+          }
+        }
+        
+        setAllIncludedTestCases(testCasesList);
+      } catch (error) {
+        console.error('Error updating included test cases:', error);
+      }
+    };
+    
+    updateIncludedTestCases();
+  }, [selectedTestCases, selectedTestSuites, testCases]);
+
+  // Handle tab change
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
+
+  // Handle form field changes
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
+    const { name, value } = e.target;
+    if (!name) return;
+
+    setExecutionPlan(prev => ({ ...prev, [name]: value }));
+
+    // Clear validation error when field is updated
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  // Handle switch changes (boolean values)
+  const handleSwitchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setExecutionPlan(prev => ({ ...prev, [name]: checked }));
+  };
+
+  // Handle test case selection
+  const handleTestCaseSelection = (newValue: TestCase[]) => {
+    setSelectedTestCases(newValue);
+    setExecutionPlan(prev => ({
+      ...prev,
+      testCaseIds: newValue.map(tc => tc.id!)
+    }));
+  };
+
+  // Handle test suite selection
+  const handleTestSuiteSelection = (newValue: TestSuite[]) => {
+    setSelectedTestSuites(newValue);
+    setExecutionPlan(prev => ({
+      ...prev,
+      testSuiteIds: newValue.map(ts => ts.id!)
+    }));
+  };
+
+  // Handle environment variable changes
+  const handleEnvVarChange = (key: string, value: string) => {
+    setEnvironmentVariables(prev => ({
+      ...prev,
+      [key]: value
+    }));
+
+    setExecutionPlan(prev => ({
+      ...prev,
+      environmentVariables: {
+        ...prev.environmentVariables,
+        [key]: value
+      }
+    }));
+  };
+
+  // Handle adding a new environment variable
+  const handleAddEnvVar = () => {
+    const newKey = `ENV_VAR_${Object.keys(environmentVariables).length + 1}`;
+    handleEnvVarChange(newKey, '');
+  };
+
+  // Handle removing an environment variable
+  const handleRemoveEnvVar = (key: string) => {
+    const newVars = { ...environmentVariables };
+    delete newVars[key];
+    setEnvironmentVariables(newVars);
+
+    const newPlanVars = { ...executionPlan.environmentVariables };
+    if (newPlanVars) {
+      delete newPlanVars[key];
+      setExecutionPlan(prev => ({
+        ...prev,
+        environmentVariables: newPlanVars
+      }));
+    }
+  };
+
+  // Validate the form
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!executionPlan.name) {
+      errors.name = 'Name is required';
+    }
+
+    if (!executionPlan.browser) {
+      errors.browser = 'Browser is required';
+    }
+
+    if (executionPlan.parallel && (!executionPlan.maxWorkers || executionPlan.maxWorkers <= 0)) {
+      errors.maxWorkers = 'Max workers must be greater than 0';
+    }
+
+    if (executionPlan.retryFailedTests && (!executionPlan.maxRetries || executionPlan.maxRetries <= 0)) {
+      errors.maxRetries = 'Max retries must be greater than 0';
+    }
+
+    if (!executionPlan.timeoutMultiplier || executionPlan.timeoutMultiplier <= 0) {
+      errors.timeoutMultiplier = 'Timeout multiplier must be greater than 0';
+    }
+
+    // At least one test case or test suite must be selected
+    if (
+      (!executionPlan.testCaseIds || executionPlan.testCaseIds.length === 0) &&
+      (!executionPlan.testSuiteIds || executionPlan.testSuiteIds.length === 0)
+    ) {
+      errors.selection = 'At least one test case or test suite must be selected';
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Handle save button click
+  const handleSave = async () => {
+    if (!validateForm()) return;
+
+    try {
+      setIsSaving(true);
+
+      const savedPlan = await executionService.createExecutionPlan(executionPlan);
+      showNotification('Execution plan saved successfully', 'success');
+
+      if (isEdit) {
+        // Stay on the same page
+        navigate(`/projects/${projectId}/executions/plans/${savedPlan.id}`, { replace: true });
+      } else {
+        // Navigate to execution plans list
+        navigate(`/projects/${projectId}/executions/plans`);
+      }
+    } catch (error) {
+      console.error('Error saving execution plan:', error);
+      showNotification('Failed to save execution plan', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Handle execute button click
+  const handleExecuteClick = () => {
+    if (!validateForm()) return;
+    setConfirmExecuteDialog(true);
+  };
+
+  // Handle execute confirmation
+  const handleExecuteConfirm = async () => {
+    try {
+      setIsExecuting(true);
+      setConfirmExecuteDialog(false);
+
+      // If plan is not saved yet, save it first
+      let planToExecute = executionPlan;
+      if (!isEdit || !planId) {
+        planToExecute = await executionService.createExecutionPlan(executionPlan);
+        showNotification('Execution plan saved', 'success');
+      }
+
+      // Execute the plan
+      const result = await executionService.executeTests(planToExecute.id!);
+      showNotification('Execution started successfully', 'success');
+
+      // Navigate to execution status page
+      navigate(`/projects/${projectId}/executions/status/${result.id}`);
+    } catch (error) {
+      console.error('Error executing tests:', error);
+      showNotification('Failed to execute tests', 'error');
+      setIsExecuting(false);
+    }
+  };
+
+  // Handle view all included test cases
+  const handleViewAllTestCases = () => {
+    setTestCasesDialog(true);
+  };
+
+  // Handle back button click
+  const handleBack = () => {
+    navigate(`/projects/${projectId}/executions/plans`);
+  };
+
+  // Render loading state
+  if (isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="80vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  return (
+    <Box>
+      {/* Header */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Box display="flex" alignItems="center">
+          <IconButton onClick={handleBack} sx={{ mr: 1 }}>
+            <BackIcon />
+          </IconButton>
+          <Typography variant="h4">
+            {isEdit ? 'Edit Execution Plan' : 'New Execution'}
+          </Typography>
+        </Box>
+        <Box>
+          <Button
+            variant="outlined"
+            color="primary"
+            sx={{ mr: 2 }}
+            onClick={handleSave}
+            disabled={isSaving || isExecuting}
+          >
+            {isSaving ? 'Saving...' : 'Save'}
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<PlayIcon />}
+            onClick={handleExecuteClick}
+            disabled={isSaving || isExecuting}
+          >
+            {isExecuting ? 'Starting...' : 'Execute'}
+          </Button>
+        </Box>
+      </Box>
+
+      {/* Validation error for selection */}
+      {validationErrors.selection && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {validationErrors.selection}
+        </Alert>
+      )}
+
+      {/* Main content */}
+      <Paper sx={{ mb: 3 }}>
+        <Tabs
+          value={tabValue}
+          onChange={handleTabChange}
+          indicatorColor="primary"
+          textColor="primary"
+          variant="fullWidth"
+        >
+          <Tab label="Basic" />
+          <Tab label="Test Selection" />
+          <Tab label="Environment Variables" />
+          <Tab label="Advanced Settings" />
+        </Tabs>
+
+        <Box p={3}>
+          {/* Basic Tab */}
+          {tabValue === 0 && (
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Name"
+                  name="name"
+                  value={executionPlan.name}
+                  onChange={handleChange}
+                  error={!!validationErrors.name}
+                  helperText={validationErrors.name}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth error={!!validationErrors.browser}>
+                  <InputLabel id="browser-label">Browser</InputLabel>
+                  <Select
+                    labelId="browser-label"
+                    name="browser"
+                    value={executionPlan.browser}
+                    onChange={handleChange}
+                    required
+                  >
+                    <MenuItem value="chrome">Chrome</MenuItem>
+                    <MenuItem value="firefox">Firefox</MenuItem>
+                    <MenuItem value="edge">Edge</MenuItem>
+                    <MenuItem value="safari">Safari</MenuItem>
+                  </Select>
+                  {validationErrors.browser && (
+                    <FormHelperText>{validationErrors.browser}</FormHelperText>
+                  )}
+                </FormControl>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Description"
+                  name="description"
+                  value={executionPlan.description || ''}
+                  onChange={handleChange}
+                  multiline
+                  rows={3}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      name="headless"
+                      checked={executionPlan.headless}
+                      onChange={handleSwitchChange}
+                    />
+                  }
+                  label="Run in Headless Mode"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      name="parallel"
+                      checked={executionPlan.parallel}
+                      onChange={handleSwitchChange}
+                    />
+                  }
+                  label="Enable Parallel Execution"
+                />
+              </Grid>
+              
+              {executionPlan.parallel && (
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Max Workers"
+                    name="maxWorkers"
+                    type="number"
+                    value={executionPlan.maxWorkers}
+                    onChange={handleChange}
+                    error={!!validationErrors.maxWorkers}
+                    helperText={validationErrors.maxWorkers || 'Maximum number of parallel test executions'}
+                    InputProps={{ inputProps: { min: 1 } }}
+                  />
+                </Grid>
+              )}
+            </Grid>
+          )}
+
+          {/* Test Selection Tab */}
+          {tabValue === 1 && (
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" gutterBottom>
+                  Select Test Cases
+                </Typography>
+                <Autocomplete
+                  multiple
+                  id="test-cases-selector"
+                  options={testCases}
+                  value={selectedTestCases}
+                  getOptionLabel={(option) => option.name}
+                  onChange={(event, newValue) => handleTestCaseSelection(newValue)}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      variant="outlined"
+                      label="Test Cases"
+                      placeholder="Select test cases"
+                    />
+                  )}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        {...getTagProps({ index })}
+                        key={option.id}
+                        label={option.name}
+                        size="small"
+                      />
+                    ))
+                  }
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" gutterBottom>
+                  Select Test Suites
+                </Typography>
+                <Autocomplete
+                  multiple
+                  id="test-suites-selector"
+                  options={testSuites}
+                  value={selectedTestSuites}
+                  getOptionLabel={(option) => option.name}
+                  onChange={(event, newValue) => handleTestSuiteSelection(newValue)}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      variant="outlined"
+                      label="Test Suites"
+                      placeholder="Select test suites"
+                    />
+                  )}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        {...getTagProps({ index })}
+                        key={option.id}
+                        label={option.name}
+                        size="small"
+                      />
+                    ))
+                  }
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Box display="flex" justifyContent="space-between" alignItems="center">
+                      <Typography variant="subtitle1">
+                        Tests to Execute: {allIncludedTestCases.length}
+                      </Typography>
+                      <Button 
+                        size="small" 
+                        onClick={handleViewAllTestCases}
+                        disabled={allIncludedTestCases.length === 0}
+                      >
+                        View All
+                      </Button>
+                    </Box>
+                    <Box mt={1}>
+                      {selectedTestCases.length > 0 && (
+                        <Chip
+                          label={`${selectedTestCases.length} test case${selectedTestCases.length !== 1 ? 's' : ''} selected directly`}
+                          color="primary"
+                          variant="outlined"
+                          size="small"
+                          sx={{ mr: 1, mb: 1 }}
+                        />
+                      )}
+                      {selectedTestSuites.length > 0 && (
+                        <Chip
+                          label={`${selectedTestSuites.length} test suite${selectedTestSuites.length !== 1 ? 's' : ''} selected`}
+                          color="secondary"
+                          variant="outlined"
+                          size="small"
+                          sx={{ mr: 1, mb: 1 }}
+                        />
+                      )}
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          )}
+
+          {/* Environment Variables Tab */}
+          {tabValue === 2 && (
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                  <Typography variant="subtitle1">
+                    Environment Variables
+                  </Typography>
+                  <Button
+                    startIcon={<AddIcon />}
+                    onClick={handleAddEnvVar}
+                    size="small"
+                    variant="outlined"
+                  >
+                    Add Variable
+                  </Button>
+                </Box>
+                {Object.keys(environmentVariables).map((key) => (
+                  <Box key={key} display="flex" alignItems="center" mb={2}>
+                    <TextField
+                      label="Name"
+                      value={key}
+                      sx={{ mr: 2, width: '40%' }}
+                      InputProps={{ readOnly: true }}
+                    />
+                    <TextField
+                      label="Value"
+                      value={environmentVariables[key]}
+                      onChange={(e) => handleEnvVarChange(key, e.target.value)}
+                      sx={{ flexGrow: 1, mr: 2 }}
+                    />
+                    <IconButton
+                      color="error"
+                      onClick={() => handleRemoveEnvVar(key)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                ))}
+                {Object.keys(environmentVariables).length === 0 && (
+                  <Typography color="textSecondary" variant="body2">
+                    No environment variables defined. Click "Add Variable" to add one.
+                  </Typography>
+                )}
+              </Grid>
+            </Grid>
+          )}
+
+          {/* Advanced Settings Tab */}
+          {tabValue === 3 && (
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <Accordion expanded={true}>
+                  <AccordionSummary>
+                    <Typography variant="subtitle1">Retry Settings</Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <Grid container spacing={3}>
+                      <Grid item xs={12} md={6}>
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              name="retryFailedTests"
+                              checked={executionPlan.retryFailedTests}
+                              onChange={handleSwitchChange}
+                            />
+                          }
+                          label="Retry Failed Tests"
+                        />
+                      </Grid>
+                      {executionPlan.retryFailedTests && (
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            label="Max Retries"
+                            name="maxRetries"
+                            type="number"
+                            value={executionPlan.maxRetries}
+                            onChange={handleChange}
+                            error={!!validationErrors.maxRetries}
+                            helperText={validationErrors.maxRetries}
+                            InputProps={{ inputProps: { min: 1 } }}
+                          />
+                        </Grid>
+                      )}
+                    </Grid>
+                  </AccordionDetails>
+                </Accordion>
+                
+                <Accordion expanded={true}>
+                  <AccordionSummary>
+                    <Typography variant="subtitle1">Timeout Settings</Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <Grid container spacing={3}>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          label="Timeout Multiplier"
+                          name="timeoutMultiplier"
+                          type="number"
+                          value={executionPlan.timeoutMultiplier}
+                          onChange={handleChange}
+                          error={!!validationErrors.timeoutMultiplier}
+                          helperText={validationErrors.timeoutMultiplier || 'Multiplier applied to all timeouts (e.g., 1.5 = 50% longer)'}
+                          InputProps={{ inputProps: { min: 0.1, step: 0.1 } }}
+                        />
+                      </Grid>
+                    </Grid>
+                  </AccordionDetails>
+                </Accordion>
+              </Grid>
+            </Grid>
+          )}
+        </Box>
+      </Paper>
+
+      {/* Dialog to show all included test cases */}
+      <Dialog
+        open={testCasesDialog}
+        onClose={() => setTestCasesDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          All Included Test Cases ({allIncludedTestCases.length})
+        </DialogTitle>
+        <DialogContent dividers>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Source</TableCell>
+                  <TableCell>Browser</TableCell>
+                  <TableCell>Steps</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {allIncludedTestCases.map((testCase) => {
+                  // Determine if test case is from direct selection or test suite
+                  const isDirectlySelected = selectedTestCases.some(tc => tc.id === testCase.id);
+                  const testSuiteNames = selectedTestSuites
+                    .filter(suite => suite.testCaseIds?.includes(testCase.id!))
+                    .map(suite => suite.name);
+
+                  return (
+                    <TableRow key={testCase.id}>
+                      <TableCell>{testCase.name}</TableCell>
+                      <TableCell>
+                        {isDirectlySelected && (
+                          <Chip 
+                            label="Direct Selection" 
+                            color="primary"
+                            size="small"
+                            variant="outlined"
+                            sx={{ mr: 1, mb: 1 }}
+                          />
+                        )}
+                        {testSuiteNames.map(name => (
+                          <Chip 
+                            key={name}
+                            label={`Suite: ${name}`} 
+                            color="secondary"
+                            size="small"
+                            variant="outlined"
+                            sx={{ mr: 1, mb: 1 }}
+                          />
+                        ))}
+                      </TableCell>
+                      <TableCell>{testCase.browser}{testCase.headless ? ' (headless)' : ''}</TableCell>
+                      <TableCell>{testCase.steps.length}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTestCasesDialog(false)}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Execute confirmation dialog */}
+      <Dialog
+        open={confirmExecuteDialog}
+        onClose={() => setConfirmExecuteDialog(false)}
+      >
+        <DialogTitle>Start Execution</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" paragraph>
+            Are you sure you want to execute these tests?
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemIcon>
+                <InfoIcon color="info" />
+              </ListItemIcon>
+              <ListItemText 
+                primary={`${allIncludedTestCases.length} test cases will be executed`}
+              />
+            </ListItem>
+            <ListItem>
+              <ListItemIcon>
+                <InfoIcon color="info" />
+              </ListItemIcon>
+              <ListItemText 
+                primary={`Browser: ${executionPlan.browser}${executionPlan.headless ? ' (headless)' : ''}`}
+              />
+            </ListItem>
+            {executionPlan.parallel && (
+              <ListItem>
+                <ListItemIcon>
+                  <InfoIcon color="info" />
+                </ListItemIcon>
+                <ListItemText 
+                  primary={`Parallel execution with ${executionPlan.maxWorkers} workers`}
+                />
+              </ListItem>
+            )}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmExecuteDialog(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleExecuteConfirm} 
+            color="primary" 
+            variant="contained"
+            startIcon={<PlayIcon />}
+          >
+            Start Execution
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+export default ExecutionForm;
+
+
