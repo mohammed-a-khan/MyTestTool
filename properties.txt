@@ -76,64 +76,87 @@ spring.security.user.password=admin
 spring.security.user.roles=ADMIN
 
 
-# frontend/package.json
-{
-  "name": "cstestforge-frontend",
-  "version": "1.0.0",
-  "private": true,
-  "dependencies": {
-    "@emotion/react": "^11.11.1",
-    "@emotion/styled": "^11.11.0",
-    "@mui/icons-material": "^5.14.16",
-    "@mui/material": "^5.14.16",
-    "@testing-library/jest-dom": "^5.17.0",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
-    "@types/jest": "^27.5.2",
-    "@types/node": "^16.18.60",
-    "@types/react": "^18.2.33",
-    "@types/react-dom": "^18.2.14",
-    "axios": "^1.6.0",
-    "date-fns": "^2.30.0",
-    "lodash": "^4.17.21",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.18.0",
-    "react-scripts": "5.0.1",
-    "sockjs-client": "^1.6.1",
-    "stompjs": "^2.3.3",
-    "typescript": "^4.9.5",
-    "web-vitals": "^2.1.4"
+// frontend/.eslintrc.js
+module.exports = {
+  parser: '@typescript-eslint/parser',
+  extends: [
+    'react-app',
+    'react-app/jest',
+    'plugin:react/recommended',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:prettier/recommended'
+  ],
+  plugins: ['react', 'react-hooks', '@typescript-eslint', 'prettier'],
+  parserOptions: {
+    ecmaVersion: 2020,
+    sourceType: 'module',
+    ecmaFeatures: {
+      jsx: true
+    }
   },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+  rules: {
+    // React specific rules
+    'react/prop-types': 'off', // Since we're using TypeScript
+    'react/react-in-jsx-scope': 'off', // Not needed with React 17+
+    'react-hooks/rules-of-hooks': 'error',
+    'react-hooks/exhaustive-deps': 'warn',
+    'react/jsx-filename-extension': [1, { extensions: ['.tsx'] }],
+    'react/display-name': 'off',
+    
+    // TypeScript specific rules
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    '@typescript-eslint/no-use-before-define': ['error'],
+    '@typescript-eslint/no-non-null-assertion': 'warn',
+    '@typescript-eslint/no-empty-function': 'warn',
+    
+    // General code style
+    'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
+    'prefer-const': 'warn',
+    'no-var': 'error',
+    'eqeqeq': ['error', 'always', { null: 'ignore' }],
+    'max-len': ['warn', { code: 120, ignoreStrings: true, ignoreTemplateLiterals: true, ignoreComments: true }],
+    'no-multiple-empty-lines': ['warn', { max: 2, maxEOF: 1 }],
+    
+    // Prettier integration
+    'prettier/prettier': ['warn', {}, { usePrettierrc: true }]
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+  settings: {
+    react: {
+      version: 'detect'
+    }
   },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "proxy": "http://localhost:8080/api"
-}
+  ignorePatterns: ['build/**/*', 'node_modules/**/*', 'public/**/*']
+};
 
 
-# frontend/tsconfig.json
+// frontend/.prettierrc.js
+module.exports = {
+  printWidth: 100,
+  tabWidth: 2,
+  useTabs: false,
+  semi: true,
+  singleQuote: true,
+  quoteProps: 'as-needed',
+  jsxSingleQuote: false,
+  trailingComma: 'es5',
+  bracketSpacing: true,
+  jsxBracketSameLine: false,
+  arrowParens: 'avoid',
+  rangeStart: 0,
+  rangeEnd: Infinity,
+  requirePragma: false,
+  insertPragma: false,
+  proseWrap: 'preserve',
+  htmlWhitespaceSensitivity: 'css',
+  endOfLine: 'lf',
+  embeddedLanguageFormatting: 'auto'
+};
+
+
+// frontend/tsconfig.json
 {
   "compilerOptions": {
     "target": "es5",
@@ -155,11 +178,103 @@ spring.security.user.roles=ADMIN
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "baseUrl": "src"
+    "baseUrl": "src",
+    "paths": {
+      "@/*": ["*"],
+      "@components/*": ["components/*"],
+      "@pages/*": ["pages/*"],
+      "@contexts/*": ["contexts/*"],
+      "@hooks/*": ["hooks/*"],
+      "@utils/*": ["utils/*"],
+      "@types/*": ["types/*"],
+      "@services/*": ["services/*"],
+      "@assets/*": ["assets/*"],
+      "@styles/*": ["styles/*"]
+    }
   },
   "include": [
     "src"
   ]
+}
+
+
+{
+  "name": "cstestforge-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.14.16",
+    "@mui/material": "^5.14.16",
+    "@stomp/stompjs": "^7.0.0",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.18.60",
+    "@types/react": "^18.2.33",
+    "@types/react-dom": "^18.2.14",
+    "ace-builds": "^1.24.1",
+    "axios": "^1.6.0",
+    "chart.js": "^4.4.0",
+    "date-fns": "^2.30.0",
+    "lodash": "^4.17.21",
+    "react": "^18.2.0",
+    "react-ace": "^10.1.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.47.0",
+    "react-router-dom": "^6.18.0",
+    "react-scripts": "5.0.1",
+    "react-syntax-highlighter": "^15.5.0",
+    "sockjs-client": "^1.6.1",
+    "typescript": "^4.9.5",
+    "uuid": "^9.0.1",
+    "web-vitals": "^2.1.4"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.200",
+    "@types/react-syntax-highlighter": "^15.5.10",
+    "@types/sockjs-client": "^1.5.3",
+    "@types/uuid": "^9.0.6",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "eslint": "^8.52.0",
+    "eslint-config-prettier": "^8.10.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier": "^2.8.8"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}'",
+    "lint:fix": "eslint 'src/**/*.{js,jsx,ts,tsx}' --fix",
+    "format": "prettier --write 'src/**/*.{js,jsx,ts,tsx,css,md,json}'"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "proxy": "http://localhost:8080/api"
 }
 
 
