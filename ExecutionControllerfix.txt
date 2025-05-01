@@ -1378,120 +1378,279 @@ public class ExecutionServiceImpl implements ExecutionService {
     }
     
     /**
-     * Execute an API test
-     */
-    private TestResult executeApiTest(String projectId, TestCase testCase, ExecutionConfig config, TestResult testResult) 
-            throws ResourceNotFoundException {
-        // Get the API test
-        ApiTest apiTest = apiTestingService.getApiTestById(projectId, testCase.getReference());
-        
-        // Create API execution config
-        com.cstestforge.model.api.ApiTestExecutionConfig apiConfig = new com.cstestforge.model.api.ApiTestExecutionConfig()
-                .setEnvironmentId(config.getEnvironmentId())
-                .setTimeoutMs(config.getTimeoutMs())
-                .setVariables(config.getVariables());
-        
-        // Execute the API test
-        com.cstestforge.model.api.ApiTestResult apiTestResult = 
-                apiTestingService.executeApiTest(projectId, apiTest.getId(), apiConfig);
-        
-        // Map API test result to test result
-        testResult.setStatus(apiTestResult.isSuccessful() ? "PASSED" : "FAILED")
-                 .setMessage(apiTestResult.getMessage())
-                 .setEndTime(LocalDateTime.now())
-                 .setDurationMs(apiTestResult.getDurationMs());
-        
-        // Add steps from API test result
-        if (apiTestResult.getAssertionResults() != null) {
-            for (com.cstestforge.model.api.ApiTestResult.AssertionResult assertionResult : apiTestResult.getAssertionResults()) {
-                TestResult.StepResult stepResult = new TestResult.StepResult()
-                        .setName(assertionResult.getName())
-                        .setStatus(assertionResult.isSuccessful() ? "PASSED" : "FAILED")
-                        .setMessage(assertionResult.getMessage())
-                        .setStartTime(apiTestResult.getExecutionTime())
-                        .setEndTime(apiTestResult.getExecutionTime().plusNanos(1000000 * apiTestResult.getDurationMs()))
-                        .setDurationMs(0);
-                
-                testResult.getSteps().add(stepResult);
+ * Fixed executeApiTest method
+ */
+private TestResult executeApiTest(String projectId, TestCase testCase, ExecutionConfig config, TestResult testResult) 
+        throws ResourceNotFoundException {
+    // Get the API test
+    ApiTest apiTest = apiTestingService.getApiTestById(projectId, testCase.getReference());
+    
+    // Create API execution config using available methods
+    com.cstestforge.model.api.ApiTestExecutionConfig apiConfig = new com.cstestforge.model.api.ApiTestExecutionConfig();
+    
+    // Set available properties based on what your ApiTestExecutionConfig supports
+    if (config.getEnvironmentId() != null) {
+        apiConfig.setEnvironmentId(config.getEnvironmentId());
+    }
+    
+    // Set variables if they are supported
+    if (config.getVariables() != null && !config.getVariables().isEmpty()) {
+        apiConfig.setVariables(config.getVariables());
+    }
+    
+    // Execute the API test
+    com.cstestforge.model.api.ApiTestResult apiTestResult = 
+            apiTestingService.executeApiTest(projectId, apiTest.getId(), apiConfig);
+    
+    // Map API test result to test result using available methods
+    if (apiTestResult.getStatus() != null) {
+        testResult.setStatus("SUCCESS".equals(apiTestResult.getStatus()) ? "PASSED" : "FAILED");
+    } else {
+        testResult.setStatus("UNKNOWN");
+    }
+    
+    testResult.setMessage(apiTestResult.getStatusMessage() != null ? 
+            apiTestResult.getStatusMessage() : "API test execution completed");
+    testResult.setEndTime(LocalDateTime.now());
+    
+    // Calculate duration if not available directly
+    long durationMs = 0;
+    if (apiTestResult.getStartTime() != null && apiTestResult.getEndTime() != null) {
+        durationMs = java.time.Duration.between(
+                apiTestResult.getStartTime(), apiTestResult.getEndTime()).toMillis();
+    }
+    testResult.setDurationMs(durationMs);
+    
+    // Add steps from API test result if assertion results are available
+    if (apiTestResult.getAssertions() != null) {
+        for (Object assertionObj : apiTestResult.getAssertions()) {
+            // Convert assertion to map if needed
+            Map<String, Object> assertion;
+            if (assertionObj instanceof Map) {
+                assertion = (Map<String, Object>) assertionObj;
+            } else {
+                // Skip if not a map
+                continue;
             }
+            
+            // Create step result from assertion data
+            TestResult.StepResult stepResult = new TestResult.StepResult()
+                    .setName(assertion.containsKey("name") ? assertion.get("name").toString() : "Assertion")
+                    .setStatus(Boolean.TRUE.equals(assertion.get("passed")) ? "PASSED" : "FAILED")
+                    .setMessage(assertion.containsKey("message") ? assertion.get("message").toString() : "")
+                    .setStartTime(apiTestResult.getStartTime() != null ? 
+                            apiTestResult.getStartTime() : LocalDateTime.now())
+                    .setEndTime(apiTestResult.getEndTime() != null ? 
+                            apiTestResult.getEndTime() : LocalDateTime.now())
+                    .setDurationMs(0);
+            
+            testResult.getSteps().add(stepResult);
         }
-        
-        // Add metadata from API test result
-        testResult.getMetadata().put("request", apiTestResult.getRequest());
-        testResult.getMetadata().put("response", apiTestResult.getResponse());
-        
+    }
+    
+    // Add metadata from API test result
+    if (apiTestResult.getRequestDetails() != null) {
+        testResult.getMetadata().put("request", apiTestResult.getRequestDetails());
+    }
+    
+    if (apiTestResult.getResponseDetails() != null) {
+        testResult.getMetadata().put("response", apiTestResult.getResponseDetails());
+    }
+    
+    return testResult;
+}
+
+/**
+ * Fixed executeBddTest method
+ */
+private TestResult executeBddTest(String projectId, TestCase testCase, ExecutionConfig config, TestResult testResult) 
+        throws ResourceNotFoundException {
+    // Get the BDD feature
+    FeatureFile feature = bddTestingService.getFeatureById(projectId, testCase.getReference());
+    
+    // Create BDD execution config using available methods
+    com.cstestforge.model.bdd.BDDExecutionConfig bddConfig = new com.cstestforge.model.bdd.BDDExecutionConfig();
+    
+    // Set available properties based on what your BDDExecutionConfig supports
+    if (config.getEnvironmentId() != null) {
+        bddConfig.setEnvironment(config.getEnvironmentId());
+    }
+    
+    // Set variables if supported
+    if (config.getVariables() != null && !config.getVariables().isEmpty()) {
+        bddConfig.setVariables(new HashMap<>(config.getVariables()));
+    }
+    
+    // Execute the BDD feature
+    String executionId = bddTestingService.executeFeature(projectId, feature.getId(), bddConfig);
+    
+    // Get the BDD execution result - adjust based on your BDDTestingService implementation
+    Object bddExecutionObj = bddTestingService.getBDDExecutionResult(executionId);
+    
+    // Handle different return types from getBDDExecutionResult
+    if (bddExecutionObj == null) {
+        testResult.setStatus("UNKNOWN")
+                 .setMessage("BDD execution result not available")
+                 .setEndTime(LocalDateTime.now())
+                 .setDurationMs(0);
         return testResult;
     }
     
-    /**
-     * Execute a BDD test
-     */
-    private TestResult executeBddTest(String projectId, TestCase testCase, ExecutionConfig config, TestResult testResult) 
-            throws ResourceNotFoundException {
-        // Get the BDD feature
-        FeatureFile feature = bddTestingService.getFeatureById(projectId, testCase.getReference());
+    // Try to extract status, summary and duration from BDD execution
+    boolean successful = false;
+    String summary = "BDD test execution completed";
+    long durationMs = 0;
+    
+    if (bddExecutionObj instanceof Map) {
+        Map<String, Object> bddExecution = (Map<String, Object>) bddExecutionObj;
         
-        // Create BDD execution config
-        com.cstestforge.model.bdd.BDDExecutionConfig bddConfig = new com.cstestforge.model.bdd.BDDExecutionConfig()
-                .setEnvironmentId(config.getEnvironmentId())
-                .setTimeoutMs(config.getTimeoutMs())
-                .setVariables(config.getVariables());
+        // Extract successful
+        if (bddExecution.containsKey("successful")) {
+            successful = Boolean.TRUE.equals(bddExecution.get("successful"));
+        } else if (bddExecution.containsKey("status")) {
+            successful = "PASSED".equals(bddExecution.get("status")) || 
+                         "SUCCESS".equals(bddExecution.get("status"));
+        }
         
-        // Execute the BDD feature
-        String executionId = bddTestingService.executeFeature(projectId, feature.getId(), bddConfig);
+        // Extract summary
+        if (bddExecution.containsKey("summary")) {
+            summary = bddExecution.get("summary").toString();
+        } else if (bddExecution.containsKey("message")) {
+            summary = bddExecution.get("message").toString();
+        }
         
-        // Get the BDD execution result
-        com.cstestforge.model.bdd.BDDExecution bddExecution = bddTestingService.getExecutionResult(executionId);
+        // Extract duration
+        if (bddExecution.containsKey("durationMs")) {
+            Object durationObj = bddExecution.get("durationMs");
+            if (durationObj instanceof Number) {
+                durationMs = ((Number) durationObj).longValue();
+            }
+        } else if (bddExecution.containsKey("startTime") && bddExecution.containsKey("endTime")) {
+            Object startTimeObj = bddExecution.get("startTime");
+            Object endTimeObj = bddExecution.get("endTime");
+            
+            if (startTimeObj instanceof LocalDateTime && endTimeObj instanceof LocalDateTime) {
+                LocalDateTime startTime = (LocalDateTime) startTimeObj;
+                LocalDateTime endTime = (LocalDateTime) endTimeObj;
+                durationMs = java.time.Duration.between(startTime, endTime).toMillis();
+            }
+        }
         
         // Map BDD execution to test result
-        testResult.setStatus(bddExecution.isSuccessful() ? "PASSED" : "FAILED")
-                 .setMessage(bddExecution.getSummary())
+        testResult.setStatus(successful ? "PASSED" : "FAILED")
+                 .setMessage(summary)
                  .setEndTime(LocalDateTime.now())
-                 .setDurationMs(bddExecution.getDurationMs());
+                 .setDurationMs(durationMs);
         
-        // Add steps from BDD execution
-        if (bddExecution.getScenarioResults() != null) {
-            for (com.cstestforge.model.bdd.BDDExecution.ScenarioResult scenarioResult : bddExecution.getScenarioResults()) {
-                for (com.cstestforge.model.bdd.BDDExecution.StepResult stepResult : scenarioResult.getStepResults()) {
-                    TestResult.StepResult result = new TestResult.StepResult()
-                            .setName(stepResult.getName())
-                            .setStatus(mapBddStatus(stepResult.getStatus()))
-                            .setMessage(stepResult.getMessage())
-                            .setStartTime(stepResult.getStartTime())
-                            .setEndTime(stepResult.getEndTime())
-                            .setDurationMs(stepResult.getDurationMs());
-                    
-                    testResult.getSteps().add(result);
+        // Extract steps if available
+        if (bddExecution.containsKey("scenarios")) {
+            Object scenariosObj = bddExecution.get("scenarios");
+            if (scenariosObj instanceof List) {
+                List<Object> scenarios = (List<Object>) scenariosObj;
+                
+                for (Object scenarioObj : scenarios) {
+                    if (scenarioObj instanceof Map) {
+                        Map<String, Object> scenario = (Map<String, Object>) scenarioObj;
+                        
+                        if (scenario.containsKey("steps")) {
+                            Object stepsObj = scenario.get("steps");
+                            if (stepsObj instanceof List) {
+                                List<Object> steps = (List<Object>) stepsObj;
+                                
+                                for (Object stepObj : steps) {
+                                    if (stepObj instanceof Map) {
+                                        Map<String, Object> step = (Map<String, Object>) stepObj;
+                                        
+                                        // Create step result
+                                        TestResult.StepResult stepResult = new TestResult.StepResult()
+                                                .setName(step.containsKey("name") ? 
+                                                        step.get("name").toString() : "Step")
+                                                .setStatus(mapBddStepStatus(step.get("status")))
+                                                .setMessage(step.containsKey("message") ? 
+                                                        step.get("message").toString() : "");
+                                        
+                                        // Set times if available
+                                        if (step.containsKey("startTime") && step.get("startTime") instanceof LocalDateTime) {
+                                            stepResult.setStartTime((LocalDateTime) step.get("startTime"));
+                                        } else {
+                                            stepResult.setStartTime(LocalDateTime.now());
+                                        }
+                                        
+                                        if (step.containsKey("endTime") && step.get("endTime") instanceof LocalDateTime) {
+                                            stepResult.setEndTime((LocalDateTime) step.get("endTime"));
+                                        } else {
+                                            stepResult.setEndTime(LocalDateTime.now());
+                                        }
+                                        
+                                        // Set duration if available
+                                        if (step.containsKey("durationMs") && step.get("durationMs") instanceof Number) {
+                                            stepResult.setDurationMs(((Number) step.get("durationMs")).longValue());
+                                        } else if (stepResult.getStartTime() != null && stepResult.getEndTime() != null) {
+                                            stepResult.setDurationMs(
+                                                    java.time.Duration.between(
+                                                            stepResult.getStartTime(), 
+                                                            stepResult.getEndTime()).toMillis());
+                                        } else {
+                                            stepResult.setDurationMs(0);
+                                        }
+                                        
+                                        testResult.getSteps().add(stepResult);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
-        
-        // Add metadata from BDD execution
-        testResult.getMetadata().put("feature", feature.getName());
-        testResult.getMetadata().put("scenarios", bddExecution.getScenarioResults().size());
-        
-        return testResult;
+    } else {
+        // If BDD execution is not a map, set generic status
+        testResult.setStatus("UNKNOWN")
+                 .setMessage("BDD execution completed")
+                 .setEndTime(LocalDateTime.now())
+                 .setDurationMs(0);
     }
     
-    /**
-     * Map BDD status to test result status
-     */
-    private String mapBddStatus(String bddStatus) {
-        switch (bddStatus) {
-            case "PASSED":
-                return "PASSED";
-            case "FAILED":
-                return "FAILED";
-            case "SKIPPED":
-                return "SKIPPED";
-            case "PENDING":
-                return "SKIPPED";
-            case "UNDEFINED":
-                return "ERROR";
-            default:
-                return "ERROR";
-        }
+    // Add metadata from BDD execution
+    testResult.getMetadata().put("feature", feature.getName());
+    testResult.getMetadata().put("featureId", feature.getId());
+    testResult.getMetadata().put("executionId", executionId);
+    
+    return testResult;
+}
+
+/**
+ * Map BDD step status to test result status
+ */
+private String mapBddStepStatus(Object status) {
+    if (status == null) {
+        return "UNKNOWN";
     }
+    
+    String statusStr = status.toString().toUpperCase();
+    
+    switch (statusStr) {
+        case "PASSED":
+        case "SUCCESS":
+        case "SUCCESSFUL":
+            return "PASSED";
+        case "FAILED":
+        case "FAILURE":
+        case "FAIL":
+            return "FAILED";
+        case "SKIPPED":
+        case "SKIP":
+            return "SKIPPED";
+        case "PENDING":
+            return "SKIPPED";
+        case "UNDEFINED":
+        case "UNKNOWN":
+            return "ERROR";
+        default:
+            return "UNKNOWN";
+    }
+}
+    
     
     /**
      * Execute a database test
