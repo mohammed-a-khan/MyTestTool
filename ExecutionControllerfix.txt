@@ -1377,199 +1377,208 @@ public class ExecutionServiceImpl implements ExecutionService {
         }
     }
     
-    /**
- * Fixed executeApiTest method
+ /**
+ * Execute an API test - Fixed to match your actual API implementation
  */
 private TestResult executeApiTest(String projectId, TestCase testCase, ExecutionConfig config, TestResult testResult) 
         throws ResourceNotFoundException {
     // Get the API test
     ApiTest apiTest = apiTestingService.getApiTestById(projectId, testCase.getReference());
     
-    // Create API execution config using available methods
+    // Create API execution config
     com.cstestforge.model.api.ApiTestExecutionConfig apiConfig = new com.cstestforge.model.api.ApiTestExecutionConfig();
     
-    // Set available properties based on what your ApiTestExecutionConfig supports
+    // Set environment ID if available
     if (config.getEnvironmentId() != null) {
         apiConfig.setEnvironmentId(config.getEnvironmentId());
     }
     
-    // Set variables if they are supported
+    // Set timeout if available - convert milliseconds to seconds
+    if (config.getTimeoutMs() > 0) {
+        apiConfig.setTimeoutSeconds((int) (config.getTimeoutMs() / 1000));
+    }
+    
+    // Set variables if available - map variables to overrideVariables
     if (config.getVariables() != null && !config.getVariables().isEmpty()) {
-        apiConfig.setVariables(config.getVariables());
+        apiConfig.setOverrideVariables(config.getVariables());
     }
     
     // Execute the API test
     com.cstestforge.model.api.ApiTestResult apiTestResult = 
             apiTestingService.executeApiTest(projectId, apiTest.getId(), apiConfig);
     
-    // Map API test result to test result using available methods
-    if (apiTestResult.getStatus() != null) {
-        testResult.setStatus("SUCCESS".equals(apiTestResult.getStatus()) ? "PASSED" : "FAILED");
-    } else {
-        testResult.setStatus("UNKNOWN");
-    }
-    
-    testResult.setMessage(apiTestResult.getStatusMessage() != null ? 
-            apiTestResult.getStatusMessage() : "API test execution completed");
+    // Map API test result to test result
+    testResult.setStatus(apiTestResult.isSuccess() ? "PASSED" : "FAILED");
+    testResult.setMessage(apiTestResult.isSuccess() ? 
+            "API test executed successfully" : "API test execution failed");
     testResult.setEndTime(LocalDateTime.now());
+    testResult.setDurationMs(apiTestResult.getDuration() != null ? 
+            apiTestResult.getDuration() : 0);
     
-    // Calculate duration if not available directly
-    long durationMs = 0;
-    if (apiTestResult.getStartTime() != null && apiTestResult.getEndTime() != null) {
-        durationMs = java.time.Duration.between(
-                apiTestResult.getStartTime(), apiTestResult.getEndTime()).toMillis();
-    }
-    testResult.setDurationMs(durationMs);
-    
-    // Add steps from API test result if assertion results are available
-    if (apiTestResult.getAssertions() != null) {
-        for (Object assertionObj : apiTestResult.getAssertions()) {
-            // Convert assertion to map if needed
-            Map<String, Object> assertion;
-            if (assertionObj instanceof Map) {
-                assertion = (Map<String, Object>) assertionObj;
+    // Add steps from API test assertion results
+    if (apiTestResult.getAssertionResults() != null) {
+        for (com.cstestforge.model.api.ApiTestResult.AssertionResult assertionResult : 
+                apiTestResult.getAssertionResults()) {
+            
+            TestResult.StepResult stepResult = new TestResult.StepResult();
+            
+            // Set step information
+            String assertionName = assertionResult.getAssertionType();
+            if (assertionResult.getProperty() != null && !assertionResult.getProperty().isEmpty()) {
+                assertionName += " - " + assertionResult.getProperty();
+            }
+            stepResult.setName(assertionName);
+            
+            // Set status
+            stepResult.setStatus(assertionResult.isPassed() ? "PASSED" : "FAILED");
+            
+            // Set message
+            String message = assertionResult.getMessage();
+            if (message == null || message.isEmpty()) {
+                message = String.format("Expected: %s, Actual: %s", 
+                        assertionResult.getExpectedValue(), 
+                        assertionResult.getActualValue());
+            }
+            stepResult.setMessage(message);
+            
+            // Set time information
+            stepResult.setStartTime(apiTestResult.getExecutedAt());
+            if (apiTestResult.getExecutedAt() != null) {
+                // Add a small offset for the end time
+                stepResult.setEndTime(apiTestResult.getExecutedAt().plusNanos(1000000)); 
             } else {
-                // Skip if not a map
-                continue;
+                stepResult.setEndTime(LocalDateTime.now());
             }
             
-            // Create step result from assertion data
-            TestResult.StepResult stepResult = new TestResult.StepResult()
-                    .setName(assertion.containsKey("name") ? assertion.get("name").toString() : "Assertion")
-                    .setStatus(Boolean.TRUE.equals(assertion.get("passed")) ? "PASSED" : "FAILED")
-                    .setMessage(assertion.containsKey("message") ? assertion.get("message").toString() : "")
-                    .setStartTime(apiTestResult.getStartTime() != null ? 
-                            apiTestResult.getStartTime() : LocalDateTime.now())
-                    .setEndTime(apiTestResult.getEndTime() != null ? 
-                            apiTestResult.getEndTime() : LocalDateTime.now())
-                    .setDurationMs(0);
+            // Set duration
+            stepResult.setDurationMs(0); // Typically assertions don't have individual timing
             
             testResult.getSteps().add(stepResult);
         }
     }
     
-    // Add metadata from API test result
-    if (apiTestResult.getRequestDetails() != null) {
-        testResult.getMetadata().put("request", apiTestResult.getRequestDetails());
+    // Add metadata
+    testResult.getMetadata().put("statusCode", apiTestResult.getStatusCode());
+    testResult.getMetadata().put("requestUrl", apiTest.getUrl());
+    testResult.getMetadata().put("method", apiTest.getMethod());
+    
+    if (apiTestResult.getResponseBody() != null) {
+        testResult.getMetadata().put("responseBody", apiTestResult.getResponseBody());
     }
     
-    if (apiTestResult.getResponseDetails() != null) {
-        testResult.getMetadata().put("response", apiTestResult.getResponseDetails());
+    if (apiTestResult.getResponseHeaders() != null) {
+        testResult.getMetadata().put("responseHeaders", apiTestResult.getResponseHeaders());
     }
     
     return testResult;
 }
 
 /**
- * Execute a BDD test - Updated to match your BDDExecutionConfig implementation
+ * Execute a BDD test - Updated to match your BDD implementation
  */
 private TestResult executeBddTest(String projectId, TestCase testCase, ExecutionConfig config, TestResult testResult) 
         throws ResourceNotFoundException {
     // Get the BDD feature
     FeatureFile feature = bddTestingService.getFeatureById(projectId, testCase.getReference());
     
-    // Create BDD execution config
+    // Create BDD execution config using your implementation
     com.cstestforge.model.bdd.BDDExecutionConfig bddConfig = new com.cstestforge.model.bdd.BDDExecutionConfig();
     
-    // Set environment using the setEnvironment method we added
+    // Set environment ID
     if (config.getEnvironmentId() != null) {
         bddConfig.setEnvironment(config.getEnvironmentId());
     }
     
     // Set timeout
-    if (config.getTimeoutMs() > 0) {
-        bddConfig.setTimeoutMs(config.getTimeoutMs());
-    }
+    bddConfig.setTimeoutMs(config.getTimeoutMs());
     
-    // Set variables using the setVariables method we added
+    // Set variables if provided
     if (config.getVariables() != null && !config.getVariables().isEmpty()) {
         bddConfig.setVariables(config.getVariables());
     }
     
-    // Set parallel execution if supported in your config
+    // Set parallel execution if needed
     bddConfig.setParallel(config.isParallelExecution());
     
     // Execute the BDD feature
     String executionId = bddTestingService.executeFeature(projectId, feature.getId(), bddConfig);
     
-    // Get the BDD execution result using the new getBDDExecutionResult method
-    Object bddExecution = bddTestingService.getBDDExecutionResult(executionId);
+    // Get the BDD execution result
+    Map<String, Object> bddExecution = (Map<String, Object>) bddTestingService.getBDDExecutionResult(executionId);
     
-    // Process the result
-    if (bddExecution instanceof Map) {
-        Map<String, Object> executionMap = (Map<String, Object>) bddExecution;
-        
-        // Extract status
-        boolean successful = Boolean.TRUE.equals(executionMap.get("successful"));
-        testResult.setStatus(successful ? "PASSED" : "FAILED");
-        
-        // Extract summary
-        String summary = executionMap.containsKey("summary") ? 
-                String.valueOf(executionMap.get("summary")) : 
-                "BDD test execution completed";
-        testResult.setMessage(summary);
-        
-        // Extract duration
-        if (executionMap.containsKey("durationMs") && executionMap.get("durationMs") instanceof Number) {
-            testResult.setDurationMs(((Number) executionMap.get("durationMs")).longValue());
+    // Map BDD execution to test result
+    String status = (String) bddExecution.get("status");
+    boolean successful = Boolean.TRUE.equals(bddExecution.get("successful"));
+    
+    testResult.setStatus(successful ? "PASSED" : "FAILED");
+    testResult.setMessage((String) bddExecution.getOrDefault("summary", "BDD test execution completed"));
+    testResult.setEndTime(LocalDateTime.now());
+    
+    // Get duration if available
+    if (bddExecution.containsKey("durationMs")) {
+        Object durationObj = bddExecution.get("durationMs");
+        if (durationObj instanceof Number) {
+            testResult.setDurationMs(((Number) durationObj).longValue());
         }
+    }
+    
+    // Process scenarios and steps
+    if (bddExecution.containsKey("scenarios")) {
+        List<Map<String, Object>> scenarios = (List<Map<String, Object>>) bddExecution.get("scenarios");
         
-        // Process scenarios and steps if available
-        if (executionMap.containsKey("scenarios") && executionMap.get("scenarios") instanceof List) {
-            List<Map<String, Object>> scenarios = (List<Map<String, Object>>) executionMap.get("scenarios");
-            
-            for (Map<String, Object> scenario : scenarios) {
-                // Process steps if available
-                if (scenario.containsKey("steps") && scenario.get("steps") instanceof List) {
-                    List<Map<String, Object>> steps = (List<Map<String, Object>>) scenario.get("steps");
+        for (Map<String, Object> scenario : scenarios) {
+            // Process steps
+            if (scenario.containsKey("steps")) {
+                List<Map<String, Object>> steps = (List<Map<String, Object>>) scenario.get("steps");
+                
+                for (Map<String, Object> step : steps) {
+                    TestResult.StepResult stepResult = new TestResult.StepResult();
                     
-                    for (Map<String, Object> step : steps) {
-                        // Create step result
-                        TestResult.StepResult stepResult = new TestResult.StepResult();
-                        
-                        // Extract step properties
-                        stepResult.setName(String.valueOf(step.getOrDefault("text", step.getOrDefault("name", "Step"))));
-                        stepResult.setStatus(mapBddStepStatus(String.valueOf(step.get("status"))));
-                        stepResult.setMessage(String.valueOf(step.getOrDefault("message", "")));
-                        
-                        // Set times
-                        if (step.containsKey("startTime") && step.get("startTime") instanceof LocalDateTime) {
-                            stepResult.setStartTime((LocalDateTime) step.get("startTime"));
-                        } else {
-                            stepResult.setStartTime(testResult.getStartTime());
-                        }
-                        
-                        if (step.containsKey("endTime") && step.get("endTime") instanceof LocalDateTime) {
-                            stepResult.setEndTime((LocalDateTime) step.get("endTime"));
-                        } else {
-                            stepResult.setEndTime(testResult.getEndTime());
-                        }
-                        
-                        // Set duration
-                        if (step.containsKey("duration") && step.get("duration") instanceof Number) {
-                            stepResult.setDurationMs(((Number) step.get("duration")).longValue());
-                        } else {
-                            stepResult.setDurationMs(0);
-                        }
-                        
-                        testResult.getSteps().add(stepResult);
+                    // Extract name - might be in text field or name field
+                    String stepName = (String) step.getOrDefault("text", step.getOrDefault("name", "Unknown step"));
+                    stepResult.setName(stepName);
+                    
+                    // Extract status
+                    String stepStatus = (String) step.getOrDefault("status", "UNKNOWN");
+                    stepResult.setStatus(mapBddStepStatus(stepStatus));
+                    
+                    // Extract message if available
+                    if (step.containsKey("message")) {
+                        stepResult.setMessage((String) step.get("message"));
+                    } else if (step.containsKey("errorMessage")) {
+                        stepResult.setMessage((String) step.get("errorMessage"));
                     }
+                    
+                    // Extract times
+                    if (step.containsKey("startTime") && step.get("startTime") instanceof LocalDateTime) {
+                        stepResult.setStartTime((LocalDateTime) step.get("startTime"));
+                    } else {
+                        stepResult.setStartTime(testResult.getStartTime());
+                    }
+                    
+                    if (step.containsKey("endTime") && step.get("endTime") instanceof LocalDateTime) {
+                        stepResult.setEndTime((LocalDateTime) step.get("endTime"));
+                    } else {
+                        stepResult.setEndTime(testResult.getEndTime());
+                    }
+                    
+                    // Extract duration
+                    if (step.containsKey("duration") && step.get("duration") instanceof Number) {
+                        stepResult.setDurationMs(((Number) step.get("duration")).longValue());
+                    } else {
+                        stepResult.setDurationMs(0);
+                    }
+                    
+                    testResult.getSteps().add(stepResult);
                 }
             }
         }
-    } else {
-        // Default values if execution result is not a map
-        testResult.setStatus("UNKNOWN");
-        testResult.setMessage("BDD test execution completed");
-        testResult.setDurationMs(0);
     }
-    
-    // Set end time
-    testResult.setEndTime(LocalDateTime.now());
     
     // Add metadata
     testResult.getMetadata().put("feature", feature.getName());
     testResult.getMetadata().put("executionId", executionId);
+    testResult.getMetadata().put("reportUrl", bddExecution.getOrDefault("reportUrl", ""));
     
     return testResult;
 }
