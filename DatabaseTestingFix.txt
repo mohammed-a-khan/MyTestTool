@@ -1,0 +1,2387 @@
+/**
+ * Database Connection Model
+ * Represents a database connection configuration
+ */
+package com.cstestforge.model.database;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+public class DatabaseConnection {
+    private String id;
+    
+    @NotBlank(message = "Name is required")
+    private String name;
+    
+    @NotBlank(message = "Database type is required")
+    private String dbType;
+    
+    @NotBlank(message = "Host is required")
+    private String host;
+    
+    @NotNull(message = "Port is required")
+    private Integer port;
+    
+    @NotBlank(message = "Database name is required")
+    private String databaseName;
+    
+    @NotBlank(message = "Username is required")
+    private String username;
+    
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String password;
+    
+    private String description;
+    private boolean useSSL;
+    private String sslCertPath;
+    private Map<String, String> properties;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    
+    public DatabaseConnection() {
+        this.id = UUID.randomUUID().toString();
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+        this.properties = new HashMap<>();
+    }
+    
+    // Getters and setters
+    public String getId() {
+        return id;
+    }
+    
+    public DatabaseConnection setId(String id) {
+        this.id = id;
+        return this;
+    }
+    
+    public String getName() {
+        return name;
+    }
+    
+    public DatabaseConnection setName(String name) {
+        this.name = name;
+        return this;
+    }
+    
+    public String getDbType() {
+        return dbType;
+    }
+    
+    public DatabaseConnection setDbType(String dbType) {
+        this.dbType = dbType;
+        return this;
+    }
+    
+    public String getHost() {
+        return host;
+    }
+    
+    public DatabaseConnection setHost(String host) {
+        this.host = host;
+        return this;
+    }
+    
+    public Integer getPort() {
+        return port;
+    }
+    
+    public DatabaseConnection setPort(Integer port) {
+        this.port = port;
+        return this;
+    }
+    
+    public String getDatabaseName() {
+        return databaseName;
+    }
+    
+    public DatabaseConnection setDatabaseName(String databaseName) {
+        this.databaseName = databaseName;
+        return this;
+    }
+    
+    public String getUsername() {
+        return username;
+    }
+    
+    public DatabaseConnection setUsername(String username) {
+        this.username = username;
+        return this;
+    }
+    
+    public String getPassword() {
+        return password;
+    }
+    
+    public DatabaseConnection setPassword(String password) {
+        this.password = password;
+        return this;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+    
+    public DatabaseConnection setDescription(String description) {
+        this.description = description;
+        return this;
+    }
+    
+    public boolean isUseSSL() {
+        return useSSL;
+    }
+    
+    public DatabaseConnection setUseSSL(boolean useSSL) {
+        this.useSSL = useSSL;
+        return this;
+    }
+    
+    public String getSslCertPath() {
+        return sslCertPath;
+    }
+    
+    public DatabaseConnection setSslCertPath(String sslCertPath) {
+        this.sslCertPath = sslCertPath;
+        return this;
+    }
+    
+    public Map<String, String> getProperties() {
+        return properties;
+    }
+    
+    public DatabaseConnection setProperties(Map<String, String> properties) {
+        this.properties = properties;
+        return this;
+    }
+    
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    
+    public DatabaseConnection setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+        return this;
+    }
+    
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+    
+    public DatabaseConnection setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+        return this;
+    }
+    
+    @JsonIgnore
+    public String getConnectionUrl() {
+        switch (dbType.toLowerCase()) {
+            case "mysql":
+                return String.format("jdbc:mysql://%s:%d/%s", host, port, databaseName);
+            case "postgresql":
+                return String.format("jdbc:postgresql://%s:%d/%s", host, port, databaseName);
+            case "oracle":
+                return String.format("jdbc:oracle:thin:@%s:%d:%s", host, port, databaseName);
+            case "sqlserver":
+                return String.format("jdbc:sqlserver://%s:%d;databaseName=%s", host, port, databaseName);
+            default:
+                throw new IllegalArgumentException("Unsupported database type: " + dbType);
+        }
+    }
+}
+
+/**
+ * Database Connection Test Result
+ * Represents the result of a database connection test
+ */
+package com.cstestforge.model.database;
+
+import java.time.LocalDateTime;
+
+public class DatabaseConnectionTestResult {
+    private String connectionId;
+    private boolean successful;
+    private String message;
+    private LocalDateTime testTime;
+    private Long connectionTimeMs;
+    private String databaseInfo;
+    
+    public DatabaseConnectionTestResult() {
+        this.testTime = LocalDateTime.now();
+    }
+    
+    // Getters and setters
+    public String getConnectionId() {
+        return connectionId;
+    }
+    
+    public DatabaseConnectionTestResult setConnectionId(String connectionId) {
+        this.connectionId = connectionId;
+        return this;
+    }
+    
+    public boolean isSuccessful() {
+        return successful;
+    }
+    
+    public DatabaseConnectionTestResult setSuccessful(boolean successful) {
+        this.successful = successful;
+        return this;
+    }
+    
+    public String getMessage() {
+        return message;
+    }
+    
+    public DatabaseConnectionTestResult setMessage(String message) {
+        this.message = message;
+        return this;
+    }
+    
+    public LocalDateTime getTestTime() {
+        return testTime;
+    }
+    
+    public DatabaseConnectionTestResult setTestTime(LocalDateTime testTime) {
+        this.testTime = testTime;
+        return this;
+    }
+    
+    public Long getConnectionTimeMs() {
+        return connectionTimeMs;
+    }
+    
+    public DatabaseConnectionTestResult setConnectionTimeMs(Long connectionTimeMs) {
+        this.connectionTimeMs = connectionTimeMs;
+        return this;
+    }
+    
+    public String getDatabaseInfo() {
+        return databaseInfo;
+    }
+    
+    public DatabaseConnectionTestResult setDatabaseInfo(String databaseInfo) {
+        this.databaseInfo = databaseInfo;
+        return this;
+    }
+}
+
+/**
+ * Database Query Model
+ * Represents a database query configuration
+ */
+package com.cstestforge.model.database;
+
+import javax.validation.constraints.NotBlank;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+public class DatabaseQuery {
+    private String id;
+    
+    @NotBlank(message = "Name is required")
+    private String name;
+    
+    @NotBlank(message = "Connection ID is required")
+    private String connectionId;
+    
+    @NotBlank(message = "SQL query is required")
+    private String sqlQuery;
+    
+    private String description;
+    private List<DatabaseQueryParameter> parameters;
+    private Map<String, Object> metadata;
+    private boolean isStoredProcedure;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    
+    public DatabaseQuery() {
+        this.id = UUID.randomUUID().toString();
+        this.parameters = new ArrayList<>();
+        this.metadata = new HashMap<>();
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    // Getters and setters
+    public String getId() {
+        return id;
+    }
+    
+    public DatabaseQuery setId(String id) {
+        this.id = id;
+        return this;
+    }
+    
+    public String getName() {
+        return name;
+    }
+    
+    public DatabaseQuery setName(String name) {
+        this.name = name;
+        return this;
+    }
+    
+    public String getConnectionId() {
+        return connectionId;
+    }
+    
+    public DatabaseQuery setConnectionId(String connectionId) {
+        this.connectionId = connectionId;
+        return this;
+    }
+    
+    public String getSqlQuery() {
+        return sqlQuery;
+    }
+    
+    public DatabaseQuery setSqlQuery(String sqlQuery) {
+        this.sqlQuery = sqlQuery;
+        return this;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+    
+    public DatabaseQuery setDescription(String description) {
+        this.description = description;
+        return this;
+    }
+    
+    public List<DatabaseQueryParameter> getParameters() {
+        return parameters;
+    }
+    
+    public DatabaseQuery setParameters(List<DatabaseQueryParameter> parameters) {
+        this.parameters = parameters;
+        return this;
+    }
+    
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+    
+    public DatabaseQuery setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+        return this;
+    }
+    
+    public boolean isStoredProcedure() {
+        return isStoredProcedure;
+    }
+    
+    public DatabaseQuery setStoredProcedure(boolean storedProcedure) {
+        isStoredProcedure = storedProcedure;
+        return this;
+    }
+    
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    
+    public DatabaseQuery setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+        return this;
+    }
+    
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+    
+    public DatabaseQuery setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+        return this;
+    }
+}
+
+/**
+ * Database Query Parameter
+ * Represents a parameter for a database query
+ */
+package com.cstestforge.model.database;
+
+public class DatabaseQueryParameter {
+    private String name;
+    private String type;
+    private String defaultValue;
+    private boolean required;
+    private String description;
+    
+    // Getters and setters
+    public String getName() {
+        return name;
+    }
+    
+    public DatabaseQueryParameter setName(String name) {
+        this.name = name;
+        return this;
+    }
+    
+    public String getType() {
+        return type;
+    }
+    
+    public DatabaseQueryParameter setType(String type) {
+        this.type = type;
+        return this;
+    }
+    
+    public String getDefaultValue() {
+        return defaultValue;
+    }
+    
+    public DatabaseQueryParameter setDefaultValue(String defaultValue) {
+        this.defaultValue = defaultValue;
+        return this;
+    }
+    
+    public boolean isRequired() {
+        return required;
+    }
+    
+    public DatabaseQueryParameter setRequired(boolean required) {
+        this.required = required;
+        return this;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+    
+    public DatabaseQueryParameter setDescription(String description) {
+        this.description = description;
+        return this;
+    }
+}
+
+/**
+ * Database Query Result
+ * Represents the result of executing a database query
+ */
+package com.cstestforge.model.database;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+public class DatabaseQueryResult {
+    private String queryId;
+    private boolean successful;
+    private String message;
+    private LocalDateTime executionTime;
+    private Long executionDurationMs;
+    private List<String> columnNames;
+    private List<Map<String, Object>> resultData;
+    private int rowsAffected;
+    private boolean hasMoreResults;
+    private Map<String, Object> executionMetadata;
+    
+    public DatabaseQueryResult() {
+        this.executionTime = LocalDateTime.now();
+        this.columnNames = new ArrayList<>();
+        this.resultData = new ArrayList<>();
+    }
+    
+    // Getters and setters
+    public String getQueryId() {
+        return queryId;
+    }
+    
+    public DatabaseQueryResult setQueryId(String queryId) {
+        this.queryId = queryId;
+        return this;
+    }
+    
+    public boolean isSuccessful() {
+        return successful;
+    }
+    
+    public DatabaseQueryResult setSuccessful(boolean successful) {
+        this.successful = successful;
+        return this;
+    }
+    
+    public String getMessage() {
+        return message;
+    }
+    
+    public DatabaseQueryResult setMessage(String message) {
+        this.message = message;
+        return this;
+    }
+    
+    public LocalDateTime getExecutionTime() {
+        return executionTime;
+    }
+    
+    public DatabaseQueryResult setExecutionTime(LocalDateTime executionTime) {
+        this.executionTime = executionTime;
+        return this;
+    }
+    
+    public Long getExecutionDurationMs() {
+        return executionDurationMs;
+    }
+    
+    public DatabaseQueryResult setExecutionDurationMs(Long executionDurationMs) {
+        this.executionDurationMs = executionDurationMs;
+        return this;
+    }
+    
+    public List<String> getColumnNames() {
+        return columnNames;
+    }
+    
+    public DatabaseQueryResult setColumnNames(List<String> columnNames) {
+        this.columnNames = columnNames;
+        return this;
+    }
+    
+    public List<Map<String, Object>> getResultData() {
+        return resultData;
+    }
+    
+    public DatabaseQueryResult setResultData(List<Map<String, Object>> resultData) {
+        this.resultData = resultData;
+        return this;
+    }
+    
+    public int getRowsAffected() {
+        return rowsAffected;
+    }
+    
+    public DatabaseQueryResult setRowsAffected(int rowsAffected) {
+        this.rowsAffected = rowsAffected;
+        return this;
+    }
+    
+    public boolean isHasMoreResults() {
+        return hasMoreResults;
+    }
+    
+    public DatabaseQueryResult setHasMoreResults(boolean hasMoreResults) {
+        this.hasMoreResults = hasMoreResults;
+        return this;
+    }
+    
+    public Map<String, Object> getExecutionMetadata() {
+        return executionMetadata;
+    }
+    
+    public DatabaseQueryResult setExecutionMetadata(Map<String, Object> executionMetadata) {
+        this.executionMetadata = executionMetadata;
+        return this;
+    }
+}
+
+/**
+ * Database Table
+ * Represents a table in a database
+ */
+package com.cstestforge.model.database;
+
+public class DatabaseTable {
+    private String name;
+    private String type;
+    private String schema;
+    private Long rowCount;
+    private String comment;
+    
+    // Getters and setters
+    public String getName() {
+        return name;
+    }
+    
+    public DatabaseTable setName(String name) {
+        this.name = name;
+        return this;
+    }
+    
+    public String getType() {
+        return type;
+    }
+    
+    public DatabaseTable setType(String type) {
+        this.type = type;
+        return this;
+    }
+    
+    public String getSchema() {
+        return schema;
+    }
+    
+    public DatabaseTable setSchema(String schema) {
+        this.schema = schema;
+        return this;
+    }
+    
+    public Long getRowCount() {
+        return rowCount;
+    }
+    
+    public DatabaseTable setRowCount(Long rowCount) {
+        this.rowCount = rowCount;
+        return this;
+    }
+    
+    public String getComment() {
+        return comment;
+    }
+    
+    public DatabaseTable setComment(String comment) {
+        this.comment = comment;
+        return this;
+    }
+}
+
+/**
+ * Database Table Column
+ * Represents a column in a database table
+ */
+package com.cstestforge.model.database;
+
+public class DatabaseTableColumn {
+    private String name;
+    private String dataType;
+    private boolean nullable;
+    private boolean primaryKey;
+    private boolean foreignKey;
+    private String referencedTable;
+    private String referencedColumn;
+    private String defaultValue;
+    private Long maxLength;
+    private String comment;
+    
+    // Getters and setters
+    public String getName() {
+        return name;
+    }
+    
+    public DatabaseTableColumn setName(String name) {
+        this.name = name;
+        return this;
+    }
+    
+    public String getDataType() {
+        return dataType;
+    }
+    
+    public DatabaseTableColumn setDataType(String dataType) {
+        this.dataType = dataType;
+        return this;
+    }
+    
+    public boolean isNullable() {
+        return nullable;
+    }
+    
+    public DatabaseTableColumn setNullable(boolean nullable) {
+        this.nullable = nullable;
+        return this;
+    }
+    
+    public boolean isPrimaryKey() {
+        return primaryKey;
+    }
+    
+    public DatabaseTableColumn setPrimaryKey(boolean primaryKey) {
+        this.primaryKey = primaryKey;
+        return this;
+    }
+    
+    public boolean isForeignKey() {
+        return foreignKey;
+    }
+    
+    public DatabaseTableColumn setForeignKey(boolean foreignKey) {
+        this.foreignKey = foreignKey;
+        return this;
+    }
+    
+    public String getReferencedTable() {
+        return referencedTable;
+    }
+    
+    public DatabaseTableColumn setReferencedTable(String referencedTable) {
+        this.referencedTable = referencedTable;
+        return this;
+    }
+    
+    public String getReferencedColumn() {
+        return referencedColumn;
+    }
+    
+    public DatabaseTableColumn setReferencedColumn(String referencedColumn) {
+        this.referencedColumn = referencedColumn;
+        return this;
+    }
+    
+    public String getDefaultValue() {
+        return defaultValue;
+    }
+    
+    public DatabaseTableColumn setDefaultValue(String defaultValue) {
+        this.defaultValue = defaultValue;
+        return this;
+    }
+    
+    public Long getMaxLength() {
+        return maxLength;
+    }
+    
+    public DatabaseTableColumn setMaxLength(Long maxLength) {
+        this.maxLength = maxLength;
+        return this;
+    }
+    
+    public String getComment() {
+        return comment;
+    }
+    
+    public DatabaseTableColumn setComment(String comment) {
+        this.comment = comment;
+        return this;
+    }
+}
+
+/**
+ * Database Table Schema
+ * Represents the schema of a database table
+ */
+package com.cstestforge.model.database;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class DatabaseTableSchema {
+    private String tableName;
+    private String schema;
+    private String tableType;
+    private List<DatabaseTableColumn> columns;
+    private List<String> primaryKeys;
+    private List<DatabaseTableIndex> indices;
+    private Long rowCount;
+    private String comment;
+    
+    public DatabaseTableSchema() {
+        this.columns = new ArrayList<>();
+        this.primaryKeys = new ArrayList<>();
+        this.indices = new ArrayList<>();
+    }
+    
+    // Getters and setters
+    public String getTableName() {
+        return tableName;
+    }
+    
+    public DatabaseTableSchema setTableName(String tableName) {
+        this.tableName = tableName;
+        return this;
+    }
+    
+    public String getSchema() {
+        return schema;
+    }
+    
+    public DatabaseTableSchema setSchema(String schema) {
+        this.schema = schema;
+        return this;
+    }
+    
+    public String getTableType() {
+        return tableType;
+    }
+    
+    public DatabaseTableSchema setTableType(String tableType) {
+        this.tableType = tableType;
+        return this;
+    }
+    
+    public List<DatabaseTableColumn> getColumns() {
+        return columns;
+    }
+    
+    public DatabaseTableSchema setColumns(List<DatabaseTableColumn> columns) {
+        this.columns = columns;
+        return this;
+    }
+    
+    public List<String> getPrimaryKeys() {
+        return primaryKeys;
+    }
+    
+    public DatabaseTableSchema setPrimaryKeys(List<String> primaryKeys) {
+        this.primaryKeys = primaryKeys;
+        return this;
+    }
+    
+    public List<DatabaseTableIndex> getIndices() {
+        return indices;
+    }
+    
+    public DatabaseTableSchema setIndices(List<DatabaseTableIndex> indices) {
+        this.indices = indices;
+        return this;
+    }
+    
+    public Long getRowCount() {
+        return rowCount;
+    }
+    
+    public DatabaseTableSchema setRowCount(Long rowCount) {
+        this.rowCount = rowCount;
+        return this;
+    }
+    
+    public String getComment() {
+        return comment;
+    }
+    
+    public DatabaseTableSchema setComment(String comment) {
+        this.comment = comment;
+        return this;
+    }
+}
+
+/**
+ * Database Table Index
+ * Represents an index in a database table
+ */
+package com.cstestforge.model.database;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class DatabaseTableIndex {
+    private String name;
+    private String type;
+    private boolean unique;
+    private List<String> columns;
+    
+    public DatabaseTableIndex() {
+        this.columns = new ArrayList<>();
+    }
+    
+    // Getters and setters
+    public String getName() {
+        return name;
+    }
+    
+    public DatabaseTableIndex setName(String name) {
+        this.name = name;
+        return this;
+    }
+    
+    public String getType() {
+        return type;
+    }
+    
+    public DatabaseTableIndex setType(String type) {
+        this.type = type;
+        return this;
+    }
+    
+    public boolean isUnique() {
+        return unique;
+    }
+    
+    public DatabaseTableIndex setUnique(boolean unique) {
+        this.unique = unique;
+        return this;
+    }
+    
+    public List<String> getColumns() {
+        return columns;
+    }
+    
+    public DatabaseTableIndex setColumns(List<String> columns) {
+        this.columns = columns;
+        return this;
+    }
+}
+
+
+/**
+ * Database Testing Service Interface
+ * Defines operations for database testing functionality
+ */
+package com.cstestforge.service.database;
+
+import com.cstestforge.exception.ResourceNotFoundException;
+import com.cstestforge.model.database.*;
+
+import java.util.List;
+import java.util.Map;
+
+public interface DatabaseTestingService {
+    
+    /**
+     * Get all database connections for a project
+     * @param projectId The project ID
+     * @return List of database connections
+     * @throws ResourceNotFoundException if the project doesn't exist
+     */
+    List<DatabaseConnection> getAllConnections(String projectId) throws ResourceNotFoundException;
+    
+    /**
+     * Get database connection by ID
+     * @param projectId The project ID
+     * @param connectionId The connection ID
+     * @return Database connection details
+     * @throws ResourceNotFoundException if the project or connection doesn't exist
+     */
+    DatabaseConnection getConnectionById(String projectId, String connectionId) throws ResourceNotFoundException;
+    
+    /**
+     * Create a new database connection
+     * @param projectId The project ID
+     * @param connection The database connection to create
+     * @return Created database connection details
+     * @throws ResourceNotFoundException if the project doesn't exist
+     */
+    DatabaseConnection createConnection(String projectId, DatabaseConnection connection) throws ResourceNotFoundException;
+    
+    /**
+     * Update a database connection
+     * @param projectId The project ID
+     * @param connectionId The connection ID
+     * @param connectionDetails The updated connection details
+     * @return Updated database connection details
+     * @throws ResourceNotFoundException if the project or connection doesn't exist
+     */
+    DatabaseConnection updateConnection(String projectId, String connectionId, DatabaseConnection connectionDetails) throws ResourceNotFoundException;
+    
+    /**
+     * Delete a database connection
+     * @param projectId The project ID
+     * @param connectionId The connection ID
+     * @return true if deleted successfully, false otherwise
+     * @throws ResourceNotFoundException if the project or connection doesn't exist
+     */
+    boolean deleteConnection(String projectId, String connectionId) throws ResourceNotFoundException;
+    
+    /**
+     * Test a database connection
+     * @param projectId The project ID
+     * @param connectionId The connection ID
+     * @return Connection test result
+     * @throws ResourceNotFoundException if the project or connection doesn't exist
+     */
+    DatabaseConnectionTestResult testConnection(String projectId, String connectionId) throws ResourceNotFoundException;
+    
+    /**
+     * Get all database queries for a project
+     * @param projectId The project ID
+     * @return List of database queries
+     * @throws ResourceNotFoundException if the project doesn't exist
+     */
+    List<DatabaseQuery> getAllQueries(String projectId) throws ResourceNotFoundException;
+    
+    /**
+     * Get database query by ID
+     * @param projectId The project ID
+     * @param queryId The query ID
+     * @return Database query details
+     * @throws ResourceNotFoundException if the project or query doesn't exist
+     */
+    DatabaseQuery getQueryById(String projectId, String queryId) throws ResourceNotFoundException;
+    
+    /**
+     * Create a new database query
+     * @param projectId The project ID
+     * @param query The database query to create
+     * @return Created database query details
+     * @throws ResourceNotFoundException if the project doesn't exist
+     */
+    DatabaseQuery createQuery(String projectId, DatabaseQuery query) throws ResourceNotFoundException;
+    
+    /**
+     * Update a database query
+     * @param projectId The project ID
+     * @param queryId The query ID
+     * @param queryDetails The updated query details
+     * @return Updated database query details
+     * @throws ResourceNotFoundException if the project or query doesn't exist
+     */
+    DatabaseQuery updateQuery(String projectId, String queryId, DatabaseQuery queryDetails) throws ResourceNotFoundException;
+    
+    /**
+     * Delete a database query
+     * @param projectId The project ID
+     * @param queryId The query ID
+     * @return true if deleted successfully, false otherwise
+     * @throws ResourceNotFoundException if the project or query doesn't exist
+     */
+    boolean deleteQuery(String projectId, String queryId) throws ResourceNotFoundException;
+    
+    /**
+     * Execute a database query
+     * @param projectId The project ID
+     * @param queryId The query ID
+     * @param parameters Parameters for the query
+     * @return Query execution result
+     * @throws ResourceNotFoundException if the project or query doesn't exist
+     */
+    DatabaseQueryResult executeQuery(String projectId, String queryId, Map<String, Object> parameters) throws ResourceNotFoundException;
+    
+    /**
+     * Get database tables for a connection
+     * @param projectId The project ID
+     * @param connectionId The connection ID
+     * @return List of database tables
+     * @throws ResourceNotFoundException if the project or connection doesn't exist
+     */
+    List<DatabaseTable> getTables(String projectId, String connectionId) throws ResourceNotFoundException;
+    
+    /**
+     * Get database table schema
+     * @param projectId The project ID
+     * @param connectionId The connection ID
+     * @param tableName The table name
+     * @return Table schema
+     * @throws ResourceNotFoundException if the project, connection, or table doesn't exist
+     */
+    DatabaseTableSchema getTableSchema(String projectId, String connectionId, String tableName) throws ResourceNotFoundException;
+}
+
+/**
+ * Database Testing Service Implementation
+ * Implements operations for database testing functionality using file system storage
+ */
+package com.cstestforge.service.database.impl;
+
+import com.cstestforge.exception.ResourceNotFoundException;
+import com.cstestforge.model.database.*;
+import com.cstestforge.service.database.DatabaseTestingService;
+import com.cstestforge.service.project.ProjectService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.*;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
+@Service
+public class DatabaseTestingServiceImpl implements DatabaseTestingService {
+    private static final Logger logger = LoggerFactory.getLogger(DatabaseTestingServiceImpl.class);
+    
+    @Value("${cstestforge.storage.root-dir:/tmp/cstestforge}")
+    private String rootDir;
+    
+    @Autowired
+    private ProjectService projectService;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
+    
+    // In-memory cache for database drivers
+    private static final Map<String, Map<String, Connection>> activeConnections = new ConcurrentHashMap<>();
+    
+    /**
+     * Get the directory for a project's database connections
+     */
+    private Path getProjectConnectionsDir(String projectId) {
+        return Paths.get(rootDir, "projects", projectId, "db-testing", "connections");
+    }
+    
+    /**
+     * Get the directory for a project's database queries
+     */
+    private Path getProjectQueriesDir(String projectId) {
+        return Paths.get(rootDir, "projects", projectId, "db-testing", "queries");
+    }
+    
+    /**
+     * Validate that a project exists
+     */
+    private void validateProject(String projectId) throws ResourceNotFoundException {
+        if (!projectService.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found with id: " + projectId);
+        }
+    }
+    
+    @Override
+    public List<DatabaseConnection> getAllConnections(String projectId) throws ResourceNotFoundException {
+        validateProject(projectId);
+        
+        Path connectionsDir = getProjectConnectionsDir(projectId);
+        if (!Files.exists(connectionsDir)) {
+            try {
+                Files.createDirectories(connectionsDir);
+            } catch (IOException e) {
+                logger.error("Failed to create connections directory for project: {}", projectId, e);
+                return new ArrayList<>();
+            }
+            return new ArrayList<>();
+        }
+        
+        try {
+            return Files.list(connectionsDir)
+                    .filter(file -> file.toString().endsWith(".json"))
+                    .map(file -> {
+                        try {
+                            return objectMapper.readValue(file.toFile(), DatabaseConnection.class);
+                        } catch (IOException e) {
+                            logger.error("Failed to read connection file: {}", file, e);
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            logger.error("Failed to list connections for project: {}", projectId, e);
+            return new ArrayList<>();
+        }
+    }
+    
+    @Override
+    public DatabaseConnection getConnectionById(String projectId, String connectionId) throws ResourceNotFoundException {
+        validateProject(projectId);
+        
+        Path connectionFile = getProjectConnectionsDir(projectId).resolve(connectionId + ".json");
+        if (!Files.exists(connectionFile)) {
+            throw new ResourceNotFoundException("Database connection not found with id: " + connectionId);
+        }
+        
+        try {
+            return objectMapper.readValue(connectionFile.toFile(), DatabaseConnection.class);
+        } catch (IOException e) {
+            logger.error("Failed to read connection file: {}", connectionFile, e);
+            throw new ResourceNotFoundException("Failed to read connection with id: " + connectionId);
+        }
+    }
+    
+    @Override
+    public DatabaseConnection createConnection(String projectId, DatabaseConnection connection) throws ResourceNotFoundException {
+        validateProject(projectId);
+        
+        // Ensure ID is set
+        if (connection.getId() == null || connection.getId().trim().isEmpty()) {
+            connection.setId(UUID.randomUUID().toString());
+        }
+        
+        // Set creation and update timestamps
+        LocalDateTime now = LocalDateTime.now();
+        connection.setCreatedAt(now);
+        connection.setUpdatedAt(now);
+        
+        Path connectionsDir = getProjectConnectionsDir(projectId);
+        try {
+            Files.createDirectories(connectionsDir);
+            
+            Path connectionFile = connectionsDir.resolve(connection.getId() + ".json");
+            objectMapper.writeValue(connectionFile.toFile(), connection);
+            
+            return connection;
+        } catch (IOException e) {
+            logger.error("Failed to create connection for project: {}", projectId, e);
+            throw new RuntimeException("Failed to create database connection: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public DatabaseConnection updateConnection(String projectId, String connectionId, DatabaseConnection connectionDetails) throws ResourceNotFoundException {
+        // Get the existing connection to preserve creation date
+        DatabaseConnection existingConnection = getConnectionById(projectId, connectionId);
+        
+        // Update connection details while preserving creation date and ID
+        connectionDetails.setId(connectionId);
+        connectionDetails.setCreatedAt(existingConnection.getCreatedAt());
+        connectionDetails.setUpdatedAt(LocalDateTime.now());
+        
+        Path connectionFile = getProjectConnectionsDir(projectId).resolve(connectionId + ".json");
+        try {
+            objectMapper.writeValue(connectionFile.toFile(), connectionDetails);
+            return connectionDetails;
+        } catch (IOException e) {
+            logger.error("Failed to update connection for project: {}", projectId, e);
+            throw new RuntimeException("Failed to update database connection: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public boolean deleteConnection(String projectId, String connectionId) throws ResourceNotFoundException {
+        validateProject(projectId);
+        
+        // Check if connection exists
+        Path connectionFile = getProjectConnectionsDir(projectId).resolve(connectionId + ".json");
+        if (!Files.exists(connectionFile)) {
+            throw new ResourceNotFoundException("Database connection not found with id: " + connectionId);
+        }
+        
+        try {
+            // Also delete any associated active connections
+            closeConnection(projectId, connectionId);
+            
+            return Files.deleteIfExists(connectionFile);
+        } catch (IOException e) {
+            logger.error("Failed to delete connection for project: {}", projectId, e);
+            return false;
+        }
+    }
+    
+    @Override
+    public DatabaseConnectionTestResult testConnection(String projectId, String connectionId) throws ResourceNotFoundException {
+        // Get the connection details
+        DatabaseConnection connection = getConnectionById(projectId, connectionId);
+        
+        DatabaseConnectionTestResult result = new DatabaseConnectionTestResult()
+                .setConnectionId(connectionId);
+        
+        Connection jdbcConnection = null;
+        long startTime = System.currentTimeMillis();
+        
+        try {
+            // Load the appropriate JDBC driver
+            switch (connection.getDbType().toLowerCase()) {
+                case "mysql":
+                    Class.forName("com.mysql.cj.jdbc.Driver");
+                    break;
+                case "postgresql":
+                    Class.forName("org.postgresql.Driver");
+                    break;
+                case "oracle":
+                    Class.forName("oracle.jdbc.OracleDriver");
+                    break;
+                case "sqlserver":
+                    Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported database type: " + connection.getDbType());
+            }
+            
+            // Attempt to establish a connection
+            jdbcConnection = DriverManager.getConnection(
+                    connection.getConnectionUrl(),
+                    connection.getUsername(),
+                    connection.getPassword()
+            );
+            
+            // Get database metadata
+            DatabaseMetaData metaData = jdbcConnection.getMetaData();
+            String dbInfo = metaData.getDatabaseProductName() + " " +
+                    metaData.getDatabaseProductVersion();
+            
+            long endTime = System.currentTimeMillis();
+            
+            // Connection successful
+            result.setSuccessful(true)
+                    .setMessage("Connection successful")
+                    .setConnectionTimeMs(endTime - startTime)
+                    .setDatabaseInfo(dbInfo);
+            
+        } catch (ClassNotFoundException e) {
+            logger.error("JDBC driver not found for database type: {}", connection.getDbType(), e);
+            
+            result.setSuccessful(false)
+                    .setMessage("JDBC driver not found: " + e.getMessage())
+                    .setConnectionTimeMs(System.currentTimeMillis() - startTime);
+            
+        } catch (SQLException e) {
+            logger.error("Failed to connect to database: {}", connection.getConnectionUrl(), e);
+            
+            result.setSuccessful(false)
+                    .setMessage("Connection failed: " + e.getMessage())
+                    .setConnectionTimeMs(System.currentTimeMillis() - startTime);
+            
+        } finally {
+            // Close the connection
+            try {
+                if (jdbcConnection != null && !jdbcConnection.isClosed()) {
+                    jdbcConnection.close();
+                }
+            } catch (SQLException e) {
+                logger.warn("Failed to close database connection", e);
+            }
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Get or create a database connection
+     */
+    private Connection getConnection(String projectId, String connectionId) throws ResourceNotFoundException, SQLException, ClassNotFoundException {
+        DatabaseConnection connection = getConnectionById(projectId, connectionId);
+        
+        // Check if we have an active connection in cache
+        Map<String, Connection> projectConnections = activeConnections.getOrDefault(projectId, new ConcurrentHashMap<>());
+        Connection jdbcConnection = projectConnections.get(connectionId);
+        
+        // If connection doesn't exist or is closed, create a new one
+        if (jdbcConnection == null || jdbcConnection.isClosed()) {
+            // Load the appropriate JDBC driver
+            switch (connection.getDbType().toLowerCase()) {
+                case "mysql":
+                    Class.forName("com.mysql.cj.jdbc.Driver");
+                    break;
+                case "postgresql":
+                    Class.forName("org.postgresql.Driver");
+                    break;
+                case "oracle":
+                    Class.forName("oracle.jdbc.OracleDriver");
+                    break;
+                case "sqlserver":
+                    Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported database type: " + connection.getDbType());
+            }
+            
+            // Create new connection
+            jdbcConnection = DriverManager.getConnection(
+                    connection.getConnectionUrl(),
+                    connection.getUsername(),
+                    connection.getPassword()
+            );
+            
+            // Cache the connection
+            projectConnections.put(connectionId, jdbcConnection);
+            activeConnections.put(projectId, projectConnections);
+        }
+        
+        return jdbcConnection;
+    }
+    
+    /**
+     * Close a database connection
+     */
+    private void closeConnection(String projectId, String connectionId) {
+        Map<String, Connection> projectConnections = activeConnections.get(projectId);
+        if (projectConnections != null) {
+            Connection connection = projectConnections.remove(connectionId);
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    logger.warn("Failed to close database connection", e);
+                }
+            }
+        }
+    }
+    
+    @Override
+    public List<DatabaseQuery> getAllQueries(String projectId) throws ResourceNotFoundException {
+        validateProject(projectId);
+        
+        Path queriesDir = getProjectQueriesDir(projectId);
+        if (!Files.exists(queriesDir)) {
+            try {
+                Files.createDirectories(queriesDir);
+            } catch (IOException e) {
+                logger.error("Failed to create queries directory for project: {}", projectId, e);
+                return new ArrayList<>();
+            }
+            return new ArrayList<>();
+        }
+        
+        try {
+            return Files.list(queriesDir)
+                    .filter(file -> file.toString().endsWith(".json"))
+                    .map(file -> {
+                        try {
+                            return objectMapper.readValue(file.toFile(), DatabaseQuery.class);
+                        } catch (IOException e) {
+                            logger.error("Failed to read query file: {}", file, e);
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            logger.error("Failed to list queries for project: {}", projectId, e);
+            return new ArrayList<>();
+        }
+    }
+    
+    @Override
+    public DatabaseQuery getQueryById(String projectId, String queryId) throws ResourceNotFoundException {
+        validateProject(projectId);
+        
+        Path queryFile = getProjectQueriesDir(projectId).resolve(queryId + ".json");
+        if (!Files.exists(queryFile)) {
+            throw new ResourceNotFoundException("Database query not found with id: " + queryId);
+        }
+        
+        try {
+            return objectMapper.readValue(queryFile.toFile(), DatabaseQuery.class);
+        } catch (IOException e) {
+            logger.error("Failed to read query file: {}", queryFile, e);
+            throw new ResourceNotFoundException("Failed to read query with id: " + queryId);
+        }
+    }
+    
+    @Override
+    public DatabaseQuery createQuery(String projectId, DatabaseQuery query) throws ResourceNotFoundException {
+        validateProject(projectId);
+        
+        // Validate that the referenced connection exists
+        getConnectionById(projectId, query.getConnectionId());
+        
+        // Ensure ID is set
+        if (query.getId() == null || query.getId().trim().isEmpty()) {
+            query.setId(UUID.randomUUID().toString());
+        }
+        
+        // Set creation and update timestamps
+        LocalDateTime now = LocalDateTime.now();
+        query.setCreatedAt(now);
+        query.setUpdatedAt(now);
+        
+        Path queriesDir = getProjectQueriesDir(projectId);
+        try {
+            Files.createDirectories(queriesDir);
+            
+            Path queryFile = queriesDir.resolve(query.getId() + ".json");
+            objectMapper.writeValue(queryFile.toFile(), query);
+            
+            return query;
+        } catch (IOException e) {
+            logger.error("Failed to create query for project: {}", projectId, e);
+            throw new RuntimeException("Failed to create database query: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public DatabaseQuery updateQuery(String projectId, String queryId, DatabaseQuery queryDetails) throws ResourceNotFoundException {
+        // Get the existing query to preserve creation date
+        DatabaseQuery existingQuery = getQueryById(projectId, queryId);
+        
+        // Validate that the referenced connection exists
+        getConnectionById(projectId, queryDetails.getConnectionId());
+        
+        // Update query details while preserving creation date and ID
+        queryDetails.setId(queryId);
+        queryDetails.setCreatedAt(existingQuery.getCreatedAt());
+        queryDetails.setUpdatedAt(LocalDateTime.now());
+        
+        Path queryFile = getProjectQueriesDir(projectId).resolve(queryId + ".json");
+        try {
+            objectMapper.writeValue(queryFile.toFile(), queryDetails);
+            return queryDetails;
+        } catch (IOException e) {
+            logger.error("Failed to update query for project: {}", projectId, e);
+            throw new RuntimeException("Failed to update database query: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public boolean deleteQuery(String projectId, String queryId) throws ResourceNotFoundException {
+        validateProject(projectId);
+        
+        // Check if query exists
+        Path queryFile = getProjectQueriesDir(projectId).resolve(queryId + ".json");
+        if (!Files.exists(queryFile)) {
+            throw new ResourceNotFoundException("Database query not found with id: " + queryId);
+        }
+        
+        try {
+            return Files.deleteIfExists(queryFile);
+        } catch (IOException e) {
+            logger.error("Failed to delete query for project: {}", projectId, e);
+            return false;
+        }
+    }
+    
+    @Override
+    public DatabaseQueryResult executeQuery(String projectId, String queryId, Map<String, Object> parameters) throws ResourceNotFoundException {
+        // Get the query details
+        DatabaseQuery query = getQueryById(projectId, queryId);
+        
+        DatabaseQueryResult result = new DatabaseQueryResult()
+                .setQueryId(queryId);
+        
+        Connection jdbcConnection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+        
+        long startTime = System.currentTimeMillis();
+        
+        try {
+            // Get a connection to the database
+            jdbcConnection = getConnection(projectId, query.getConnectionId());
+            
+            // Prepare the SQL statement
+            String sql = query.getSqlQuery();
+            
+            if (query.isStoredProcedure()) {
+                // Handle stored procedure call
+                statement = jdbcConnection.prepareCall(sql);
+            } else {
+                // Handle regular SQL query
+                statement = jdbcConnection.prepareStatement(sql);
+            }
+            
+            // Set parameters if available
+            if (parameters != null && !parameters.isEmpty()) {
+                // Match parameters based on name in both the query definition and parameters map
+                Map<String, Integer> paramPositions = new HashMap<>();
+                
+                // Find parameter positions in SQL (assumes parameters are marked as :paramName)
+                for (DatabaseQueryParameter param : query.getParameters()) {
+                    String paramMarker = ":" + param.getName();
+                    int position = sql.indexOf(paramMarker);
+                    if (position >= 0) {
+                        paramPositions.put(param.getName(), paramPositions.size() + 1);
+                    }
+                }
+                
+                // Set parameter values
+                for (Map.Entry<String, Integer> entry : paramPositions.entrySet()) {
+                    String paramName = entry.getKey();
+                    int position = entry.getValue();
+                    
+                    Object value = parameters.get(paramName);
+                    if (value != null) {
+                        statement.setObject(position, value);
+                    } else {
+                        // Use default value from query definition if available
+                        DatabaseQueryParameter param = query.getParameters().stream()
+                                .filter(p -> p.getName().equals(paramName))
+                                .findFirst()
+                                .orElse(null);
+                        
+                        if (param != null && param.getDefaultValue() != null) {
+                            statement.setString(position, param.getDefaultValue());
+                        } else if (param != null && param.isRequired()) {
+                            throw new IllegalArgumentException("Required parameter missing: " + paramName);
+                        } else {
+                            statement.setNull(position, Types.VARCHAR);
+                        }
+                    }
+                }
+            }
+            
+            // Execute the query
+            boolean hasResultSet = statement.execute();
+            
+            if (hasResultSet) {
+                // Handle result set (SELECT query)
+                resultSet = statement.getResultSet();
+                ResultSetMetaData metaData = resultSet.getMetaData();
+                
+                // Extract column names
+                List<String> columnNames = new ArrayList<>();
+                for (int i = 1; i <= metaData.getColumnCount(); i++) {
+                    columnNames.add(metaData.getColumnName(i));
+                }
+                result.setColumnNames(columnNames);
+                
+                // Extract result data
+                List<Map<String, Object>> resultData = new ArrayList<>();
+                while (resultSet.next()) {
+                    Map<String, Object> row = new HashMap<>();
+                    for (int i = 1; i <= metaData.getColumnCount(); i++) {
+                        String columnName = metaData.getColumnName(i);
+                        Object value = resultSet.getObject(i);
+                        row.put(columnName, value);
+                    }
+                    resultData.add(row);
+                }
+                result.setResultData(resultData);
+                
+                // Check for more results
+                result.setHasMoreResults(statement.getMoreResults());
+                
+            } else {
+                // Handle update count (INSERT, UPDATE, DELETE)
+                int rowsAffected = statement.getUpdateCount();
+                result.setRowsAffected(rowsAffected);
+            }
+            
+            long endTime = System.currentTimeMillis();
+            
+            // Query successful
+            result.setSuccessful(true)
+                    .setMessage("Query executed successfully")
+                    .setExecutionDurationMs(endTime - startTime);
+            
+        } catch (SQLException | ClassNotFoundException e) {
+            logger.error("Failed to execute query: {}", query.getId(), e);
+            
+            result.setSuccessful(false)
+                    .setMessage("Query execution failed: " + e.getMessage())
+                    .setExecutionDurationMs(System.currentTimeMillis() - startTime);
+            
+        } finally {
+            // Close resources
+            try {
+                if (resultSet != null) {
+                    resultSet.close();
+                }
+                if (statement != null) {
+                    statement.close();
+                }
+            } catch (SQLException e) {
+                logger.warn("Failed to close database resources", e);
+            }
+        }
+        
+        return result;
+    }
+    
+    @Override
+    public List<DatabaseTable> getTables(String projectId, String connectionId) throws ResourceNotFoundException {
+        Connection jdbcConnection = null;
+        ResultSet tablesResultSet = null;
+        
+        try {
+            // Get a connection to the database
+            jdbcConnection = getConnection(projectId, connectionId);
+            
+            DatabaseMetaData metaData = jdbcConnection.getMetaData();
+            
+            // Get the list of tables
+            tablesResultSet = metaData.getTables(null, null, null, new String[]{"TABLE", "VIEW"});
+            
+            List<DatabaseTable> tables = new ArrayList<>();
+            while (tablesResultSet.next()) {
+                DatabaseTable table = new DatabaseTable()
+                        .setName(tablesResultSet.getString("TABLE_NAME"))
+                        .setType(tablesResultSet.getString("TABLE_TYPE"))
+                        .setSchema(tablesResultSet.getString("TABLE_SCHEM"));
+                
+                // Try to get row count (may not be supported by all databases)
+                try {
+                    Statement countStatement = jdbcConnection.createStatement();
+                    ResultSet countResult = countStatement.executeQuery("SELECT COUNT(*) FROM " + 
+                            (table.getSchema() != null ? table.getSchema() + "." : "") + 
+                            table.getName());
+                    if (countResult.next()) {
+                        table.setRowCount(countResult.getLong(1));
+                    }
+                    countResult.close();
+                    countStatement.close();
+                } catch (SQLException e) {
+                    // Ignore, row count is optional
+                    logger.debug("Failed to get row count for table: {}", table.getName(), e);
+                }
+                
+                // Try to get table comment (may not be supported by all databases)
+                table.setComment(tablesResultSet.getString("REMARKS"));
+                
+                tables.add(table);
+            }
+            
+            return tables;
+            
+        } catch (SQLException | ClassNotFoundException e) {
+            logger.error("Failed to get tables for connection: {}", connectionId, e);
+            throw new RuntimeException("Failed to get database tables: " + e.getMessage());
+            
+        } finally {
+            // Close resources
+            try {
+                if (tablesResultSet != null) {
+                    tablesResultSet.close();
+                }
+            } catch (SQLException e) {
+                logger.warn("Failed to close database resources", e);
+            }
+        }
+    }
+    
+    @Override
+    public DatabaseTableSchema getTableSchema(String projectId, String connectionId, String tableName) throws ResourceNotFoundException {
+        Connection jdbcConnection = null;
+        ResultSet columnsResultSet = null;
+        ResultSet primaryKeysResultSet = null;
+        ResultSet indexesResultSet = null;
+        
+        try {
+            // Get a connection to the database
+            jdbcConnection = getConnection(projectId, connectionId);
+            
+            DatabaseMetaData metaData = jdbcConnection.getMetaData();
+            
+            // Create table schema object
+            DatabaseTableSchema schema = new DatabaseTableSchema()
+                    .setTableName(tableName);
+            
+            // Get table information
+            ResultSet tablesResultSet = metaData.getTables(null, null, tableName, null);
+            if (tablesResultSet.next()) {
+                schema.setSchema(tablesResultSet.getString("TABLE_SCHEM"))
+                        .setTableType(tablesResultSet.getString("TABLE_TYPE"))
+                        .setComment(tablesResultSet.getString("REMARKS"));
+            }
+            tablesResultSet.close();
+            
+            // Get columns
+            columnsResultSet = metaData.getColumns(null, schema.getSchema(), tableName, null);
+            while (columnsResultSet.next()) {
+                DatabaseTableColumn column = new DatabaseTableColumn()
+                        .setName(columnsResultSet.getString("COLUMN_NAME"))
+                        .setDataType(columnsResultSet.getString("TYPE_NAME"))
+                        .setNullable(columnsResultSet.getInt("NULLABLE") == DatabaseMetaData.columnNullable)
+                        .setDefaultValue(columnsResultSet.getString("COLUMN_DEF"))
+                        .setComment(columnsResultSet.getString("REMARKS"));
+                
+                // Get column size if available
+                try {
+                    int columnSize = columnsResultSet.getInt("COLUMN_SIZE");
+                    if (!columnsResultSet.wasNull()) {
+                        column.setMaxLength((long) columnSize);
+                    }
+                } catch (SQLException e) {
+                    // Ignore, column size is optional
+                }
+                
+                schema.getColumns().add(column);
+            }
+            
+            // Get primary keys
+            primaryKeysResultSet = metaData.getPrimaryKeys(null, schema.getSchema(), tableName);
+            while (primaryKeysResultSet.next()) {
+                String columnName = primaryKeysResultSet.getString("COLUMN_NAME");
+                schema.getPrimaryKeys().add(columnName);
+                
+                // Update column to mark as primary key
+                schema.getColumns().stream()
+                        .filter(column -> column.getName().equals(columnName))
+                        .findFirst()
+                        .ifPresent(column -> column.setPrimaryKey(true));
+            }
+            
+            // Get indexes
+            indexesResultSet = metaData.getIndexInfo(null, schema.getSchema(), tableName, false, false);
+            Map<String, DatabaseTableIndex> indices = new HashMap<>();
+            
+            while (indexesResultSet.next()) {
+                String indexName = indexesResultSet.getString("INDEX_NAME");
+                if (indexName == null) {
+                    continue; // Skip null index names
+                }
+                
+                // Get or create index
+                DatabaseTableIndex index = indices.computeIfAbsent(indexName, k -> new DatabaseTableIndex()
+                        .setName(indexName)
+                        .setType("INDEX")
+                        .setUnique(!indexesResultSet.getBoolean("NON_UNIQUE")));
+                
+                // Add column to index
+                index.getColumns().add(indexesResultSet.getString("COLUMN_NAME"));
+            }
+            
+            // Add indices to schema
+            schema.setIndices(new ArrayList<>(indices.values()));
+            
+            // Get foreign keys
+            ResultSet foreignKeysResultSet = metaData.getImportedKeys(null, schema.getSchema(), tableName);
+            while (foreignKeysResultSet.next()) {
+                String columnName = foreignKeysResultSet.getString("FKCOLUMN_NAME");
+                String refTableName = foreignKeysResultSet.getString("PKTABLE_NAME");
+                String refColumnName = foreignKeysResultSet.getString("PKCOLUMN_NAME");
+                
+                // Update column to mark as foreign key
+                schema.getColumns().stream()
+                        .filter(column -> column.getName().equals(columnName))
+                        .findFirst()
+                        .ifPresent(column -> column
+                                .setForeignKey(true)
+                                .setReferencedTable(refTableName)
+                                .setReferencedColumn(refColumnName));
+            }
+            foreignKeysResultSet.close();
+            
+            // Try to get row count (may not be supported by all databases)
+            try {
+                Statement countStatement = jdbcConnection.createStatement();
+                ResultSet countResult = countStatement.executeQuery(
+                        "SELECT COUNT(*) FROM " + 
+                        (schema.getSchema() != null ? schema.getSchema() + "." : "") + 
+                        schema.getTableName());
+                if (countResult.next()) {
+                    schema.setRowCount(countResult.getLong(1));
+                }
+                countResult.close();
+                countStatement.close();
+            } catch (SQLException e) {
+                // Ignore, row count is optional
+                logger.debug("Failed to get row count for table: {}", schema.getTableName(), e);
+            }
+            
+            return schema;
+            
+        } catch (SQLException | ClassNotFoundException e) {
+            logger.error("Failed to get table schema for table: {}", tableName, e);
+            throw new RuntimeException("Failed to get table schema: " + e.getMessage());
+            
+        } finally {
+            // Close resources
+            try {
+                if (columnsResultSet != null) {
+                    columnsResultSet.close();
+                }
+                if (primaryKeysResultSet != null) {
+                    primaryKeysResultSet.close();
+                }
+                if (indexesResultSet != null) {
+                    indexesResultSet.close();
+                }
+            } catch (SQLException e) {
+                logger.warn("Failed to close database resources", e);
+            }
+        }
+    }
+}
+
+
+/**
+ * Database Testing Controller
+ * Handles REST endpoints for database testing functionality
+ */
+package com.cstestforge.controller;
+
+import com.cstestforge.exception.ResourceNotFoundException;
+import com.cstestforge.model.common.ApiResponse;
+import com.cstestforge.model.database.*;
+import com.cstestforge.service.database.DatabaseTestingService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/v1/projects/{projectId}/db-testing")
+@CrossOrigin(origins = "*", maxAge = 3600)
+public class DatabaseTestingController {
+    private static final Logger logger = LoggerFactory.getLogger(DatabaseTestingController.class);
+    
+    @Autowired
+    private DatabaseTestingService dbTestingService;
+    
+    /**
+     * Get all database connections for a project
+     * @param projectId The project ID
+     * @return List of database connections
+     */
+    @GetMapping("/connections")
+    public ResponseEntity<ApiResponse> getAllConnections(@PathVariable String projectId) {
+        logger.info("Request to get all database connections for project: {}", projectId);
+        
+        try {
+            List<DatabaseConnection> connections = dbTestingService.getAllConnections(projectId);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Database connections retrieved successfully")
+                .setData(connections);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Project not found: {}", projectId, e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Get database connection by ID
+     * @param projectId The project ID
+     * @param connectionId The connection ID
+     * @return Database connection details
+     */
+    @GetMapping("/connections/{connectionId}")
+    public ResponseEntity<ApiResponse> getConnectionById(
+            @PathVariable String projectId,
+            @PathVariable String connectionId) {
+        logger.info("Request to get database connection: {} in project: {}", connectionId, projectId);
+        
+        try {
+            DatabaseConnection connection = dbTestingService.getConnectionById(projectId, connectionId);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Database connection retrieved successfully")
+                .setData(connection);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Create a new database connection
+     * @param projectId The project ID
+     * @param connection The database connection to create
+     * @return Created database connection details
+     */
+    @PostMapping("/connections")
+    public ResponseEntity<ApiResponse> createConnection(
+            @PathVariable String projectId,
+            @Valid @RequestBody DatabaseConnection connection) {
+        logger.info("Request to create database connection in project: {}", projectId);
+        
+        try {
+            DatabaseConnection createdConnection = dbTestingService.createConnection(projectId, connection);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Database connection created successfully")
+                .setData(createdConnection);
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Project not found: {}", projectId, e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Update a database connection
+     * @param projectId The project ID
+     * @param connectionId The connection ID
+     * @param connectionDetails The updated connection details
+     * @return Updated database connection details
+     */
+    @PutMapping("/connections/{connectionId}")
+    public ResponseEntity<ApiResponse> updateConnection(
+            @PathVariable String projectId,
+            @PathVariable String connectionId,
+            @Valid @RequestBody DatabaseConnection connectionDetails) {
+        logger.info("Request to update database connection: {} in project: {}", connectionId, projectId);
+        
+        try {
+            DatabaseConnection updatedConnection = dbTestingService.updateConnection(
+                    projectId, connectionId, connectionDetails);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Database connection updated successfully")
+                .setData(updatedConnection);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Delete a database connection
+     * @param projectId The project ID
+     * @param connectionId The connection ID
+     * @return Response with deletion confirmation
+     */
+    @DeleteMapping("/connections/{connectionId}")
+    public ResponseEntity<ApiResponse> deleteConnection(
+            @PathVariable String projectId,
+            @PathVariable String connectionId) {
+        logger.info("Request to delete database connection: {} in project: {}", connectionId, projectId);
+        
+        try {
+            boolean deleted = dbTestingService.deleteConnection(projectId, connectionId);
+            
+            if (deleted) {
+                ApiResponse response = new ApiResponse()
+                    .setSuccess(true)
+                    .setMessage("Database connection deleted successfully");
+                
+                return ResponseEntity.ok(response);
+            } else {
+                ApiResponse response = new ApiResponse()
+                    .setSuccess(false)
+                    .setMessage("Failed to delete database connection");
+                
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            }
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Test a database connection
+     * @param projectId The project ID
+     * @param connectionId The connection ID
+     * @return Connection test result
+     */
+    @PostMapping("/connections/{connectionId}/test")
+    public ResponseEntity<ApiResponse> testConnection(
+            @PathVariable String projectId,
+            @PathVariable String connectionId) {
+        logger.info("Request to test database connection: {} in project: {}", connectionId, projectId);
+        
+        try {
+            DatabaseConnectionTestResult result = dbTestingService.testConnection(projectId, connectionId);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Database connection test completed")
+                .setData(result);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (Exception e) {
+            logger.error("Database connection test failed", e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage("Database connection test failed: " + e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    /**
+     * Get all database queries for a project
+     * @param projectId The project ID
+     * @return List of database queries
+     */
+    @GetMapping("/queries")
+    public ResponseEntity<ApiResponse> getAllQueries(@PathVariable String projectId) {
+        logger.info("Request to get all database queries for project: {}", projectId);
+        
+        try {
+            List<DatabaseQuery> queries = dbTestingService.getAllQueries(projectId);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Database queries retrieved successfully")
+                .setData(queries);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Project not found: {}", projectId, e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Get database query by ID
+     * @param projectId The project ID
+     * @param queryId The query ID
+     * @return Database query details
+     */
+    @GetMapping("/queries/{queryId}")
+    public ResponseEntity<ApiResponse> getQueryById(
+            @PathVariable String projectId,
+            @PathVariable String queryId) {
+        logger.info("Request to get database query: {} in project: {}", queryId, projectId);
+        
+        try {
+            DatabaseQuery query = dbTestingService.getQueryById(projectId, queryId);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Database query retrieved successfully")
+                .setData(query);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Create a new database query
+     * @param projectId The project ID
+     * @param query The database query to create
+     * @return Created database query details
+     */
+    @PostMapping("/queries")
+    public ResponseEntity<ApiResponse> createQuery(
+            @PathVariable String projectId,
+            @Valid @RequestBody DatabaseQuery query) {
+        logger.info("Request to create database query in project: {}", projectId);
+        
+        try {
+            DatabaseQuery createdQuery = dbTestingService.createQuery(projectId, query);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Database query created successfully")
+                .setData(createdQuery);
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Project not found: {}", projectId, e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Update a database query
+     * @param projectId The project ID
+     * @param queryId The query ID
+     * @param queryDetails The updated query details
+     * @return Updated database query details
+     */
+    @PutMapping("/queries/{queryId}")
+    public ResponseEntity<ApiResponse> updateQuery(
+            @PathVariable String projectId,
+            @PathVariable String queryId,
+            @Valid @RequestBody DatabaseQuery queryDetails) {
+        logger.info("Request to update database query: {} in project: {}", queryId, projectId);
+        
+        try {
+            DatabaseQuery updatedQuery = dbTestingService.updateQuery(projectId, queryId, queryDetails);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Database query updated successfully")
+                .setData(updatedQuery);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Delete a database query
+     * @param projectId The project ID
+     * @param queryId The query ID
+     * @return Response with deletion confirmation
+     */
+    @DeleteMapping("/queries/{queryId}")
+    public ResponseEntity<ApiResponse> deleteQuery(
+            @PathVariable String projectId,
+            @PathVariable String queryId) {
+        logger.info("Request to delete database query: {} in project: {}", queryId, projectId);
+        
+        try {
+            boolean deleted = dbTestingService.deleteQuery(projectId, queryId);
+            
+            if (deleted) {
+                ApiResponse response = new ApiResponse()
+                    .setSuccess(true)
+                    .setMessage("Database query deleted successfully");
+                
+                return ResponseEntity.ok(response);
+            } else {
+                ApiResponse response = new ApiResponse()
+                    .setSuccess(false)
+                    .setMessage("Failed to delete database query");
+                
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            }
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Execute a database query
+     * @param projectId The project ID
+     * @param queryId The query ID
+     * @param parameters Optional parameters for the query
+     * @return Query execution result
+     */
+    @PostMapping("/queries/{queryId}/execute")
+    public ResponseEntity<ApiResponse> executeQuery(
+            @PathVariable String projectId,
+            @PathVariable String queryId,
+            @RequestBody(required = false) Map<String, Object> parameters) {
+        logger.info("Request to execute database query: {} in project: {}", queryId, projectId);
+        
+        try {
+            // If parameters is null, use empty map
+            if (parameters == null) {
+                parameters = Map.of();
+            }
+            
+            DatabaseQueryResult result = dbTestingService.executeQuery(projectId, queryId, parameters);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Database query executed successfully")
+                .setData(result);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (Exception e) {
+            logger.error("Database query execution failed", e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage("Database query execution failed: " + e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    /**
+     * Get database tables for a connection
+     * @param projectId The project ID
+     * @param connectionId The connection ID
+     * @return List of database tables
+     */
+    @GetMapping("/connections/{connectionId}/tables")
+    public ResponseEntity<ApiResponse> getDatabaseTables(
+            @PathVariable String projectId,
+            @PathVariable String connectionId) {
+        logger.info("Request to get database tables for connection: {} in project: {}", connectionId, projectId);
+        
+        try {
+            List<DatabaseTable> tables = dbTestingService.getTables(projectId, connectionId);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Database tables retrieved successfully")
+                .setData(tables);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (Exception e) {
+            logger.error("Failed to retrieve database tables", e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage("Failed to retrieve database tables: " + e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    /**
+     * Get database table schema
+     * @param projectId The project ID
+     * @param connectionId The connection ID
+     * @param tableName The table name
+     * @return Table schema
+     */
+    @GetMapping("/connections/{connectionId}/tables/{tableName}")
+    public ResponseEntity<ApiResponse> getTableSchema(
+            @PathVariable String projectId,
+            @PathVariable String connectionId,
+            @PathVariable String tableName) {
+        logger.info("Request to get schema for table: {} in connection: {} in project: {}", 
+                tableName, connectionId, projectId);
+        
+        try {
+            DatabaseTableSchema schema = dbTestingService.getTableSchema(projectId, connectionId, tableName);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Table schema retrieved successfully")
+                .setData(schema);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (Exception e) {
+            logger.error("Failed to retrieve table schema", e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage("Failed to retrieve table schema: " + e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+}
+
+
