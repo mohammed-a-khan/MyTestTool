@@ -1,0 +1,581 @@
+package com.cstestforge.service.project;
+
+import com.cstestforge.exception.ResourceNotFoundException;
+import com.cstestforge.model.project.Project;
+import com.cstestforge.model.project.ProjectConfig;
+
+import java.util.List;
+
+public interface ProjectService {
+    
+    List<Project> getAllProjects();
+    
+    Project getProjectById(String projectId) throws ResourceNotFoundException;
+    
+    Project createProject(Project project);
+    
+    Project updateProject(String projectId, Project projectDetails) throws ResourceNotFoundException;
+    
+    boolean deleteProject(String projectId) throws ResourceNotFoundException;
+    
+    ProjectConfig getProjectConfig(String projectId) throws ResourceNotFoundException;
+    
+    ProjectConfig updateProjectConfig(String projectId, ProjectConfig config) throws ResourceNotFoundException;
+    
+    // Add the missing existsById method
+    boolean existsById(String projectId);
+}
+
+
+package com.cstestforge.service.project.impl;
+
+import com.cstestforge.exception.ResourceNotFoundException;
+import com.cstestforge.model.project.Project;
+import com.cstestforge.model.project.ProjectConfig;
+import com.cstestforge.service.project.ProjectService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+@Service
+public class ProjectServiceImpl implements ProjectService {
+    private static final Logger logger = LoggerFactory.getLogger(ProjectServiceImpl.class);
+    
+    private final ObjectMapper objectMapper;
+    private final String projectsStoragePath;
+    
+    public ProjectServiceImpl(
+            ObjectMapper objectMapper,
+            @Value("${app.storage.projects-path:./storage/projects}") String projectsStoragePath) {
+        this.objectMapper = objectMapper;
+        this.projectsStoragePath = projectsStoragePath;
+        
+        // Ensure storage directory exists
+        try {
+            Files.createDirectories(Paths.get(projectsStoragePath));
+            logger.info("Project storage directory initialized at: {}", projectsStoragePath);
+        } catch (IOException e) {
+            logger.error("Failed to create project storage directory", e);
+            throw new RuntimeException("Failed to initialize project storage", e);
+        }
+    }
+    
+    @Override
+    public List<Project> getAllProjects() {
+        logger.debug("Getting all projects");
+        List<Project> projects = new ArrayList<>();
+        
+        try (Stream<Path> paths = Files.list(Paths.get(projectsStoragePath))) {
+            List<Path> directories = paths
+                    .filter(Files::isDirectory)
+                    .collect(Collectors.toList());
+            
+            for (Path directory : directories) {
+                Path projectFile = directory.resolve("project.json");
+                if (Files.exists(projectFile)) {
+                    try {
+                        Project project = objectMapper.readValue(projectFile.toFile(), Project.class);
+                        projects.add(project);
+                    } catch (IOException e) {
+                        logger.error("Failed to read project file: {}", projectFile, e);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            logger.error("Failed to list project directories", e);
+        }
+        
+        return projects;
+    }
+    
+    @Override
+    public Project getProjectById(String projectId) throws ResourceNotFoundException {
+        logger.debug("Getting project by ID: {}", projectId);
+        Path projectDir = Paths.get(projectsStoragePath, projectId);
+        Path projectFile = projectDir.resolve("project.json");
+        
+        if (!Files.exists(projectFile)) {
+            throw new ResourceNotFoundException("Project not found with id: " + projectId);
+        }
+        
+        try {
+            return objectMapper.readValue(projectFile.toFile(), Project.class);
+        } catch (IOException e) {
+            logger.error("Failed to read project file: {}", projectFile, e);
+            throw new ResourceNotFoundException("Failed to read project with id: " + projectId);
+        }
+    }
+    
+    @Override
+    public Project createProject(Project project) {
+        logger.debug("Creating new project: {}", project.getName());
+        
+        // Generate ID if not provided
+        if (project.getId() == null || project.getId().isEmpty()) {
+            project.setId(UUID.randomUUID().toString());
+        }
+        
+        // Set creation timestamp
+        if (project.getCreatedAt() == null) {
+            project.setCreatedAt(LocalDateTime.now());
+        }
+        project.setUpdatedAt(LocalDateTime.now());
+        
+        // Create project directory
+        Path projectDir = Paths.get(projectsStoragePath, project.getId());
+        try {
+            Files.createDirectories(projectDir);
+            
+            // Create subdirectories
+            Files.createDirectories(projectDir.resolve("testcases"));
+            Files.createDirectories(projectDir.resolve("testsuites"));
+            Files.createDirectories(projectDir.resolve("testruns"));
+            Files.createDirectories(projectDir.resolve("attachments"));
+            
+            // Save project file
+            saveProjectFile(project);
+            
+            // Create default project configuration
+            ProjectConfig defaultConfig = createDefaultProjectConfig(project.getId());
+            saveProjectConfig(project.getId(), defaultConfig);
+            
+            return project;
+        } catch (IOException e) {
+            logger.error("Failed to create project directory: {}", projectDir, e);
+            throw new RuntimeException("Failed to create project", e);
+        }
+    }
+    
+    @Override
+    public Project updateProject(String projectId, Project projectDetails) throws ResourceNotFoundException {
+        logger.debug("Updating project: {}", projectId);
+        
+        // Verify project exists
+        Project existingProject = getProjectById(projectId);
+        
+        // Update fields
+        existingProject.setName(projectDetails.getName());
+        existingProject.setDescription(projectDetails.getDescription());
+        existingProject.setTags(projectDetails.getTags());
+        existingProject.setMetadata(projectDetails.getMetadata());
+        existingProject.setStatus(projectDetails.getStatus());
+        existingProject.setUpdatedAt(LocalDateTime.now());
+        
+        // Save updated project
+        try {
+            saveProjectFile(existingProject);
+            return existingProject;
+        } catch (IOException e) {
+            logger.error("Failed to update project: {}", projectId, e);
+            throw new RuntimeException("Failed to update project", e);
+        }
+    }
+    
+    @Override
+    public boolean deleteProject(String projectId) throws ResourceNotFoundException {
+        logger.debug("Deleting project: {}", projectId);
+        
+        // Verify project exists
+        getProjectById(projectId);
+        
+        // Delete project directory
+        Path projectDir = Paths.get(projectsStoragePath, projectId);
+        try {
+            deleteDirectoryRecursively(projectDir.toFile());
+            return true;
+        } catch (IOException e) {
+            logger.error("Failed to delete project directory: {}", projectDir, e);
+            return false;
+        }
+    }
+    
+    @Override
+    public ProjectConfig getProjectConfig(String projectId) throws ResourceNotFoundException {
+        logger.debug("Getting config for project: {}", projectId);
+        
+        // Verify project exists
+        getProjectById(projectId);
+        
+        Path configFile = Paths.get(projectsStoragePath, projectId, "config.json");
+        
+        if (!Files.exists(configFile)) {
+            // Create default config if not exists
+            ProjectConfig defaultConfig = createDefaultProjectConfig(projectId);
+            try {
+                saveProjectConfig(projectId, defaultConfig);
+                return defaultConfig;
+            } catch (IOException e) {
+                logger.error("Failed to create default project config: {}", projectId, e);
+                throw new RuntimeException("Failed to create project configuration", e);
+            }
+        }
+        
+        try {
+            return objectMapper.readValue(configFile.toFile(), ProjectConfig.class);
+        } catch (IOException e) {
+            logger.error("Failed to read project config file: {}", configFile, e);
+            throw new ResourceNotFoundException("Failed to read project configuration for project with id: " + projectId);
+        }
+    }
+    
+    @Override
+    public ProjectConfig updateProjectConfig(String projectId, ProjectConfig config) throws ResourceNotFoundException {
+        logger.debug("Updating config for project: {}", projectId);
+        
+        // Verify project exists
+        getProjectById(projectId);
+        
+        // Ensure project ID is set in the config
+        config.setProjectId(projectId);
+        config.setUpdatedAt(LocalDateTime.now());
+        
+        try {
+            saveProjectConfig(projectId, config);
+            return config;
+        } catch (IOException e) {
+            logger.error("Failed to update project config: {}", projectId, e);
+            throw new RuntimeException("Failed to update project configuration", e);
+        }
+    }
+    
+    /**
+     * Save project file to filesystem
+     */
+    private void saveProjectFile(Project project) throws IOException {
+        Path projectDir = Paths.get(projectsStoragePath, project.getId());
+        Path projectFile = projectDir.resolve("project.json");
+        
+        objectMapper.writerWithDefaultPrettyPrinter().writeValue(projectFile.toFile(), project);
+        logger.debug("Saved project file: {}", projectFile);
+    }
+    
+    /**
+     * Save project configuration to filesystem
+     */
+    private void saveProjectConfig(String projectId, ProjectConfig config) throws IOException {
+        Path projectDir = Paths.get(projectsStoragePath, projectId);
+        Path configFile = projectDir.resolve("config.json");
+        
+        objectMapper.writerWithDefaultPrettyPrinter().writeValue(configFile.toFile(), config);
+        logger.debug("Saved project config file: {}", configFile);
+    }
+    
+    /**
+     * Create default project configuration
+     */
+    private ProjectConfig createDefaultProjectConfig(String projectId) {
+        ProjectConfig config = new ProjectConfig();
+        config.setProjectId(projectId);
+        config.setCreatedAt(LocalDateTime.now());
+        config.setUpdatedAt(LocalDateTime.now());
+        
+        // Set default values
+        config.setTestCaseTemplate("default");
+        config.setDefaultTestCategory("Functional");
+        config.setEnableVersioning(true);
+        config.setMaxAttachmentSizeMb(10);
+        config.setMaxAttachmentsPerTestCase(5);
+        
+        return config;
+    }
+    
+    /**
+     * Recursively delete a directory and all its contents
+     */
+    private void deleteDirectoryRecursively(File directory) throws IOException {
+        if (directory.isDirectory()) {
+            File[] files = directory.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    deleteDirectoryRecursively(file);
+                }
+            }
+        }
+        if (!directory.delete()) {
+            throw new IOException("Failed to delete: " + directory);
+        }
+    }
+
+@Override
+public boolean existsById(String projectId) {
+    logger.debug("Checking if project exists: {}", projectId);
+    
+    if (projectId == null || projectId.isEmpty()) {
+        return false;
+    }
+    
+    Path projectDir = Paths.get(projectsStoragePath, projectId);
+    Path projectFile = projectDir.resolve("project.json");
+    
+    return Files.exists(projectFile);
+}
+}
+
+package com.cstestforge.model.project;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class ProjectConfig {
+    
+    private String projectId;
+    
+    @NotBlank(message = "Test case template is required")
+    private String testCaseTemplate;
+    
+    private String defaultTestCategory;
+    
+    private boolean enableVersioning = true;
+    
+    @Min(value = 1, message = "Minimum attachment size must be at least 1 MB")
+    @Max(value = 100, message = "Maximum attachment size cannot exceed 100 MB")
+    private int maxAttachmentSizeMb = 10;
+    
+    @Min(value = 0, message = "Minimum attachments per test case cannot be negative")
+    @Max(value = 50, message = "Maximum attachments per test case cannot exceed 50")
+    private int maxAttachmentsPerTestCase = 5;
+    
+    private Set<String> allowedAttachmentTypes = new HashSet<>();
+    
+    private Map<String, Object> customFields = new HashMap<>();
+    
+    private Map<String, Object> integrationSettings = new HashMap<>();
+    
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime createdAt;
+    
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime updatedAt;
+    
+    // Getters and setters
+    public String getProjectId() {
+        return projectId;
+    }
+    
+    public ProjectConfig setProjectId(String projectId) {
+        this.projectId = projectId;
+        return this;
+    }
+    
+    public String getTestCaseTemplate() {
+        return testCaseTemplate;
+    }
+    
+    public ProjectConfig setTestCaseTemplate(String testCaseTemplate) {
+        this.testCaseTemplate = testCaseTemplate;
+        return this;
+    }
+    
+    public String getDefaultTestCategory() {
+        return defaultTestCategory;
+    }
+    
+    public ProjectConfig setDefaultTestCategory(String defaultTestCategory) {
+        this.defaultTestCategory = defaultTestCategory;
+        return this;
+    }
+    
+    public boolean isEnableVersioning() {
+        return enableVersioning;
+    }
+    
+    public ProjectConfig setEnableVersioning(boolean enableVersioning) {
+        this.enableVersioning = enableVersioning;
+        return this;
+    }
+    
+    public int getMaxAttachmentSizeMb() {
+        return maxAttachmentSizeMb;
+    }
+    
+    public ProjectConfig setMaxAttachmentSizeMb(int maxAttachmentSizeMb) {
+        this.maxAttachmentSizeMb = maxAttachmentSizeMb;
+        return this;
+    }
+    
+    public int getMaxAttachmentsPerTestCase() {
+        return maxAttachmentsPerTestCase;
+    }
+    
+    public ProjectConfig setMaxAttachmentsPerTestCase(int maxAttachmentsPerTestCase) {
+        this.maxAttachmentsPerTestCase = maxAttachmentsPerTestCase;
+        return this;
+    }
+    
+    public Set<String> getAllowedAttachmentTypes() {
+        return allowedAttachmentTypes;
+    }
+    
+    public ProjectConfig setAllowedAttachmentTypes(Set<String> allowedAttachmentTypes) {
+        this.allowedAttachmentTypes = allowedAttachmentTypes;
+        return this;
+    }
+    
+    public Map<String, Object> getCustomFields() {
+        return customFields;
+    }
+    
+    public ProjectConfig setCustomFields(Map<String, Object> customFields) {
+        this.customFields = customFields;
+        return this;
+    }
+    
+    public Map<String, Object> getIntegrationSettings() {
+        return integrationSettings;
+    }
+    
+    public ProjectConfig setIntegrationSettings(Map<String, Object> integrationSettings) {
+        this.integrationSettings = integrationSettings;
+        return this;
+    }
+    
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    
+    public ProjectConfig setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+        return this;
+    }
+    
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+    
+    public ProjectConfig setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+        return this;
+    }
+}
+
+package com.cstestforge.model.project;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import javax.validation.constraints.NotBlank;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class Project {
+    
+    private String id;
+    
+    @NotBlank(message = "Project name is required")
+    private String name;
+    
+    private String description;
+    
+    private String status = "Active";
+    
+    private List<String> tags = new ArrayList<>();
+    
+    private Map<String, Object> metadata = new HashMap<>();
+    
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime createdAt;
+    
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime updatedAt;
+    
+    // Getters and setters
+    public String getId() {
+        return id;
+    }
+    
+    public Project setId(String id) {
+        this.id = id;
+        return this;
+    }
+    
+    public String getName() {
+        return name;
+    }
+    
+    public Project setName(String name) {
+        this.name = name;
+        return this;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+    
+    public Project setDescription(String description) {
+        this.description = description;
+        return this;
+    }
+    
+    public String getStatus() {
+        return status;
+    }
+    
+    public Project setStatus(String status) {
+        this.status = status;
+        return this;
+    }
+    
+    public List<String> getTags() {
+        return tags;
+    }
+    
+    public Project setTags(List<String> tags) {
+        this.tags = tags;
+        return this;
+    }
+    
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+    
+    public Project setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+        return this;
+    }
+    
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    
+    public Project setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+        return this;
+    }
+    
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+    
+    public Project setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+        return this;
+    }
+}
