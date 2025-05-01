@@ -1704,147 +1704,152 @@ public class DatabaseTestingServiceImpl implements DatabaseTestingService {
         }
     }
     
-    @Override
-    public DatabaseTableSchema getTableSchema(String projectId, String connectionId, String tableName) throws ResourceNotFoundException {
-        Connection jdbcConnection = null;
-        ResultSet columnsResultSet = null;
-        ResultSet primaryKeysResultSet = null;
-        ResultSet indexesResultSet = null;
+    /**
+ * Get database table schema - fixed lambda expression
+ */
+@Override
+public DatabaseTableSchema getTableSchema(String projectId, String connectionId, String tableName) throws ResourceNotFoundException {
+    Connection jdbcConnection = null;
+    ResultSet columnsResultSet = null;
+    ResultSet primaryKeysResultSet = null;
+    ResultSet indexesResultSet = null;
+    
+    try {
+        // Get a connection to the database
+        jdbcConnection = getConnection(projectId, connectionId);
         
+        DatabaseMetaData metaData = jdbcConnection.getMetaData();
+        
+        // Create table schema object
+        DatabaseTableSchema schema = new DatabaseTableSchema()
+                .setTableName(tableName);
+        
+        // Get table information
+        ResultSet tablesResultSet = metaData.getTables(null, null, tableName, null);
+        if (tablesResultSet.next()) {
+            schema.setSchema(tablesResultSet.getString("TABLE_SCHEM"))
+                    .setTableType(tablesResultSet.getString("TABLE_TYPE"))
+                    .setComment(tablesResultSet.getString("REMARKS"));
+        }
+        tablesResultSet.close();
+        
+        // Get columns
+        columnsResultSet = metaData.getColumns(null, schema.getSchema(), tableName, null);
+        while (columnsResultSet.next()) {
+            DatabaseTableColumn column = new DatabaseTableColumn()
+                    .setName(columnsResultSet.getString("COLUMN_NAME"))
+                    .setDataType(columnsResultSet.getString("TYPE_NAME"))
+                    .setNullable(columnsResultSet.getInt("NULLABLE") == DatabaseMetaData.columnNullable)
+                    .setDefaultValue(columnsResultSet.getString("COLUMN_DEF"))
+                    .setComment(columnsResultSet.getString("REMARKS"));
+            
+            // Get column size if available
+            try {
+                int columnSize = columnsResultSet.getInt("COLUMN_SIZE");
+                if (!columnsResultSet.wasNull()) {
+                    column.setMaxLength((long) columnSize);
+                }
+            } catch (SQLException e) {
+                // Ignore, column size is optional
+            }
+            
+            schema.getColumns().add(column);
+        }
+        
+        // Get primary keys
+        primaryKeysResultSet = metaData.getPrimaryKeys(null, schema.getSchema(), tableName);
+        while (primaryKeysResultSet.next()) {
+            String columnName = primaryKeysResultSet.getString("COLUMN_NAME");
+            schema.getPrimaryKeys().add(columnName);
+            
+            // Update column to mark as primary key
+            schema.getColumns().stream()
+                    .filter(column -> column.getName().equals(columnName))
+                    .findFirst()
+                    .ifPresent(column -> column.setPrimaryKey(true));
+        }
+        
+        // Get indexes
+        indexesResultSet = metaData.getIndexInfo(null, schema.getSchema(), tableName, false, false);
+        Map<String, DatabaseTableIndex> indices = new HashMap<>();
+        
+        while (indexesResultSet.next()) {
+            String indexName = indexesResultSet.getString("INDEX_NAME");
+            if (indexName == null) {
+                continue; // Skip null index names
+            }
+            
+            // Store the non-unique value as a final variable for use in the lambda
+            final boolean nonUnique = indexesResultSet.getBoolean("NON_UNIQUE");
+            
+            // Get or create index using the final variable in the lambda
+            DatabaseTableIndex index = indices.computeIfAbsent(indexName, k -> new DatabaseTableIndex()
+                    .setName(indexName)
+                    .setType("INDEX")
+                    .setUnique(!nonUnique));
+            
+            // Add column to index
+            index.getColumns().add(indexesResultSet.getString("COLUMN_NAME"));
+        }
+        
+        // Add indices to schema
+        schema.setIndices(new ArrayList<>(indices.values()));
+        
+        // Get foreign keys
+        ResultSet foreignKeysResultSet = metaData.getImportedKeys(null, schema.getSchema(), tableName);
+        while (foreignKeysResultSet.next()) {
+            String columnName = foreignKeysResultSet.getString("FKCOLUMN_NAME");
+            String refTableName = foreignKeysResultSet.getString("PKTABLE_NAME");
+            String refColumnName = foreignKeysResultSet.getString("PKCOLUMN_NAME");
+            
+            // Update column to mark as foreign key
+            schema.getColumns().stream()
+                    .filter(column -> column.getName().equals(columnName))
+                    .findFirst()
+                    .ifPresent(column -> column
+                            .setForeignKey(true)
+                            .setReferencedTable(refTableName)
+                            .setReferencedColumn(refColumnName));
+        }
+        foreignKeysResultSet.close();
+        
+        // Try to get row count (may not be supported by all databases)
         try {
-            // Get a connection to the database
-            jdbcConnection = getConnection(projectId, connectionId);
-            
-            DatabaseMetaData metaData = jdbcConnection.getMetaData();
-            
-            // Create table schema object
-            DatabaseTableSchema schema = new DatabaseTableSchema()
-                    .setTableName(tableName);
-            
-            // Get table information
-            ResultSet tablesResultSet = metaData.getTables(null, null, tableName, null);
-            if (tablesResultSet.next()) {
-                schema.setSchema(tablesResultSet.getString("TABLE_SCHEM"))
-                        .setTableType(tablesResultSet.getString("TABLE_TYPE"))
-                        .setComment(tablesResultSet.getString("REMARKS"));
+            Statement countStatement = jdbcConnection.createStatement();
+            ResultSet countResult = countStatement.executeQuery(
+                    "SELECT COUNT(*) FROM " + 
+                    (schema.getSchema() != null ? schema.getSchema() + "." : "") + 
+                    schema.getTableName());
+            if (countResult.next()) {
+                schema.setRowCount(countResult.getLong(1));
             }
-            tablesResultSet.close();
-            
-            // Get columns
-            columnsResultSet = metaData.getColumns(null, schema.getSchema(), tableName, null);
-            while (columnsResultSet.next()) {
-                DatabaseTableColumn column = new DatabaseTableColumn()
-                        .setName(columnsResultSet.getString("COLUMN_NAME"))
-                        .setDataType(columnsResultSet.getString("TYPE_NAME"))
-                        .setNullable(columnsResultSet.getInt("NULLABLE") == DatabaseMetaData.columnNullable)
-                        .setDefaultValue(columnsResultSet.getString("COLUMN_DEF"))
-                        .setComment(columnsResultSet.getString("REMARKS"));
-                
-                // Get column size if available
-                try {
-                    int columnSize = columnsResultSet.getInt("COLUMN_SIZE");
-                    if (!columnsResultSet.wasNull()) {
-                        column.setMaxLength((long) columnSize);
-                    }
-                } catch (SQLException e) {
-                    // Ignore, column size is optional
-                }
-                
-                schema.getColumns().add(column);
+            countResult.close();
+            countStatement.close();
+        } catch (SQLException e) {
+            // Ignore, row count is optional
+            logger.debug("Failed to get row count for table: {}", schema.getTableName(), e);
+        }
+        
+        return schema;
+        
+    } catch (SQLException | ClassNotFoundException e) {
+        logger.error("Failed to get table schema for table: {}", tableName, e);
+        throw new RuntimeException("Failed to get table schema: " + e.getMessage());
+        
+    } finally {
+        // Close resources
+        try {
+            if (columnsResultSet != null) {
+                columnsResultSet.close();
             }
-            
-            // Get primary keys
-            primaryKeysResultSet = metaData.getPrimaryKeys(null, schema.getSchema(), tableName);
-            while (primaryKeysResultSet.next()) {
-                String columnName = primaryKeysResultSet.getString("COLUMN_NAME");
-                schema.getPrimaryKeys().add(columnName);
-                
-                // Update column to mark as primary key
-                schema.getColumns().stream()
-                        .filter(column -> column.getName().equals(columnName))
-                        .findFirst()
-                        .ifPresent(column -> column.setPrimaryKey(true));
+            if (primaryKeysResultSet != null) {
+                primaryKeysResultSet.close();
             }
-            
-            // Get indexes
-            indexesResultSet = metaData.getIndexInfo(null, schema.getSchema(), tableName, false, false);
-            Map<String, DatabaseTableIndex> indices = new HashMap<>();
-            
-            while (indexesResultSet.next()) {
-                String indexName = indexesResultSet.getString("INDEX_NAME");
-                if (indexName == null) {
-                    continue; // Skip null index names
-                }
-                
-                // Get or create index
-                DatabaseTableIndex index = indices.computeIfAbsent(indexName, k -> new DatabaseTableIndex()
-                        .setName(indexName)
-                        .setType("INDEX")
-                        .setUnique(!indexesResultSet.getBoolean("NON_UNIQUE")));
-                
-                // Add column to index
-                index.getColumns().add(indexesResultSet.getString("COLUMN_NAME"));
+            if (indexesResultSet != null) {
+                indexesResultSet.close();
             }
-            
-            // Add indices to schema
-            schema.setIndices(new ArrayList<>(indices.values()));
-            
-            // Get foreign keys
-            ResultSet foreignKeysResultSet = metaData.getImportedKeys(null, schema.getSchema(), tableName);
-            while (foreignKeysResultSet.next()) {
-                String columnName = foreignKeysResultSet.getString("FKCOLUMN_NAME");
-                String refTableName = foreignKeysResultSet.getString("PKTABLE_NAME");
-                String refColumnName = foreignKeysResultSet.getString("PKCOLUMN_NAME");
-                
-                // Update column to mark as foreign key
-                schema.getColumns().stream()
-                        .filter(column -> column.getName().equals(columnName))
-                        .findFirst()
-                        .ifPresent(column -> column
-                                .setForeignKey(true)
-                                .setReferencedTable(refTableName)
-                                .setReferencedColumn(refColumnName));
-            }
-            foreignKeysResultSet.close();
-            
-            // Try to get row count (may not be supported by all databases)
-            try {
-                Statement countStatement = jdbcConnection.createStatement();
-                ResultSet countResult = countStatement.executeQuery(
-                        "SELECT COUNT(*) FROM " + 
-                        (schema.getSchema() != null ? schema.getSchema() + "." : "") + 
-                        schema.getTableName());
-                if (countResult.next()) {
-                    schema.setRowCount(countResult.getLong(1));
-                }
-                countResult.close();
-                countStatement.close();
-            } catch (SQLException e) {
-                // Ignore, row count is optional
-                logger.debug("Failed to get row count for table: {}", schema.getTableName(), e);
-            }
-            
-            return schema;
-            
-        } catch (SQLException | ClassNotFoundException e) {
-            logger.error("Failed to get table schema for table: {}", tableName, e);
-            throw new RuntimeException("Failed to get table schema: " + e.getMessage());
-            
-        } finally {
-            // Close resources
-            try {
-                if (columnsResultSet != null) {
-                    columnsResultSet.close();
-                }
-                if (primaryKeysResultSet != null) {
-                    primaryKeysResultSet.close();
-                }
-                if (indexesResultSet != null) {
-                    indexesResultSet.close();
-                }
-            } catch (SQLException e) {
-                logger.warn("Failed to close database resources", e);
-            }
+        } catch (SQLException e) {
+            logger.warn("Failed to close database resources", e);
         }
     }
 }
