@@ -408,72 +408,145 @@ public class BDDExecutionConfig {
     private Map<String, String> environmentVariables = new HashMap<>();
     private Map<String, String> systemProperties = new HashMap<>();
     private String reportFormat = "html";
-
+    private String environment; // Added for compatibility with ExecutionServiceImpl
+    private long timeoutMs = 30000; // Added for compatibility with ExecutionServiceImpl
+    private Map<String, String> variables = new HashMap<>(); // Added for compatibility with ExecutionServiceImpl
+    
     public BDDExecutionConfig() {
     }
-
+    
     public List<String> getTags() {
         return tags;
     }
-
-    public void setTags(List<String> tags) {
+    
+    public BDDExecutionConfig setTags(List<String> tags) {
         this.tags = tags;
+        return this;
     }
-
+    
     public boolean isDryRun() {
         return dryRun;
     }
-
-    public void setDryRun(boolean dryRun) {
+    
+    public BDDExecutionConfig setDryRun(boolean dryRun) {
         this.dryRun = dryRun;
+        return this;
     }
-
+    
     public boolean isStrict() {
         return strict;
     }
-
-    public void setStrict(boolean strict) {
+    
+    public BDDExecutionConfig setStrict(boolean strict) {
         this.strict = strict;
+        return this;
     }
-
+    
     public boolean isParallel() {
         return parallel;
     }
-
-    public void setParallel(boolean parallel) {
+    
+    public BDDExecutionConfig setParallel(boolean parallel) {
         this.parallel = parallel;
+        return this;
     }
-
+    
     public int getThreads() {
         return threads;
     }
-
-    public void setThreads(int threads) {
+    
+    public BDDExecutionConfig setThreads(int threads) {
         this.threads = threads;
+        return this;
     }
-
+    
     public Map<String, String> getEnvironmentVariables() {
         return environmentVariables;
     }
-
-    public void setEnvironmentVariables(Map<String, String> environmentVariables) {
+    
+    public BDDExecutionConfig setEnvironmentVariables(Map<String, String> environmentVariables) {
         this.environmentVariables = environmentVariables;
+        return this;
     }
-
+    
     public Map<String, String> getSystemProperties() {
         return systemProperties;
     }
-
-    public void setSystemProperties(Map<String, String> systemProperties) {
+    
+    public BDDExecutionConfig setSystemProperties(Map<String, String> systemProperties) {
         this.systemProperties = systemProperties;
+        return this;
     }
-
+    
     public String getReportFormat() {
         return reportFormat;
     }
-
-    public void setReportFormat(String reportFormat) {
+    
+    public BDDExecutionConfig setReportFormat(String reportFormat) {
         this.reportFormat = reportFormat;
+        return this;
+    }
+    
+    /**
+     * Get environment ID (for compatibility with ExecutionServiceImpl)
+     * @return Environment ID
+     */
+    public String getEnvironment() {
+        return environment;
+    }
+    
+    /**
+     * Set environment ID (for compatibility with ExecutionServiceImpl)
+     * @param environment Environment ID
+     * @return This config for chaining
+     */
+    public BDDExecutionConfig setEnvironment(String environment) {
+        this.environment = environment;
+        // Also update environmentVariables for backward compatibility
+        if (environment != null) {
+            environmentVariables.put("ENVIRONMENT_ID", environment);
+        }
+        return this;
+    }
+    
+    /**
+     * Get timeout in milliseconds (for compatibility with ExecutionServiceImpl)
+     * @return Timeout in milliseconds
+     */
+    public long getTimeoutMs() {
+        return timeoutMs;
+    }
+    
+    /**
+     * Set timeout in milliseconds (for compatibility with ExecutionServiceImpl)
+     * @param timeoutMs Timeout in milliseconds
+     * @return This config for chaining
+     */
+    public BDDExecutionConfig setTimeoutMs(long timeoutMs) {
+        this.timeoutMs = timeoutMs;
+        return this;
+    }
+    
+    /**
+     * Get variables (for compatibility with ExecutionServiceImpl)
+     * @return Variables
+     */
+    public Map<String, String> getVariables() {
+        return variables;
+    }
+    
+    /**
+     * Set variables (for compatibility with ExecutionServiceImpl)
+     * @param variables Variables
+     * @return This config for chaining
+     */
+    public BDDExecutionConfig setVariables(Map<String, String> variables) {
+        this.variables = variables;
+        // Also update environmentVariables for backward compatibility
+        if (variables != null) {
+            environmentVariables.putAll(variables);
+        }
+        return this;
     }
 }
 
