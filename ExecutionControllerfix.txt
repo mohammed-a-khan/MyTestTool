@@ -2870,3 +2870,345 @@ public class StorageException extends RuntimeException {
 }
 
 
+/**
+ * Test Execution Controller
+ * Handles REST endpoints for test execution
+ */
+package com.cstestforge.controller;
+
+import com.cstestforge.exception.ResourceNotFoundException;
+import com.cstestforge.model.common.ApiResponse;
+import com.cstestforge.model.execution.ExecutionRequest;
+import com.cstestforge.model.execution.ExecutionResult;
+import com.cstestforge.model.execution.ExecutionStatus;
+import com.cstestforge.service.execution.ExecutionService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import javax.validation.Valid;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+@RestController
+@RequestMapping("/api/v1/execution")
+@CrossOrigin(origins = "*", maxAge = 3600)
+public class ExecutionController {
+    private static final Logger logger = LoggerFactory.getLogger(ExecutionController.class);
+    
+    @Autowired
+    private ExecutionService executionService;
+    
+    // Map to store SSE emitters for real-time execution updates
+    private final Map<String, SseEmitter> executionEmitters = new ConcurrentHashMap<>();
+    
+    /**
+     * Execute a test case
+     * @param executionRequest Contains project ID, test case IDs, and execution config
+     * @return Execution result
+     */
+    @PostMapping("/testcase")
+    public ResponseEntity<ApiResponse> executeTestCase(
+            @Valid @RequestBody ExecutionRequest executionRequest) {
+        logger.info("Request to execute test case(s) in project: {}", executionRequest.getProjectId());
+        
+        try {
+            String executionId = executionService.scheduleTestCaseExecution(
+                    executionRequest.getProjectId(),
+                    executionRequest.getTestCaseIds(),
+                    executionRequest.getConfig());
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Test case execution scheduled successfully")
+                .setData(Map.of("executionId", executionId));
+            
+            return ResponseEntity.accepted().body(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (Exception e) {
+            logger.error("Failed to schedule test case execution", e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage("Failed to schedule test case execution: " + e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    /**
+     * Execute a test suite
+     * @param executionRequest Contains project ID, test suite IDs, and execution config
+     * @return Execution result
+     */
+    @PostMapping("/testsuite")
+    public ResponseEntity<ApiResponse> executeTestSuite(
+            @Valid @RequestBody ExecutionRequest executionRequest) {
+        logger.info("Request to execute test suite(s) in project: {}", executionRequest.getProjectId());
+        
+        try {
+            String executionId = executionService.scheduleTestSuiteExecution(
+                    executionRequest.getProjectId(),
+                    executionRequest.getTestSuiteIds(),
+                    executionRequest.getConfig());
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Test suite execution scheduled successfully")
+                .setData(Map.of("executionId", executionId));
+            
+            return ResponseEntity.accepted().body(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (Exception e) {
+            logger.error("Failed to schedule test suite execution", e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage("Failed to schedule test suite execution: " + e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    /**
+     * Get execution result
+     * @param executionId The execution ID
+     * @return Execution result
+     */
+    @GetMapping("/{executionId}")
+    public ResponseEntity<ApiResponse> getExecutionResult(@PathVariable String executionId) {
+        logger.info("Request to get execution result: {}", executionId);
+        
+        try {
+            ExecutionResult result = executionService.getExecutionResult(executionId);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Execution result retrieved successfully")
+                .setData(result);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Execution not found: {}", executionId, e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Get execution status
+     * @param executionId The execution ID
+     * @return Execution status
+     */
+    @GetMapping("/{executionId}/status")
+    public ResponseEntity<ApiResponse> getExecutionStatus(@PathVariable String executionId) {
+        logger.info("Request to get execution status: {}", executionId);
+        
+        try {
+            ExecutionStatus status = executionService.getExecutionStatus(executionId);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Execution status retrieved successfully")
+                .setData(status);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Execution not found: {}", executionId, e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Cancel execution
+     * @param executionId The execution ID
+     * @return Cancellation confirmation
+     */
+    @PostMapping("/{executionId}/cancel")
+    public ResponseEntity<ApiResponse> cancelExecution(@PathVariable String executionId) {
+        logger.info("Request to cancel execution: {}", executionId);
+        
+        try {
+            boolean canceled = executionService.cancelExecution(executionId);
+            
+            if (canceled) {
+                ApiResponse response = new ApiResponse()
+                    .setSuccess(true)
+                    .setMessage("Execution canceled successfully");
+                
+                return ResponseEntity.ok(response);
+            } else {
+                ApiResponse response = new ApiResponse()
+                    .setSuccess(false)
+                    .setMessage("Failed to cancel execution");
+                
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            }
+        } catch (ResourceNotFoundException e) {
+            logger.error("Execution not found: {}", executionId, e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Get recent executions
+     * @param limit Maximum number of executions to retrieve
+     * @return List of recent executions
+     */
+    @GetMapping("/recent")
+    public ResponseEntity<ApiResponse> getRecentExecutions(
+            @RequestParam(defaultValue = "10") int limit) {
+        logger.info("Request to get recent executions (limit: {})", limit);
+        
+        List<ExecutionResult> recentExecutions = executionService.getRecentExecutions(limit);
+        
+        ApiResponse response = new ApiResponse()
+            .setSuccess(true)
+            .setMessage("Recent executions retrieved successfully")
+            .setData(recentExecutions);
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Get project executions
+     * @param projectId The project ID
+     * @param limit Maximum number of executions to retrieve
+     * @return List of project executions
+     */
+    @GetMapping("/project/{projectId}")
+    public ResponseEntity<ApiResponse> getProjectExecutions(
+            @PathVariable String projectId,
+            @RequestParam(defaultValue = "10") int limit) {
+        logger.info("Request to get executions for project: {} (limit: {})", projectId, limit);
+        
+        try {
+            List<ExecutionResult> projectExecutions = executionService.getProjectExecutions(projectId, limit);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Project executions retrieved successfully")
+                .setData(projectExecutions);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Project not found: {}", projectId, e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Subscribe to real-time execution updates
+     * @param executionId The execution ID
+     * @return SSE emitter for streaming updates
+     */
+    @GetMapping("/events/{executionId}")
+    public SseEmitter subscribeToExecutionEvents(@PathVariable String executionId) {
+        logger.info("Request to subscribe to execution events: {}", executionId);
+        
+        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
+        executionEmitters.put(executionId, emitter);
+        
+        // Set completion handler to remove the emitter when the connection is closed
+        emitter.onCompletion(() -> {
+            logger.info("SSE connection completed for execution: {}", executionId);
+            executionEmitters.remove(executionId);
+        });
+        
+        // Set timeout handler
+        emitter.onTimeout(() -> {
+            logger.info("SSE connection timed out for execution: {}", executionId);
+            emitter.complete();
+            executionEmitters.remove(executionId);
+        });
+        
+        // Set error handler
+        emitter.onError(e -> {
+            logger.error("SSE error for execution: {}", executionId, e);
+            executionEmitters.remove(executionId);
+        });
+        
+        try {
+            // Send initial connection established event
+            emitter.send(SseEmitter.event()
+                .name("connected")
+                .data("Execution event stream established"));
+            
+            // Register this emitter with the execution service for updates
+            executionService.registerExecutionListener(executionId, event -> {
+                try {
+                    emitter.send(SseEmitter.event()
+                        .name(event.getType())
+                        .data(event.getData()));
+                    
+                    // If execution is complete, close the emitter
+                    if (event.getType().equals("completed") || event.getType().equals("failed")) {
+                        emitter.complete();
+                        executionEmitters.remove(executionId);
+                    }
+                } catch (IOException e) {
+                    logger.error("Failed to send execution event", e);
+                    emitter.completeWithError(e);
+                    executionEmitters.remove(executionId);
+                }
+            });
+        } catch (IOException e) {
+            logger.error("Failed to send initial SSE event", e);
+            emitter.completeWithError(e);
+            executionEmitters.remove(executionId);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Execution not found: {}", executionId, e);
+            try {
+                emitter.send(SseEmitter.event()
+                    .name("error")
+                    .data("Execution not found: " + executionId));
+                emitter.complete();
+            } catch (IOException ioException) {
+                logger.error("Failed to send error SSE event", ioException);
+                emitter.completeWithError(ioException);
+            }
+            executionEmitters.remove(executionId);
+        }
+        
+        return emitter;
+    }
+}
