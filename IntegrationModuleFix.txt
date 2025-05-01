@@ -1,6 +1,2394 @@
-I'll continue with the rest of the `IntegrationExportResult.java` file:
+
+## 1. IntegrationSettingsSchema.java
 
 ```java
+package com.cstestforge.model.integration;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Schema definition for integration settings
+ */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class IntegrationSettingsSchema {
+
+    /** Integration type this schema applies to */
+    private String integrationType;
+
+    /** Schema version */
+    private String version;
+
+    /** List of field definitions */
+    private List<SettingsField> fields = new ArrayList<>();
+
+    /** Additional validation rules for this schema */
+    private Map<String, Object> validationRules = new HashMap<>();
+
+    /** UI hints for rendering the settings form */
+    private Map<String, Object> uiHints = new HashMap<>();
+
+    /**
+     * Definition of a settings field
+     */
+    public static class SettingsField {
+        
+        /** Field identifier */
+        private String id;
+        
+        /** Field display name */
+        private String name;
+        
+        /** Field description */
+        private String description;
+        
+        /** Field type */
+        private String type;
+        
+        /** Flag indicating if this field is required */
+        private boolean required = false;
+        
+        /** Default value for this field */
+        private Object defaultValue;
+        
+        /** Field validation constraints */
+        private Map<String, Object> validation = new HashMap<>();
+        
+        /** Available options for select type */
+        private List<Map<String, Object>> options = new ArrayList<>();
+        
+        /** UI hints for this field */
+        private Map<String, Object> uiHints = new HashMap<>();
+
+        // Getters and Setters
+        public String getId() {
+            return id;
+        }
+
+        public SettingsField setId(String id) {
+            this.id = id;
+            return this;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public SettingsField setName(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public SettingsField setDescription(String description) {
+            this.description = description;
+            return this;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public SettingsField setType(String type) {
+            this.type = type;
+            return this;
+        }
+
+        public boolean isRequired() {
+            return required;
+        }
+
+        public SettingsField setRequired(boolean required) {
+            this.required = required;
+            return this;
+        }
+
+        public Object getDefaultValue() {
+            return defaultValue;
+        }
+
+        public SettingsField setDefaultValue(Object defaultValue) {
+            this.defaultValue = defaultValue;
+            return this;
+        }
+
+        public Map<String, Object> getValidation() {
+            return validation;
+        }
+
+        public SettingsField setValidation(Map<String, Object> validation) {
+            this.validation = validation;
+            return this;
+        }
+
+        public List<Map<String, Object>> getOptions() {
+            return options;
+        }
+
+        public SettingsField setOptions(List<Map<String, Object>> options) {
+            this.options = options;
+            return this;
+        }
+
+        public Map<String, Object> getUiHints() {
+            return uiHints;
+        }
+
+        public SettingsField setUiHints(Map<String, Object> uiHints) {
+            this.uiHints = uiHints;
+            return this;
+        }
+    }
+
+    // Getters and Setters
+    public String getIntegrationType() {
+        return integrationType;
+    }
+
+    public IntegrationSettingsSchema setIntegrationType(String integrationType) {
+        this.integrationType = integrationType;
+        return this;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public IntegrationSettingsSchema setVersion(String version) {
+        this.version = version;
+        return this;
+    }
+
+    public List<SettingsField> getFields() {
+        return fields;
+    }
+
+    public IntegrationSettingsSchema setFields(List<SettingsField> fields) {
+        this.fields = fields;
+        return this;
+    }
+
+    public Map<String, Object> getValidationRules() {
+        return validationRules;
+    }
+
+    public IntegrationSettingsSchema setValidationRules(Map<String, Object> validationRules) {
+        this.validationRules = validationRules;
+        return this;
+    }
+
+    public Map<String, Object> getUiHints() {
+        return uiHints;
+    }
+
+    public IntegrationSettingsSchema setUiHints(Map<String, Object> uiHints) {
+        this.uiHints = uiHints;
+        return this;
+    }
+}
+```
+
+## 2. IntegrationTestResult.java
+
+```java
+package com.cstestforge.model.integration;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Result of testing an integration connection
+ */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class IntegrationTestResult {
+
+    /** Integration ID */
+    private Long integrationId;
+
+    /** Flag indicating if the test was successful */
+    private boolean successful;
+
+    /** Status message */
+    private String message;
+
+    /** Error code if the test failed */
+    private String errorCode;
+
+    /** Detailed error message if the test failed */
+    private String errorDetail;
+
+    /** Timestamp of the test */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime testedAt;
+
+    /** Connection details retrieved from the integration */
+    private Map<String, Object> connectionDetails = new HashMap<>();
+
+    /** Test steps and their results */
+    private List<TestStep> testSteps = new ArrayList<>();
+
+    /** Response time in milliseconds */
+    private Long responseTimeMs;
+
+    /**
+     * Individual test step and its result
+     */
+    public static class TestStep {
+        
+        /** Step name */
+        private String name;
+        
+        /** Step description */
+        private String description;
+        
+        /** Flag indicating if this step was successful */
+        private boolean successful;
+        
+        /** Status message for this step */
+        private String message;
+        
+        /** Execution time of this step in milliseconds */
+        private Long executionTimeMs;
+
+        // Getters and Setters
+        public String getName() {
+            return name;
+        }
+
+        public TestStep setName(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public TestStep setDescription(String description) {
+            this.description = description;
+            return this;
+        }
+
+        public boolean isSuccessful() {
+            return successful;
+        }
+
+        public TestStep setSuccessful(boolean successful) {
+            this.successful = successful;
+            return this;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public TestStep setMessage(String message) {
+            this.message = message;
+            return this;
+        }
+
+        public Long getExecutionTimeMs() {
+            return executionTimeMs;
+        }
+
+        public TestStep setExecutionTimeMs(Long executionTimeMs) {
+            this.executionTimeMs = executionTimeMs;
+            return this;
+        }
+    }
+
+    // Getters and Setters
+    public Long getIntegrationId() {
+        return integrationId;
+    }
+
+    public IntegrationTestResult setIntegrationId(Long integrationId) {
+        this.integrationId = integrationId;
+        return this;
+    }
+
+    public boolean isSuccessful() {
+        return successful;
+    }
+
+    public IntegrationTestResult setSuccessful(boolean successful) {
+        this.successful = successful;
+        return this;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public IntegrationTestResult setMessage(String message) {
+        this.message = message;
+        return this;
+    }
+
+    public String getErrorCode() {
+        return errorCode;
+    }
+
+    public IntegrationTestResult setErrorCode(String errorCode) {
+        this.errorCode = errorCode;
+        return this;
+    }
+
+    public String getErrorDetail() {
+        return errorDetail;
+    }
+
+    public IntegrationTestResult setErrorDetail(String errorDetail) {
+        this.errorDetail = errorDetail;
+        return this;
+    }
+
+    public LocalDateTime getTestedAt() {
+        return testedAt;
+    }
+
+    public IntegrationTestResult setTestedAt(LocalDateTime testedAt) {
+        this.testedAt = testedAt;
+        return this;
+    }
+
+    public Map<String, Object> getConnectionDetails() {
+        return connectionDetails;
+    }
+
+    public IntegrationTestResult setConnectionDetails(Map<String, Object> connectionDetails) {
+        this.connectionDetails = connectionDetails;
+        return this;
+    }
+
+    public List<TestStep> getTestSteps() {
+        return testSteps;
+    }
+
+    public IntegrationTestResult setTestSteps(List<TestStep> testSteps) {
+        this.testSteps = testSteps;
+        return this;
+    }
+
+    public Long getResponseTimeMs() {
+        return responseTimeMs;
+    }
+
+    public IntegrationTestResult setResponseTimeMs(Long responseTimeMs) {
+        this.responseTimeMs = responseTimeMs;
+        return this;
+    }
+}
+```
+
+## 3. IntegrationSyncOptions.java
+
+```java
+package com.cstestforge.model.integration;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Options for synchronizing with an external system
+ */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class IntegrationSyncOptions {
+
+    /** Direction of synchronization */
+    private String direction = "PULL";
+
+    /** Content types to synchronize */
+    private List<String> contentTypes = new ArrayList<>();
+
+    /** Filters to apply during synchronization */
+    private Map<String, Object> filters = new HashMap<>();
+
+    /** Flag to force sync even if no changes detected */
+    private boolean forceSync = false;
+
+    /** Flag to only perform a dry run without making changes */
+    private boolean dryRun = false;
+
+    /** Maximum items to sync per content type */
+    private Integer maxItems;
+
+    /** Conflict resolution strategy */
+    private String conflictResolution = "LATEST_WINS";
+
+    /** Additional options specific to the integration type */
+    private Map<String, Object> additionalOptions = new HashMap<>();
+
+    /** Azure DevOps project to sync with */
+    private String adoProject;
+
+    /** Azure DevOps team to sync with */
+    private String adoTeam;
+
+    /** Azure DevOps test plan ID to sync with */
+    private Long adoTestPlanId;
+
+    /** Azure DevOps test suite ID to sync with */
+    private Long adoTestSuiteId;
+
+    /** Azure DevOps work item query to sync with */
+    private String adoWorkItemQuery;
+
+    /** Azure DevOps Git repository ID to sync with */
+    private String adoGitRepositoryId;
+
+    /** Azure DevOps Git branch to sync with */
+    private String adoGitBranch;
+
+    /** Path pattern for files to sync in Git */
+    private String adoGitPathPattern;
+
+    /** Proxy settings to use during synchronization */
+    private ProxySettings proxySettings;
+
+    /**
+     * Proxy settings for integration connections
+     */
+    public static class ProxySettings {
+        
+        /** Proxy host */
+        private String host;
+        
+        /** Proxy port */
+        private Integer port;
+        
+        /** Proxy username if authentication is required */
+        private String username;
+        
+        /** Proxy password if authentication is required */
+        private String password;
+        
+        /** Non-proxy hosts (hosts that shouldn't use the proxy) */
+        private String nonProxyHosts;
+
+        // Getters and Setters
+        public String getHost() {
+            return host;
+        }
+
+        public ProxySettings setHost(String host) {
+            this.host = host;
+            return this;
+        }
+
+        public Integer getPort() {
+            return port;
+        }
+
+        public ProxySettings setPort(Integer port) {
+            this.port = port;
+            return this;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public ProxySettings setUsername(String username) {
+            this.username = username;
+            return this;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public ProxySettings setPassword(String password) {
+            this.password = password;
+            return this;
+        }
+
+        public String getNonProxyHosts() {
+            return nonProxyHosts;
+        }
+
+        public ProxySettings setNonProxyHosts(String nonProxyHosts) {
+            this.nonProxyHosts = nonProxyHosts;
+            return this;
+        }
+    }
+
+    // Getters and Setters
+    public String getDirection() {
+        return direction;
+    }
+
+    public IntegrationSyncOptions setDirection(String direction) {
+        this.direction = direction;
+        return this;
+    }
+
+    public List<String> getContentTypes() {
+        return contentTypes;
+    }
+
+    public IntegrationSyncOptions setContentTypes(List<String> contentTypes) {
+        this.contentTypes = contentTypes;
+        return this;
+    }
+
+    public Map<String, Object> getFilters() {
+        return filters;
+    }
+
+    public IntegrationSyncOptions setFilters(Map<String, Object> filters) {
+        this.filters = filters;
+        return this;
+    }
+
+    public boolean isForceSync() {
+        return forceSync;
+    }
+
+    public IntegrationSyncOptions setForceSync(boolean forceSync) {
+        this.forceSync = forceSync;
+        return this;
+    }
+
+    public boolean isDryRun() {
+        return dryRun;
+    }
+
+    public IntegrationSyncOptions setDryRun(boolean dryRun) {
+        this.dryRun = dryRun;
+        return this;
+    }
+
+    public Integer getMaxItems() {
+        return maxItems;
+    }
+
+    public IntegrationSyncOptions setMaxItems(Integer maxItems) {
+        this.maxItems = maxItems;
+        return this;
+    }
+
+    public String getConflictResolution() {
+        return conflictResolution;
+    }
+
+    public IntegrationSyncOptions setConflictResolution(String conflictResolution) {
+        this.conflictResolution = conflictResolution;
+        return this;
+    }
+
+    public Map<String, Object> getAdditionalOptions() {
+        return additionalOptions;
+    }
+
+    public IntegrationSyncOptions setAdditionalOptions(Map<String, Object> additionalOptions) {
+        this.additionalOptions = additionalOptions;
+        return this;
+    }
+
+    public String getAdoProject() {
+        return adoProject;
+    }
+
+    public IntegrationSyncOptions setAdoProject(String adoProject) {
+        this.adoProject = adoProject;
+        return this;
+    }
+
+    public String getAdoTeam() {
+        return adoTeam;
+    }
+
+    public IntegrationSyncOptions setAdoTeam(String adoTeam) {
+        this.adoTeam = adoTeam;
+        return this;
+    }
+
+    public Long getAdoTestPlanId() {
+        return adoTestPlanId;
+    }
+
+    public IntegrationSyncOptions setAdoTestPlanId(Long adoTestPlanId) {
+        this.adoTestPlanId = adoTestPlanId;
+        return this;
+    }
+
+    public Long getAdoTestSuiteId() {
+        return adoTestSuiteId;
+    }
+
+    public IntegrationSyncOptions setAdoTestSuiteId(Long adoTestSuiteId) {
+        this.adoTestSuiteId = adoTestSuiteId;
+        return this;
+    }
+
+    public String getAdoWorkItemQuery() {
+        return adoWorkItemQuery;
+    }
+
+    public IntegrationSyncOptions setAdoWorkItemQuery(String adoWorkItemQuery) {
+        this.adoWorkItemQuery = adoWorkItemQuery;
+        return this;
+    }
+
+    public String getAdoGitRepositoryId() {
+        return adoGitRepositoryId;
+    }
+
+    public IntegrationSyncOptions setAdoGitRepositoryId(String adoGitRepositoryId) {
+        this.adoGitRepositoryId = adoGitRepositoryId;
+        return this;
+    }
+
+    public String getAdoGitBranch() {
+        return adoGitBranch;
+    }
+
+    public IntegrationSyncOptions setAdoGitBranch(String adoGitBranch) {
+        this.adoGitBranch = adoGitBranch;
+        return this;
+    }
+
+    public String getAdoGitPathPattern() {
+        return adoGitPathPattern;
+    }
+
+    public IntegrationSyncOptions setAdoGitPathPattern(String adoGitPathPattern) {
+        this.adoGitPathPattern = adoGitPathPattern;
+        return this;
+    }
+
+    public ProxySettings getProxySettings() {
+        return proxySettings;
+    }
+
+    public IntegrationSyncOptions setProxySettings(ProxySettings proxySettings) {
+        this.proxySettings = proxySettings;
+        return this;
+    }
+}
+```
+
+## 4. IntegrationSyncResult.java
+
+```java
+package com.cstestforge.model.integration;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Result of an integration synchronization operation
+ */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class IntegrationSyncResult {
+
+    /** Integration ID */
+    private Long integrationId;
+
+    /** Flag indicating if the sync was successful */
+    private boolean successful;
+
+    /** Status message */
+    private String message;
+
+    /** Error code if the sync failed */
+    private String errorCode;
+
+    /** Detailed error message if the sync failed */
+    private String errorDetail;
+
+    /** Start timestamp of the sync operation */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime startedAt;
+
+    /** Completion timestamp of the sync operation */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime completedAt;
+
+    /** Duration of the sync operation in milliseconds */
+    private Long durationMs;
+
+    /** Sync statistics per content type */
+    private Map<String, SyncStats> stats = new HashMap<>();
+
+    /** List of sync issues encountered */
+    private List<SyncIssue> issues = new ArrayList<>();
+
+    /** Sync direction that was performed */
+    private String direction;
+
+    /** Flag indicating if this was a dry run */
+    private boolean dryRun;
+
+    /**
+     * Synchronization statistics for a content type
+     */
+    public static class SyncStats {
+        
+        /** Content type */
+        private String contentType;
+        
+        /** Total items processed */
+        private int totalProcessed;
+        
+        /** New items created */
+        private int created;
+        
+        /** Existing items updated */
+        private int updated;
+        
+        /** Items deleted */
+        private int deleted;
+        
+        /** Items skipped (no changes) */
+        private int skipped;
+        
+        /** Items with errors */
+        private int errors;
+        
+        /** Items with conflicts */
+        private int conflicts;
+        
+        /** Additional statistics specific to content type */
+        private Map<String, Object> additionalStats = new HashMap<>();
+
+        // Getters and Setters
+        public String getContentType() {
+            return contentType;
+        }
+
+        public SyncStats setContentType(String contentType) {
+            this.contentType = contentType;
+            return this;
+        }
+
+        public int getTotalProcessed() {
+            return totalProcessed;
+        }
+
+        public SyncStats setTotalProcessed(int totalProcessed) {
+            this.totalProcessed = totalProcessed;
+            return this;
+        }
+
+        public int getCreated() {
+            return created;
+        }
+
+        public SyncStats setCreated(int created) {
+            this.created = created;
+            return this;
+        }
+
+        public int getUpdated() {
+            return updated;
+        }
+
+        public SyncStats setUpdated(int updated) {
+            this.updated = updated;
+            return this;
+        }
+
+        public int getDeleted() {
+            return deleted;
+        }
+
+        public SyncStats setDeleted(int deleted) {
+            this.deleted = deleted;
+            return this;
+        }
+
+        public int getSkipped() {
+            return skipped;
+        }
+
+        public SyncStats setSkipped(int skipped) {
+            this.skipped = skipped;
+            return this;
+        }
+
+        public int getErrors() {
+            return errors;
+        }
+
+        public SyncStats setErrors(int errors) {
+            this.errors = errors;
+            return this;
+        }
+
+        public int getConflicts() {
+            return conflicts;
+        }
+
+        public SyncStats setConflicts(int conflicts) {
+            this.conflicts = conflicts;
+            return this;
+        }
+
+        public Map<String, Object> getAdditionalStats() {
+            return additionalStats;
+        }
+
+        public SyncStats setAdditionalStats(Map<String, Object> additionalStats) {
+            this.additionalStats = additionalStats;
+            return this;
+        }
+    }
+
+    /**
+     * Issue encountered during synchronization
+     */
+    public static class SyncIssue {
+        
+        /** Issue severity */
+        private String severity;
+        
+        /** Content type */
+        private String contentType;
+        
+        /** Item ID */
+        private String itemId;
+        
+        /** Issue message */
+        private String message;
+        
+        /** Issue code */
+        private String code;
+        
+        /** Additional details about the issue */
+        private Map<String, Object> details = new HashMap<>();
+
+        // Getters and Setters
+        public String getSeverity() {
+            return severity;
+        }
+
+        public SyncIssue setSeverity(String severity) {
+            this.severity = severity;
+            return this;
+        }
+
+        public String getContentType() {
+            return contentType;
+        }
+
+        public SyncIssue setContentType(String contentType) {
+            this.contentType = contentType;
+            return this;
+        }
+
+        public String getItemId() {
+            return itemId;
+        }
+
+        public SyncIssue setItemId(String itemId) {
+            this.itemId = itemId;
+            return this;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public SyncIssue setMessage(String message) {
+            this.message = message;
+            return this;
+        }
+
+        public String getCode() {
+            return code;
+        }
+
+        public SyncIssue setCode(String code) {
+            this.code = code;
+            return this;
+        }
+
+        public Map<String, Object> getDetails() {
+            return details;
+        }
+
+        public SyncIssue setDetails(Map<String, Object> details) {
+            this.details = details;
+            return this;
+        }
+    }
+
+    // Getters and Setters
+    public Long getIntegrationId() {
+        return integrationId;
+    }
+
+    public IntegrationSyncResult setIntegrationId(Long integrationId) {
+        this.integrationId = integrationId;
+        return this;
+    }
+
+    public boolean isSuccessful() {
+        return successful;
+    }
+
+    public IntegrationSyncResult setSuccessful(boolean successful) {
+        this.successful = successful;
+        return this;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public IntegrationSyncResult setMessage(String message) {
+        this.message = message;
+        return this;
+    }
+
+    public String getErrorCode() {
+        return errorCode;
+    }
+
+    public IntegrationSyncResult setErrorCode(String errorCode) {
+        this.errorCode = errorCode;
+        return this;
+    }
+
+    public String getErrorDetail() {
+        return errorDetail;
+    }
+
+    public IntegrationSyncResult setErrorDetail(String errorDetail) {
+        this.errorDetail = errorDetail;
+        return this;
+    }
+
+    public LocalDateTime getStartedAt() {
+        return startedAt;
+    }
+
+    public IntegrationSyncResult setStartedAt(LocalDateTime startedAt) {
+        this.startedAt = startedAt;
+        return this;
+    }
+
+    public LocalDateTime getCompletedAt() {
+        return completedAt;
+    }
+
+    public IntegrationSyncResult setCompletedAt(LocalDateTime completedAt) {
+        this.completedAt = completedAt;
+        return this;
+    }
+
+    public Long getDurationMs() {
+        return durationMs;
+    }
+
+    public IntegrationSyncResult setDurationMs(Long durationMs) {
+        this.durationMs = durationMs;
+        return this;
+    }
+
+    public Map<String, SyncStats> getStats() {
+        return stats;
+    }
+
+    public IntegrationSyncResult setStats(Map<String, SyncStats> stats) {
+        this.stats = stats;
+        return this;
+    }
+
+    public List<SyncIssue> getIssues() {
+        return issues;
+    }
+
+    public IntegrationSyncResult setIssues(List<SyncIssue> issues) {
+        this.issues = issues;
+        return this;
+    }
+
+    public String getDirection() {
+        return direction;
+    }
+
+    public IntegrationSyncResult setDirection(String direction) {
+        this.direction = direction;
+        return this;
+    }
+
+    public boolean isDryRun() {
+        return dryRun;
+    }
+
+    public IntegrationSyncResult setDryRun(boolean dryRun) {
+        this.dryRun = dryRun;
+        return this;
+    }
+}
+```
+
+## 5. IntegrationImportOptions.java
+
+```java
+package com.cstestforge.model.integration;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Options for importing data from an external system
+ */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class IntegrationImportOptions {
+
+    /** Content type to import */
+    private String contentType;
+
+    /** Target folder ID to import into */
+    private Long targetFolderId;
+
+    /** Filters to apply during import */
+    private Map<String, Object> filters = new HashMap<>();
+
+    /** Flag to overwrite existing items */
+    private boolean overwriteExisting = false;
+
+    /** Flag to only perform a dry run without making changes */
+    private boolean dryRun = false;
+
+    /** Maximum items to import */
+    private Integer maxItems;
+
+    /** Flag to include child items in the import */
+    private boolean includeChildren = true;
+
+    /** Flag to include attachments in the import */
+    private boolean includeAttachments = true;
+
+    /** Additional options specific to the integration type */
+    private Map<String, Object> additionalOptions = new HashMap<>();
+
+    /** Azure DevOps project to import from */
+    private String adoProject;
+
+    /** Azure DevOps team to import from */
+    private String adoTeam;
+
+    /** Azure DevOps test plan ID to import from */
+    private Long adoTestPlanId;
+
+    /** Azure DevOps test suite ID to import from */
+    private Long adoTestSuiteId;
+
+    /** Azure DevOps work item IDs to import */
+    private List<Long> adoWorkItemIds = new ArrayList<>();
+
+    /** Azure DevOps work item query to import from */
+    private String adoWorkItemQuery;
+
+    /** Azure DevOps area path to import from */
+    private String adoAreaPath;
+
+    /** Azure DevOps iteration path to import from */
+    private String adoIterationPath;
+
+    /** Azure DevOps Git repository ID to import from */
+    private String adoGitRepositoryId;
+
+    /** Azure DevOps Git branch to import from */
+    private String adoGitBranch;
+
+    /** Path pattern for files to import from Git */
+    private String adoGitPathPattern;
+
+    /** File extensions to filter by when importing from Git */
+    private List<String> adoGitFileExtensions = new ArrayList<>();
+
+    /** Flag to only import files changed since last import */
+    private boolean adoGitOnlyChangedFiles = false;
+
+    /** Commit ID to import from (if not latest) */
+    private String adoGitCommitId;
+
+    /** Field mappings for import */
+    private List<FieldMapping> fieldMappings = new ArrayList<>();
+
+    /** Proxy settings to use during import */
+    private IntegrationSyncOptions.ProxySettings proxySettings;
+
+    /**
+     * Mapping between external system field and local field
+     */
+    public static class FieldMapping {
+        
+        /** Source field in external system */
+        private String sourceField;
+        
+        /** Target field in CS Test Forge */
+        private String targetField;
+        
+        /** Transformation to apply during mapping */
+        private String transformation;
+        
+        /** Default value to use if source field is empty */
+        private Object defaultValue;
+
+        // Getters and Setters
+        public String getSourceField() {
+            return sourceField;
+        }
+
+        public FieldMapping setSourceField(String sourceField) {
+            this.sourceField = sourceField;
+            return this;
+        }
+
+        public String getTargetField() {
+            return targetField;
+        }
+
+        public FieldMapping setTargetField(String targetField) {
+            this.targetField = targetField;
+            return this;
+        }
+
+        public String getTransformation() {
+            return transformation;
+        }
+
+        public FieldMapping setTransformation(String transformation) {
+            this.transformation = transformation;
+            return this;
+        }
+
+        public Object getDefaultValue() {
+            return defaultValue;
+        }
+
+        public FieldMapping setDefaultValue(Object defaultValue) {
+            this.defaultValue = defaultValue;
+            return this;
+        }
+    }
+
+    // Getters and Setters
+    public String getContentType() {
+        return contentType;
+    }
+
+    public IntegrationImportOptions setContentType(String contentType) {
+        this.contentType = contentType;
+        return this;
+    }
+
+    public Long getTargetFolderId() {
+        return targetFolderId;
+    }
+
+    public IntegrationImportOptions setTargetFolderId(Long targetFolderId) {
+        this.targetFolderId = targetFolderId;
+        return this;
+    }
+
+    public Map<String, Object> getFilters() {
+        return filters;
+    }
+
+    public IntegrationImportOptions setFilters(Map<String, Object> filters) {
+        this.filters = filters;
+        return this;
+    }
+
+    public boolean isOverwriteExisting() {
+        return overwriteExisting;
+    }
+
+    public IntegrationImportOptions setOverwriteExisting(boolean overwriteExisting) {
+        this.overwriteExisting = overwriteExisting;
+        return this;
+    }
+
+    public boolean isDryRun() {
+        return dryRun;
+    }
+
+    public IntegrationImportOptions setDryRun(boolean dryRun) {
+        this.dryRun = dryRun;
+        return this;
+    }
+
+    public Integer getMaxItems() {
+        return maxItems;
+    }
+
+    public IntegrationImportOptions setMaxItems(Integer maxItems) {
+        this.maxItems = maxItems;
+        return this;
+    }
+
+    public boolean isIncludeChildren() {
+        return includeChildren;
+    }
+
+    public IntegrationImportOptions setIncludeChildren(boolean includeChildren) {
+        this.includeChildren = includeChildren;
+        return this;
+    }
+
+    public boolean isIncludeAttachments() {
+        return includeAttachments;
+    }
+
+    public IntegrationImportOptions setIncludeAttachments(boolean includeAttachments) {
+        this.includeAttachments = includeAttachments;
+        return this;
+    }
+
+    public Map<String, Object> getAdditionalOptions() {
+        return additionalOptions;
+    }
+
+    public IntegrationImportOptions setAdditionalOptions(Map<String, Object> additionalOptions) {
+        this.additionalOptions = additionalOptions;
+        return this;
+    }
+
+    public String getAdoProject() {
+        return adoProject;
+    }
+
+    public IntegrationImportOptions setAdoProject(String adoProject) {
+        this.adoProject = adoProject;
+        return this;
+    }
+
+    public String getAdoTeam() {
+        return adoTeam;
+    }
+
+    public IntegrationImportOptions setAdoTeam(String adoTeam) {
+        this.adoTeam = adoTeam;
+        return this;
+    }
+
+    public Long getAdoTestPlanId() {
+        return adoTestPlanId;
+    }
+
+    public IntegrationImportOptions setAdoTestPlanId(Long adoTestPlanId) {
+        this.adoTestPlanId = adoTestPlanId;
+        return this;
+    }
+
+    public Long getAdoTestSuiteId() {
+        return adoTestSuiteId;
+    }
+
+    public IntegrationImportOptions setAdoTestSuiteId(Long adoTestSuiteId) {
+        this.adoTestSuiteId = adoTestSuiteId;
+        return this;
+    }
+
+    public List<Long> getAdoWorkItemIds() {
+        return adoWorkItemIds;
+    }
+
+    public IntegrationImportOptions setAdoWorkItemIds(List<Long> adoWorkItemIds) {
+        this.adoWorkItemIds = adoWorkItemIds;
+        return this;
+    }
+
+    public String getAdoWorkItemQuery() {
+        return adoWorkItemQuery;
+    }
+
+    public IntegrationImportOptions setAdoWorkItemQuery(String adoWorkItemQuery) {
+        this.adoWorkItemQuery = adoWorkItemQuery;
+        return this;
+    }
+
+    public String getAdoAreaPath() {
+        return adoAreaPath;
+    }
+
+    public IntegrationImportOptions setAdoAreaPath(String adoAreaPath) {
+        this.adoAreaPath = adoAreaPath;
+        return this;
+    }
+
+    public String getAdoIterationPath() {
+        return adoIterationPath;
+    }
+
+    public IntegrationImportOptions setAdoIterationPath(String adoIterationPath) {
+        this.adoIterationPath = adoIterationPath;
+        return this;
+    }
+
+    public String getAdoGitRepositoryId() {
+        return adoGitRepositoryId;
+    }
+
+    public IntegrationImportOptions setAdoGitRepositoryId(String adoGitRepositoryId) {
+        this.adoGitRepositoryId = adoGitRepositoryId;
+        return this;
+    }
+
+    public String getAdoGitBranch() {
+        return adoGitBranch;
+    }
+
+    public IntegrationImportOptions setAdoGitBranch(String adoGitBranch) {
+        this.adoGitBranch = adoGitBranch;
+        return this;
+    }
+
+    public String getAdoGitPathPattern() {
+        return adoGitPathPattern;
+    }
+
+    public IntegrationImportOptions setAdoGitPathPattern(String adoGitPathPattern) {
+        this.adoGitPathPattern = adoGitPathPattern;
+        return this;
+    }
+
+    public List<String> getAdoGitFileExtensions() {
+        return adoGitFileExtensions;
+    }
+
+    public IntegrationImportOptions setAdoGitFileExtensions(List<String> adoGitFileExtensions) {
+        this.adoGitFileExtensions = adoGitFileExtensions;
+        return this;
+    }
+
+    public boolean isAdoGitOnlyChangedFiles() {
+        return adoGitOnlyChangedFiles;
+    }
+
+    public IntegrationImportOptions setAdoGitOnlyChangedFiles(boolean adoGitOnlyChangedFiles) {
+        this.adoGitOnlyChangedFiles = adoGitOnlyChangedFiles;
+        return this;
+    }
+
+    public String getAdoGitCommitId() {
+        return adoGitCommitId;
+    }
+
+    public IntegrationImportOptions setAdoGitCommitId(String adoGitCommitId) {
+        this.adoGitCommitId = adoGitCommitId;
+        return this;
+    }
+
+    public List<FieldMapping> getFieldMappings() {
+        return fieldMappings;
+    }
+
+    public IntegrationImportOptions setFieldMappings(List<FieldMapping> fieldMappings) {
+        this.fieldMappings = fieldMappings;
+        return this;
+    }
+
+    public IntegrationSyncOptions.ProxySettings getProxySettings() {
+        return proxySettings;
+    }
+
+    public IntegrationImportOptions setProxySettings(IntegrationSyncOptions.ProxySettings proxySettings) {
+        this.proxySettings = proxySettings;
+        return this;
+    }
+}
+```
+
+## 6. IntegrationImportResult.java
+
+```java
+package com.cstestforge.model.integration;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Result of importing data from an external system
+ */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class IntegrationImportResult {
+
+    /** Integration ID */
+    private Long integrationId;
+
+    /** Flag indicating if the import was successful */
+    private boolean successful;
+
+    /** Status message */
+    private String message;
+
+    /** Error code if the import failed */
+    private String errorCode;
+
+    /** Detailed error message if the import failed */
+    private String errorDetail;
+
+    /** Start timestamp of the import operation */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime startedAt;
+
+    /** Completion timestamp of the import operation */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime completedAt;
+
+    /** Duration of the import operation in milliseconds */
+    private Long durationMs;
+
+    /** Content type that was imported */
+    private String contentType;
+
+    /** Target folder ID that was imported into */
+    private Long targetFolderId;
+
+    /** Import statistics */
+    private ImportStats stats = new ImportStats();
+
+    /** List of issues encountered during import */
+    private List<ImportIssue> issues = new ArrayList<>();
+
+    /** Flag indicating if this was a dry run */
+    private boolean dryRun;
+
+    /** Imported items details */
+    private List<ImportedItem> importedItems = new ArrayList<>();
+
+    /**
+     * Statistics of the import operation
+     */
+    public static class ImportStats {
+        
+        /** Total items found in the external system */
+        private int totalFound;
+        
+        /** Total items processed during import */
+        private int totalProcessed;
+        
+        /** New items created */
+        private int created;
+        
+        /** Existing items updated */
+        private int updated;
+        
+        /** Items skipped (filtered out or errors) */
+        private int skipped;
+        
+        /** Items with errors */
+        private int errors;
+        
+        /** Total attachments imported */
+        private int attachmentsImported;
+        
+        /** Total child items imported */
+        private int childItemsImported;
+        
+        /** Additional statistics specific to content type */
+        private Map<String, Object> additionalStats = new HashMap<>();
+
+        // Getters and Setters
+        public int getTotalFound() {
+            return totalFound;
+        }
+
+        public ImportStats setTotalFound(int totalFound) {
+            this.totalFound = totalFound;
+            return this;
+        }
+
+        public int getTotalProcessed() {
+            return totalProcessed;
+        }
+
+        public ImportStats setTotalProcessed(int totalProcessed) {
+            this.totalProcessed = totalProcessed;
+            return this;
+        }
+
+        public int getCreated() {
+            return created;
+        }
+
+        public ImportStats setCreated(int created) {
+            this.created = created;
+            return this;
+        }
+
+        public int getUpdated() {
+            return updated;
+        }
+
+        public ImportStats setUpdated(int updated) {
+            this.updated = updated;
+            return this;
+        }
+
+        public int getSkipped() {
+            return skipped;
+        }
+
+        public ImportStats setSkipped(int skipped) {
+            this.skipped = skipped;
+            return this;
+        }
+
+        public int getErrors() {
+            return errors;
+        }
+
+        public ImportStats setErrors(int errors) {
+            this.errors = errors;
+            return this;
+        }
+
+        public int getAttachmentsImported() {
+            return attachmentsImported;
+        }
+
+        public ImportStats setAttachmentsImported(int attachmentsImported) {
+            this.attachmentsImported = attachmentsImported;
+            return this;
+        }
+
+        public int getChildItemsImported() {
+            return childItemsImported;
+        }
+
+        public ImportStats setChildItemsImported(int childItemsImported) {
+            this.childItemsImported = childItemsImported;
+            return this;
+        }
+
+        public Map<String, Object> getAdditionalStats() {
+            return additionalStats;
+        }
+
+        public ImportStats setAdditionalStats(Map<String, Object> additionalStats) {
+            this.additionalStats = additionalStats;
+            return this;
+        }
+    }
+
+    /**
+     * Issue encountered during import
+     */
+    public static class ImportIssue {
+        
+        /** Issue severity */
+        private String severity;
+        
+        /** External item ID */
+        private String externalItemId;
+        
+        /** Issue message */
+        private String message;
+        
+        /** Issue code */
+        private String code;
+        
+        /** Additional details about the issue */
+        private Map<String, Object> details = new HashMap<>();
+
+        // Getters and Setters
+        public String getSeverity() {
+            return severity;
+        }
+
+        public ImportIssue setSeverity(String severity) {
+            this.severity = severity;
+            return this;
+        }
+
+        public String getExternalItemId() {
+            return externalItemId;
+        }
+
+        public ImportIssue setExternalItemId(String externalItemId) {
+            this.externalItemId = externalItemId;
+            return this;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public ImportIssue setMessage(String message) {
+            this.message = message;
+            return this;
+        }
+
+        public String getCode() {
+            return code;
+        }
+
+        public ImportIssue setCode(String code) {
+            this.code = code;
+            return this;
+        }
+
+        public Map<String, Object> getDetails() {
+            return details;
+        }
+
+        public ImportIssue setDetails(Map<String, Object> details) {
+            this.details = details;
+            return this;
+        }
+    }
+
+    /**
+     * Details of an imported item
+     */
+    public static class ImportedItem {
+        
+        /** External item ID */
+        private String externalItemId;
+        
+        /** Local item ID */
+        private Long localItemId;
+        
+        /** Item name or title */
+        private String name;
+        
+        /** Import action performed */
+        private String action;
+        
+        /** Additional properties about the imported item */
+        private Map<String, Object> properties = new HashMap<>();
+
+        // Getters and Setters
+        public String getExternalItemId() {
+            return externalItemId;
+        }
+
+        public ImportedItem setExternalItemId(String externalItemId) {
+            this.externalItemId = externalItemId;
+            return this;
+        }
+
+        public Long getLocalItemId() {
+            return localItemId;
+        }
+
+        public ImportedItem setLocalItemId(Long localItemId) {
+            this.localItemId = localItemId;
+            return this;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public ImportedItem setName(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public String getAction() {
+            return action;
+        }
+
+        public ImportedItem setAction(String action) {
+            this.action = action;
+            return this;
+        }
+
+        public Map<String, Object> getProperties() {
+            return properties;
+        }
+
+        public ImportedItem setProperties(Map<String, Object> properties) {
+            this.properties = properties;
+            return this;
+        }
+    }
+
+    // Getters and Setters
+    public Long getIntegrationId() {
+        return integrationId;
+    }
+
+    public IntegrationImportResult setIntegrationId(Long integrationId) {
+        this.integrationId = integrationId;
+        return this;
+    }
+
+    public boolean isSuccessful() {
+        return successful;
+    }
+
+    public IntegrationImportResult setSuccessful(boolean successful) {
+        this.successful = successful;
+        return this;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public IntegrationImportResult setMessage(String message) {
+        this.message = message;
+        return this;
+    }
+
+    public String getErrorCode() {
+        return errorCode;
+    }
+
+    public IntegrationImportResult setErrorCode(String errorCode) {
+        this.errorCode = errorCode;
+        return this;
+    }
+
+    public String getErrorDetail() {
+        return errorDetail;
+    }
+
+    public IntegrationImportResult setErrorDetail(String errorDetail) {
+        this.errorDetail = errorDetail;
+        return this;
+    }
+
+    public LocalDateTime getStartedAt() {
+        return startedAt;
+    }
+
+    public IntegrationImportResult setStartedAt(LocalDateTime startedAt) {
+        this.startedAt = startedAt;
+        return this;
+    }
+
+    public LocalDateTime getCompletedAt() {
+        return completedAt;
+    }
+
+    public IntegrationImportResult setCompletedAt(LocalDateTime completedAt) {
+        this.completedAt = completedAt;
+        return this;
+    }
+
+    public Long getDurationMs() {
+        return durationMs;
+    }
+
+    public IntegrationImportResult setDurationMs(Long durationMs) {
+        this.durationMs = durationMs;
+        return this;
+    }
+
+    public String getContentType() {
+        return contentType;
+    }
+
+    public IntegrationImportResult setContentType(String contentType) {
+        this.contentType = contentType;
+        return this;
+    }
+
+    public Long getTargetFolderId() {
+        return targetFolderId;
+    }
+
+    public IntegrationImportResult setTargetFolderId(Long targetFolderId) {
+        this.targetFolderId = targetFolderId;
+        return this;
+    }
+
+    public ImportStats getStats() {
+        return stats;
+    }
+
+    public IntegrationImportResult setStats(ImportStats stats) {
+        this.stats = stats;
+        return this;
+    }
+
+    public List<ImportIssue> getIssues() {
+        return issues;
+    }
+
+    public IntegrationImportResult setIssues(List<ImportIssue> issues) {
+        this.issues = issues;
+        return this;
+    }
+
+    public boolean isDryRun() {
+        return dryRun;
+    }
+
+    public IntegrationImportResult setDryRun(boolean dryRun) {
+        this.dryRun = dryRun;
+        return this;
+    }
+
+    public List<ImportedItem> getImportedItems() {
+        return importedItems;
+    }
+
+    public IntegrationImportResult setImportedItems(List<ImportedItem> importedItems) {
+        this.importedItems = importedItems;
+        return this;
+    }
+}
+```
+
+## 7. IntegrationExportOptions.java
+
+```java
+package com.cstestforge.model.integration;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Options for exporting data to an external system
+ */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class IntegrationExportOptions {
+
+    /** Content type to export */
+    private String contentType;
+
+    /** List of item IDs to export */
+    private List<Long> itemIds = new ArrayList<>();
+
+    /** Folder ID containing items to export */
+    private Long folderId;
+
+    /** Filters to apply during export */
+    private Map<String, Object> filters = new HashMap<>();
+
+    /** Flag to only perform a dry run without making changes */
+    private boolean dryRun = false;
+
+    /** Maximum items to export */
+    private Integer maxItems;
+
+    /** Flag to include attachments in the export */
+    private boolean includeAttachments = true;
+
+    /** Flag to include screenshots in the export */
+    private boolean includeScreenshots = true;
+
+    /** Timestamp format for export */
+    private String timestampFormat;
+
+    /** Additional options specific to the integration type */
+    private Map<String, Object> additionalOptions = new HashMap<>();
+
+    /** Azure DevOps project to export to */
+    private String adoProject;
+
+    /** Azure DevOps team to export to */
+    private String adoTeam;
+
+    /** Azure DevOps test plan ID to export to */
+    private Long adoTestPlanId;
+
+    /** Azure DevOps test suite ID to export to */
+    private Long adoTestSuiteId;
+
+    /** Azure DevOps area path to export to */
+    private String adoAreaPath;
+
+    /** Azure DevOps test run title format */
+    private String adoTestRunTitleFormat;
+
+    /** Azure DevOps test run status to set */
+    private String adoTestRunStatus;
+
+    /** Flag to create new test runs in ADO */
+    private boolean adoCreateNewTestRun = true;
+
+    /** Flag to update existing test cases in ADO */
+    private boolean adoUpdateExistingTestCases = true;
+
+    /** Azure DevOps Git repository ID to export to */
+    private String adoGitRepositoryId;
+
+    /** Azure DevOps Git branch to export to */
+    private String adoGitBranch;
+
+    /** Base path for files to export to Git */
+    private String adoGitBasePath;
+
+    /** Commit message format */
+    private String adoGitCommitMessageFormat;
+
+    /** Azure DevOps Git file format */
+    private String adoGitFileFormat;
+
+    /** Flag to create new branch if it doesn't exist */
+    private boolean adoGitCreateBranch = false;
+
+    /** Field mappings for export */
+    private List<FieldMapping> fieldMappings = new ArrayList<>();
+
+    /** Proxy settings to use during export */
+    private IntegrationSyncOptions.ProxySettings proxySettings;
+
+    /**
+     * Mapping between local field and external system field
+     */
+    public static class FieldMapping {
+        
+        /** Source field in CS Test Forge */
+        private String sourceField;
+        
+        /** Target field in external system */
+        private String targetField;
+        
+        /** Transformation to apply during mapping */
+        private String transformation;
+        
+        /** Default value to use if source field is empty */
+        private Object defaultValue;
+
+        // Getters and Setters
+        public String getSourceField() {
+            return sourceField;
+        }
+
+        public FieldMapping setSourceField(String sourceField) {
+            this.sourceField = sourceField;
+            return this;
+        }
+
+        public String getTargetField() {
+            return targetField;
+        }
+
+        public FieldMapping setTargetField(String targetField) {
+            this.targetField = targetField;
+            return this;
+        }
+
+        public String getTransformation() {
+            return transformation;
+        }
+
+        public FieldMapping setTransformation(String transformation) {
+            this.transformation = transformation;
+            return this;
+        }
+
+        public Object getDefaultValue() {
+            return defaultValue;
+        }
+
+        public FieldMapping setDefaultValue(Object defaultValue) {
+            this.defaultValue = defaultValue;
+            return this;
+        }
+    }
+
+    // Getters and Setters
+    public String getContentType() {
+        return contentType;
+    }
+
+    public IntegrationExportOptions setContentType(String contentType) {
+        this.contentType = contentType;
+        return this;
+    }
+
+    public List<Long> getItemIds() {
+        return itemIds;
+    }
+
+    public IntegrationExportOptions setItemIds(List<Long> itemIds) {
+        this.itemIds = itemIds;
+        return this;
+    }
+
+    public Long getFolderId() {
+        return folderId;
+    }
+
+    public IntegrationExportOptions setFolderId(Long folderId) {
+        this.folderId = folderId;
+        return this;
+    }
+
+    public Map<String, Object> getFilters() {
+        return filters;
+    }
+
+    public IntegrationExportOptions setFilters(Map<String, Object> filters) {
+        this.filters = filters;
+        return this;
+    }
+
+    public boolean isDryRun() {
+        return dryRun;
+    }
+
+    public IntegrationExportOptions setDryRun(boolean dryRun) {
+        this.dryRun = dryRun;
+        return this;
+    }
+
+    public Integer getMaxItems() {
+        return maxItems;
+    }
+
+    public IntegrationExportOptions setMaxItems(Integer maxItems) {
+        this.maxItems = maxItems;
+        return this;
+    }
+
+    public boolean isIncludeAttachments() {
+        return includeAttachments;
+    }
+
+    public IntegrationExportOptions setIncludeAttachments(boolean includeAttachments) {
+        this.includeAttachments = includeAttachments;
+        return this;
+    }
+
+    public boolean isIncludeScreenshots() {
+        return includeScreenshots;
+    }
+
+    public IntegrationExportOptions setIncludeScreenshots(boolean includeScreenshots) {
+        this.includeScreenshots = includeScreenshots;
+        return this;
+    }
+
+    public String getTimestampFormat() {
+        return timestampFormat;
+    }
+
+    public IntegrationExportOptions setTimestampFormat(String timestampFormat) {
+        this.timestampFormat = timestampFormat;
+        return this;
+    }
+
+    public Map<String, Object> getAdditionalOptions() {
+        return additionalOptions;
+    }
+
+    public IntegrationExportOptions setAdditionalOptions(Map<String, Object> additionalOptions) {
+        this.additionalOptions = additionalOptions;
+        return this;
+    }
+
+    public String getAdoProject() {
+        return adoProject;
+    }
+
+    public IntegrationExportOptions setAdoProject(String adoProject) {
+        this.adoProject = adoProject;
+        return this;
+    }
+
+    public String getAdoTeam() {
+        return adoTeam;
+    }
+
+    public IntegrationExportOptions setAdoTeam(String adoTeam) {
+        this.adoTeam = adoTeam;
+        return this;
+    }
+
+    public Long getAdoTestPlanId() {
+        return adoTestPlanId;
+    }
+
+    public IntegrationExportOptions setAdoTestPlanId(Long adoTestPlanId) {
+        this.adoTestPlanId = adoTestPlanId;
+        return this;
+    }
+
+    public Long getAdoTestSuiteId() {
+        return adoTestSuiteId;
+    }
+
+    public IntegrationExportOptions setAdoTestSuiteId(Long adoTestSuiteId) {
+        this.adoTestSuiteId = adoTestSuiteId;
+        return this;
+    }
+
+    public String getAdoAreaPath() {
+        return adoAreaPath;
+    }
+
+    public IntegrationExportOptions setAdoAreaPath(String adoAreaPath) {
+        this.adoAreaPath = adoAreaPath;
+        return this;
+    }
+
+    public String getAdoTestRunTitleFormat() {
+        return adoTestRunTitleFormat;
+    }
+
+    public IntegrationExportOptions setAdoTestRunTitleFormat(String adoTestRunTitleFormat) {
+        this.adoTestRunTitleFormat = adoTestRunTitleFormat;
+        return this;
+    }
+
+    public String getAdoTestRunStatus() {
+        return adoTestRunStatus;
+    }
+
+    public IntegrationExportOptions setAdoTestRunStatus(String adoTestRunStatus) {
+        this.adoTestRunStatus = adoTestRunStatus;
+        return this;
+    }
+
+    public boolean isAdoCreateNewTestRun() {
+        return adoCreateNewTestRun;
+    }
+
+    public IntegrationExportOptions setAdoCreateNewTestRun(boolean adoCreateNewTestRun) {
+        this.adoCreateNewTestRun = adoCreateNewTestRun;
+        return this;
+    }
+
+    public boolean isAdoUpdateExistingTestCases() {
+        return adoUpdateExistingTestCases;
+    }
+
+    public IntegrationExportOptions setAdoUpdateExistingTestCases(boolean adoUpdateExistingTestCases) {
+        this.adoUpdateExistingTestCases = adoUpdateExistingTestCases;
+        return this;
+    }
+
+    public String getAdoGitRepositoryId() {
+        return adoGitRepositoryId;
+    }
+
+    public IntegrationExportOptions setAdoGitRepositoryId(String adoGitRepositoryId) {
+        this.adoGitRepositoryId = adoGitRepositoryId;
+        return this;
+    }
+
+    public String getAdoGitBranch() {
+        return adoGitBranch;
+    }
+
+    public IntegrationExportOptions setAdoGitBranch(String adoGitBranch) {
+        this.adoGitBranch = adoGitBranch;
+        return this;
+    }
+
+    public String getAdoGitBasePath() {
+        return adoGitBasePath;
+    }
+
+    public IntegrationExportOptions setAdoGitBasePath(String adoGitBasePath) {
+        this.adoGitBasePath = adoGitBasePath;
+        return this;
+    }
+
+    public String getAdoGitCommitMessageFormat() {
+        return adoGitCommitMessageFormat;
+    }
+
+    public IntegrationExportOptions setAdoGitCommitMessageFormat(String adoGitCommitMessageFormat) {
+        this.adoGitCommitMessageFormat = adoGitCommitMessageFormat;
+        return this;
+    }
+
+    public String getAdoGitFileFormat() {
+        return adoGitFileFormat;
+    }
+
+    public IntegrationExportOptions setAdoGitFileFormat(String adoGitFileFormat) {
+        this.adoGitFileFormat = adoGitFileFormat;
+        return this;
+    }
+
+    public boolean isAdoGitCreateBranch() {
+        return adoGitCreateBranch;
+    }
+
+    public IntegrationExportOptions setAdoGitCreateBranch(boolean adoGitCreateBranch) {
+        this.adoGitCreateBranch = adoGitCreateBranch;
+        return this;
+    }
+
+    public List<FieldMapping> getFieldMappings() {
+        return fieldMappings;
+    }
+
+    public IntegrationExportOptions setFieldMappings(List<FieldMapping> fieldMappings) {
+        this.fieldMappings = fieldMappings;
+        return this;
+    }
+
+    public IntegrationSyncOptions.ProxySettings getProxySettings() {
+        return proxySettings;
+    }
+
+    public IntegrationExportOptions setProxySettings(IntegrationSyncOptions.ProxySettings proxySettings) {
+        this.proxySettings = proxySettings;
+        return this;
+    }
+}
+```
+
+## 8. IntegrationExportResult.java
+
+```java
+package com.cstestforge.model.integration;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Result of exporting data to an external system
+ */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class IntegrationExportResult {
+
+    /** Integration ID */
+    private Long integrationId;
+
+    /** Flag indicating if the export was successful */
+    private boolean successful;
+
+    /** Status message */
+    private String message;
+
+    /** Error code if the export failed */
+    private String errorCode;
+
+    /** Detailed error message if the export failed */
+    private String errorDetail;
+
+    /** Start timestamp of the export operation */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime startedAt;
+
+    /** Completion timestamp of the export operation */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime completedAt;
+
+    /** Duration of the export operation in milliseconds */
+    private Long durationMs;
+
+    /** Content type that was exported */
+    private String contentType;
+
+    /** Export statistics */
+    private ExportStats stats = new ExportStats();
+
+    /** List of issues encountered during export */
+    private List<ExportIssue> issues = new ArrayList<>();
+
+    /** Flag indicating if this was a dry run */
+    private boolean dryRun;
+
+    /** Exported items details */
+    private List<ExportedItem> exportedItems = new ArrayList<>();
+
+    /** URLs to exported resources in the external system */
+    private Map<String, String> exportedUrls = new HashMap<>();
+
+    /** Azure DevOps test run ID created */
+    private Long adoTestRunId;
+
+    /** Azure DevOps test run URL */
+    private String adoTestRunUrl;
+
+    /** Azure DevOps Git commit ID */
+    private String adoGitCommitId;
+
+    /** Azure DevOps Git commit URL */
+    private String adoGitCommitUrl;
+
+    /**
+     * Statistics of the export operation
+     */
+    public static class ExportStats {
+        
+        /** Total items selected for export */
+        private int totalSelected;
+        
+        /** Total items processed during export */
+        private int totalProcessed;
+        
+        /** New items created in the external system */
+        private int created;
+        
+        /** Existing items updated in the external system */
+        private int updated;
+        
+        /** Items skipped (filtered out or errors) */
+        private int skipped;
+        
+        /** Items with errors */
+        private int errors;
+        
+        /** Total attachments exported */
+        private int attachmentsExported;
+        
+        /** Total screenshots exported */
+        private int screenshotsExported;
+        
+        /** Additional statistics specific to content type */
+        private Map<String, Object> additionalStats = new HashMap<>();
+
+        // Getters and Setters
+        public int getTotalSelected() {
+            return totalSelected;
+        }
+
+        public ExportStats setTotalSelected(int totalSelected) {
+            this.totalSelected = totalSelected;
+            return this;
+        }
+
+        public int getTotalProcessed() {
+            return totalProcessed;
+        }
+
         public ExportStats setTotalProcessed(int totalProcessed) {
             this.totalProcessed = totalProcessed;
             return this;
