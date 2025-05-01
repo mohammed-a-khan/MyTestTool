@@ -1,0 +1,2964 @@
+/**
+ * Feature File Model
+ * Represents a BDD feature file with scenarios and steps
+ */
+package com.cstestforge.model.bdd;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+public class FeatureFile {
+    private String id;
+    private String projectId;
+    private String name;
+    private String description;
+    private String content;
+    private List<Scenario> scenarios = new ArrayList<>();
+    private List<Tag> tags = new ArrayList<>();
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    /**
+     * Scenario in a feature file
+     */
+    public static class Scenario {
+        private String name;
+        private String description;
+        private List<Step> steps = new ArrayList<>();
+        private List<Tag> tags = new ArrayList<>();
+        private List<Example> examples = new ArrayList<>();
+        private boolean outline;
+
+        public Scenario() {
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
+        }
+
+        public List<Step> getSteps() {
+            return steps;
+        }
+
+        public void setSteps(List<Step> steps) {
+            this.steps = steps;
+        }
+
+        public List<Tag> getTags() {
+            return tags;
+        }
+
+        public void setTags(List<Tag> tags) {
+            this.tags = tags;
+        }
+
+        public List<Example> getExamples() {
+            return examples;
+        }
+
+        public void setExamples(List<Example> examples) {
+            this.examples = examples;
+        }
+
+        public boolean isOutline() {
+            return outline;
+        }
+
+        public void setOutline(boolean outline) {
+            this.outline = outline;
+        }
+    }
+
+    /**
+     * Step in a scenario
+     */
+    public static class Step {
+        private String type; // Given, When, Then, And, But
+        private String text;
+        private List<String> dataTable = new ArrayList<>();
+        private String docString;
+
+        public Step() {
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public String getText() {
+            return text;
+        }
+
+        public void setText(String text) {
+            this.text = text;
+        }
+
+        public List<String> getDataTable() {
+            return dataTable;
+        }
+
+        public void setDataTable(List<String> dataTable) {
+            this.dataTable = dataTable;
+        }
+
+        public String getDocString() {
+            return docString;
+        }
+
+        public void setDocString(String docString) {
+            this.docString = docString;
+        }
+    }
+
+    /**
+     * Tag for feature or scenario
+     */
+    public static class Tag {
+        private String name;
+
+        public Tag() {
+        }
+
+        public Tag(String name) {
+            this.name = name;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+    }
+
+    /**
+     * Example for scenario outline
+     */
+    public static class Example {
+        private List<String> headers = new ArrayList<>();
+        private List<List<String>> rows = new ArrayList<>();
+
+        public Example() {
+        }
+
+        public List<String> getHeaders() {
+            return headers;
+        }
+
+        public void setHeaders(List<String> headers) {
+            this.headers = headers;
+        }
+
+        public List<List<String>> getRows() {
+            return rows;
+        }
+
+        public void setRows(List<List<String>> rows) {
+            this.rows = rows;
+        }
+    }
+
+    public FeatureFile() {
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public List<Scenario> getScenarios() {
+        return scenarios;
+    }
+
+    public void setScenarios(List<Scenario> scenarios) {
+        this.scenarios = scenarios;
+    }
+
+    public List<Tag> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<Tag> tags) {
+        this.tags = tags;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+}
+
+/**
+ * Step Definition Model
+ * Represents a BDD step definition that implements feature file steps
+ */
+package com.cstestforge.model.bdd;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+
+public class StepDefinition {
+    private String id;
+    private String projectId;
+    private String pattern;
+    private String type; // Given, When, Then
+    private String implementation;
+    private String language; // java, javascript, etc.
+    private List<StepParameter> parameters = new ArrayList<>();
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    
+    /**
+     * Parameter in a step definition
+     */
+    public static class StepParameter {
+        private String name;
+        private String type; // string, integer, float, etc.
+        private Integer position;
+        
+        public StepParameter() {
+        }
+        
+        public String getName() {
+            return name;
+        }
+        
+        public void setName(String name) {
+            this.name = name;
+        }
+        
+        public String getType() {
+            return type;
+        }
+        
+        public void setType(String type) {
+            this.type = type;
+        }
+        
+        public Integer getPosition() {
+            return position;
+        }
+        
+        public void setPosition(Integer position) {
+            this.position = position;
+        }
+    }
+    
+    public StepDefinition() {
+    }
+    
+    public String getId() {
+        return id;
+    }
+    
+    public void setId(String id) {
+        this.id = id;
+    }
+    
+    public String getProjectId() {
+        return projectId;
+    }
+    
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
+    }
+    
+    public String getPattern() {
+        return pattern;
+    }
+    
+    public void setPattern(String pattern) {
+        this.pattern = pattern;
+    }
+    
+    public String getType() {
+        return type;
+    }
+    
+    public void setType(String type) {
+        this.type = type;
+    }
+    
+    public String getImplementation() {
+        return implementation;
+    }
+    
+    public void setImplementation(String implementation) {
+        this.implementation = implementation;
+    }
+    
+    public String getLanguage() {
+        return language;
+    }
+    
+    public void setLanguage(String language) {
+        this.language = language;
+    }
+    
+    public List<StepParameter> getParameters() {
+        return parameters;
+    }
+    
+    public void setParameters(List<StepParameter> parameters) {
+        this.parameters = parameters;
+    }
+    
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+    
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+    
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+}
+
+
+/**
+ * BDD Execution Configuration
+ * Defines configuration parameters for BDD feature execution
+ */
+package com.cstestforge.model.bdd;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class BDDExecutionConfig {
+    private List<String> tags = new ArrayList<>();
+    private boolean dryRun = false;
+    private boolean strict = true;
+    private boolean parallel = false;
+    private int threads = 1;
+    private Map<String, String> environmentVariables = new HashMap<>();
+    private Map<String, String> systemProperties = new HashMap<>();
+    private String reportFormat = "html";
+
+    public BDDExecutionConfig() {
+    }
+
+    public List<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<String> tags) {
+        this.tags = tags;
+    }
+
+    public boolean isDryRun() {
+        return dryRun;
+    }
+
+    public void setDryRun(boolean dryRun) {
+        this.dryRun = dryRun;
+    }
+
+    public boolean isStrict() {
+        return strict;
+    }
+
+    public void setStrict(boolean strict) {
+        this.strict = strict;
+    }
+
+    public boolean isParallel() {
+        return parallel;
+    }
+
+    public void setParallel(boolean parallel) {
+        this.parallel = parallel;
+    }
+
+    public int getThreads() {
+        return threads;
+    }
+
+    public void setThreads(int threads) {
+        this.threads = threads;
+    }
+
+    public Map<String, String> getEnvironmentVariables() {
+        return environmentVariables;
+    }
+
+    public void setEnvironmentVariables(Map<String, String> environmentVariables) {
+        this.environmentVariables = environmentVariables;
+    }
+
+    public Map<String, String> getSystemProperties() {
+        return systemProperties;
+    }
+
+    public void setSystemProperties(Map<String, String> systemProperties) {
+        this.systemProperties = systemProperties;
+    }
+
+    public String getReportFormat() {
+        return reportFormat;
+    }
+
+    public void setReportFormat(String reportFormat) {
+        this.reportFormat = reportFormat;
+    }
+}
+
+/**
+ * BDD Import Result
+ * Result of importing BDD feature files
+ */
+package com.cstestforge.model.bdd;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class BDDImportResult {
+    private int totalFiles;
+    private int importedFiles;
+    private int skippedFiles;
+    private List<ImportedFeature> importedFeatures = new ArrayList<>();
+    private List<SkippedFile> skippedFiles = new ArrayList<>();
+
+    /**
+     * Information about an imported feature file
+     */
+    public static class ImportedFeature {
+        private String id;
+        private String name;
+        private String originalFileName;
+        private int scenarioCount;
+        private int stepCount;
+
+        public ImportedFeature() {
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getOriginalFileName() {
+            return originalFileName;
+        }
+
+        public void setOriginalFileName(String originalFileName) {
+            this.originalFileName = originalFileName;
+        }
+
+        public int getScenarioCount() {
+            return scenarioCount;
+        }
+
+        public void setScenarioCount(int scenarioCount) {
+            this.scenarioCount = scenarioCount;
+        }
+
+        public int getStepCount() {
+            return stepCount;
+        }
+
+        public void setStepCount(int stepCount) {
+            this.stepCount = stepCount;
+        }
+    }
+
+    /**
+     * Information about a skipped file
+     */
+    public static class SkippedFile {
+        private String fileName;
+        private String reason;
+
+        public SkippedFile() {
+        }
+
+        public SkippedFile(String fileName, String reason) {
+            this.fileName = fileName;
+            this.reason = reason;
+        }
+
+        public String getFileName() {
+            return fileName;
+        }
+
+        public void setFileName(String fileName) {
+            this.fileName = fileName;
+        }
+
+        public String getReason() {
+            return reason;
+        }
+
+        public void setReason(String reason) {
+            this.reason = reason;
+        }
+    }
+
+    public BDDImportResult() {
+    }
+
+    public int getTotalFiles() {
+        return totalFiles;
+    }
+
+    public void setTotalFiles(int totalFiles) {
+        this.totalFiles = totalFiles;
+    }
+
+    public int getImportedFiles() {
+        return importedFiles;
+    }
+
+    public void setImportedFiles(int importedFiles) {
+        this.importedFiles = importedFiles;
+    }
+
+    public int getSkippedFiles() {
+        return skippedFiles;
+    }
+
+    public void setSkippedFiles(int skippedFiles) {
+        this.skippedFiles = skippedFiles;
+    }
+
+    public List<ImportedFeature> getImportedFeatures() {
+        return importedFeatures;
+    }
+
+    public void setImportedFeatures(List<ImportedFeature> importedFeatures) {
+        this.importedFeatures = importedFeatures;
+    }
+
+    public List<SkippedFile> getSkippedFiles() {
+        return skippedFiles;
+    }
+
+    public void setSkippedFiles(List<SkippedFile> skippedFiles) {
+        this.skippedFiles = skippedFiles;
+    }
+}
+
+/**
+ * BDD Testing Service Interface
+ * Defines operations for BDD testing functionality
+ */
+package com.cstestforge.service.bdd;
+
+import com.cstestforge.model.bdd.BDDExecutionConfig;
+import com.cstestforge.model.bdd.BDDImportResult;
+import com.cstestforge.model.bdd.FeatureFile;
+import com.cstestforge.model.bdd.StepDefinition;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+
+public interface BDDTestingService {
+    
+    /**
+     * Get all feature files for a project
+     * 
+     * @param projectId Project ID
+     * @return List of feature files
+     */
+    List<FeatureFile> getAllFeatures(String projectId);
+    
+    /**
+     * Get feature file by ID
+     * 
+     * @param projectId Project ID
+     * @param featureId Feature file ID
+     * @return Feature file
+     */
+    FeatureFile getFeatureById(String projectId, String featureId);
+    
+    /**
+     * Create a new feature file
+     * 
+     * @param projectId Project ID
+     * @param feature Feature file details
+     * @return Created feature file
+     */
+    FeatureFile createFeature(String projectId, FeatureFile feature);
+    
+    /**
+     * Update an existing feature file
+     * 
+     * @param projectId Project ID
+     * @param featureId Feature file ID
+     * @param featureDetails Updated feature file details
+     * @return Updated feature file
+     */
+    FeatureFile updateFeature(String projectId, String featureId, FeatureFile featureDetails);
+    
+    /**
+     * Delete a feature file
+     * 
+     * @param projectId Project ID
+     * @param featureId Feature file ID
+     * @return true if deleted successfully
+     */
+    boolean deleteFeature(String projectId, String featureId);
+    
+    /**
+     * Import feature files from uploaded files
+     * 
+     * @param projectId Project ID
+     * @param files Uploaded feature files
+     * @return Import result
+     */
+    BDDImportResult importFeatureFiles(String projectId, MultipartFile[] files);
+    
+    /**
+     * Get all step definitions for a project
+     * 
+     * @param projectId Project ID
+     * @return List of step definitions
+     */
+    List<StepDefinition> getAllStepDefinitions(String projectId);
+    
+    /**
+     * Get step definition by ID
+     * 
+     * @param projectId Project ID
+     * @param stepDefId Step definition ID
+     * @return Step definition
+     */
+    StepDefinition getStepDefinitionById(String projectId, String stepDefId);
+    
+    /**
+     * Create a new step definition
+     * 
+     * @param projectId Project ID
+     * @param stepDefinition Step definition details
+     * @return Created step definition
+     */
+    StepDefinition createStepDefinition(String projectId, StepDefinition stepDefinition);
+    
+    /**
+     * Update an existing step definition
+     * 
+     * @param projectId Project ID
+     * @param stepDefId Step definition ID
+     * @param stepDefDetails Updated step definition details
+     * @return Updated step definition
+     */
+    StepDefinition updateStepDefinition(String projectId, String stepDefId, StepDefinition stepDefDetails);
+    
+    /**
+     * Delete a step definition
+     * 
+     * @param projectId Project ID
+     * @param stepDefId Step definition ID
+     * @return true if deleted successfully
+     */
+    boolean deleteStepDefinition(String projectId, String stepDefId);
+    
+    /**
+     * Execute a feature file
+     * 
+     * @param projectId Project ID
+     * @param featureId Feature file ID
+     * @param config Execution configuration
+     * @return Execution ID
+     */
+    String executeFeature(String projectId, String featureId, BDDExecutionConfig config);
+    
+    /**
+     * Generate step definitions from a feature file
+     * 
+     * @param projectId Project ID
+     * @param featureId Feature file ID
+     * @return Generated step definitions
+     */
+    List<StepDefinition> generateStepDefinitions(String projectId, String featureId);
+}
+
+
+/**
+ * BDD Feature Repository Interface
+ * Defines data access operations for BDD feature files
+ */
+package com.cstestforge.repository.bdd;
+
+import com.cstestforge.model.bdd.FeatureFile;
+import java.util.List;
+import java.util.Optional;
+
+public interface BDDFeatureRepository {
+    
+    /**
+     * Find all feature files for a project
+     * 
+     * @param projectId Project ID
+     * @return List of feature files
+     */
+    List<FeatureFile> findAllByProjectId(String projectId);
+    
+    /**
+     * Find feature file by project ID and feature ID
+     * 
+     * @param projectId Project ID
+     * @param id Feature ID
+     * @return Optional containing feature file if found
+     */
+    Optional<FeatureFile> findByProjectIdAndId(String projectId, String id);
+    
+    /**
+     * Check if a feature file exists
+     * 
+     * @param projectId Project ID
+     * @param id Feature ID
+     * @return true if the feature file exists
+     */
+    boolean existsByProjectIdAndId(String projectId, String id);
+    
+    /**
+     * Save a feature file
+     * 
+     * @param feature Feature file to save
+     * @return Saved feature file
+     */
+    FeatureFile save(FeatureFile feature);
+    
+    /**
+     * Delete a feature file
+     * 
+     * @param feature Feature file to delete
+     */
+    void delete(FeatureFile feature);
+}
+
+/**
+ * BDD Step Definition Repository Interface
+ * Defines data access operations for BDD step definitions
+ */
+package com.cstestforge.repository.bdd;
+
+import com.cstestforge.model.bdd.StepDefinition;
+import java.util.List;
+import java.util.Optional;
+
+public interface BDDStepDefinitionRepository {
+    
+    /**
+     * Find all step definitions for a project
+     * 
+     * @param projectId Project ID
+     * @return List of step definitions
+     */
+    List<StepDefinition> findAllByProjectId(String projectId);
+    
+    /**
+     * Find step definition by project ID and step definition ID
+     * 
+     * @param projectId Project ID
+     * @param id Step definition ID
+     * @return Optional containing step definition if found
+     */
+    Optional<StepDefinition> findByProjectIdAndId(String projectId, String id);
+    
+    /**
+     * Check if a step definition exists
+     * 
+     * @param projectId Project ID
+     * @param id Step definition ID
+     * @return true if the step definition exists
+     */
+    boolean existsByProjectIdAndId(String projectId, String id);
+    
+    /**
+     * Save a step definition
+     * 
+     * @param stepDefinition Step definition to save
+     * @return Saved step definition
+     */
+    StepDefinition save(StepDefinition stepDefinition);
+    
+    /**
+     * Delete a step definition
+     * 
+     * @param stepDefinition Step definition to delete
+     */
+    void delete(StepDefinition stepDefinition);
+}
+
+/**
+ * File System BDD Feature Repository Implementation
+ * Implements the BDD feature repository interface with file system storage
+ */
+package com.cstestforge.repository.bdd.impl;
+
+import com.cstestforge.exception.StorageException;
+import com.cstestforge.model.bdd.FeatureFile;
+import com.cstestforge.repository.bdd.BDDFeatureRepository;
+import com.cstestforge.util.FileUtils;
+import com.cstestforge.util.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Repository;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+@Repository
+public class FileSystemBDDFeatureRepository implements BDDFeatureRepository {
+    private static final Logger logger = LoggerFactory.getLogger(FileSystemBDDFeatureRepository.class);
+    
+    @Value("${cstestforge.storage.root-dir:./storage}")
+    private String storageRootDir;
+    
+    @Autowired
+    private JsonUtils jsonUtils;
+    
+    @Autowired
+    private FileUtils fileUtils;
+    
+    /**
+     * Get the directory path for BDD features for a specific project
+     */
+    private Path getProjectBDDFeaturesDir(String projectId) {
+        return Paths.get(storageRootDir, "projects", projectId, "bdd-features");
+    }
+    
+    /**
+     * Get the directory path for a specific feature
+     */
+    private Path getFeatureDir(String projectId, String featureId) {
+        return getProjectBDDFeaturesDir(projectId).resolve(featureId);
+    }
+    
+    /**
+     * Get the file path for a specific feature's metadata
+     */
+    private Path getFeatureMetadataFilePath(String projectId, String featureId) {
+        return getFeatureDir(projectId, featureId).resolve("metadata.json");
+    }
+    
+    /**
+     * Get the file path for a specific feature's content
+     */
+    private Path getFeatureContentFilePath(String projectId, String featureId) {
+        return getFeatureDir(projectId, featureId).resolve("feature.gherkin");
+    }
+    
+    @Override
+    public List<FeatureFile> findAllByProjectId(String projectId) {
+        Path projectBDDFeaturesDir = getProjectBDDFeaturesDir(projectId);
+        
+        if (!Files.exists(projectBDDFeaturesDir)) {
+            // Return empty list if directory doesn't exist
+            return new ArrayList<>();
+        }
+        
+        try (Stream<Path> paths = Files.list(projectBDDFeaturesDir)) {
+            return paths
+                .filter(Files::isDirectory)
+                .map(dir -> {
+                    Path metadataPath = dir.resolve("metadata.json");
+                    Path contentPath = dir.resolve("feature.gherkin");
+                    
+                    if (Files.exists(metadataPath) && Files.exists(contentPath)) {
+                        try {
+                            FeatureFile feature = jsonUtils.readValue(metadataPath.toFile(), FeatureFile.class);
+                            String content = Files.readString(contentPath);
+                            feature.setContent(content);
+                            return feature;
+                        } catch (IOException e) {
+                            logger.error("Error reading feature file: {}", dir, e);
+                            return null;
+                        }
+                    }
+                    return null;
+                })
+                .filter(feature -> feature != null)
+                .collect(Collectors.toList());
+        } catch (IOException e) {
+            logger.error("Error listing feature directories for project: {}", projectId, e);
+            throw new StorageException("Failed to read BDD features", e);
+        }
+    }
+    
+    @Override
+    public Optional<FeatureFile> findByProjectIdAndId(String projectId, String id) {
+        Path featureDir = getFeatureDir(projectId, id);
+        Path metadataPath = getFeatureMetadataFilePath(projectId, id);
+        Path contentPath = getFeatureContentFilePath(projectId, id);
+        
+        if (!Files.exists(featureDir) || !Files.exists(metadataPath) || !Files.exists(contentPath)) {
+            return Optional.empty();
+        }
+        
+        try {
+            FeatureFile feature = jsonUtils.readValue(metadataPath.toFile(), FeatureFile.class);
+            String content = Files.readString(contentPath);
+            feature.setContent(content);
+            return Optional.of(feature);
+        } catch (IOException e) {
+            logger.error("Error reading feature file: {}", featureDir, e);
+            throw new StorageException("Failed to read BDD feature", e);
+        }
+    }
+    
+    @Override
+    public boolean existsByProjectIdAndId(String projectId, String id) {
+        Path featureDir = getFeatureDir(projectId, id);
+        Path metadataPath = getFeatureMetadataFilePath(projectId, id);
+        Path contentPath = getFeatureContentFilePath(projectId, id);
+        
+        return Files.exists(featureDir) && Files.exists(metadataPath) && Files.exists(contentPath);
+    }
+    
+    @Override
+    public FeatureFile save(FeatureFile feature) {
+        Path featureDir = getFeatureDir(feature.getProjectId(), feature.getId());
+        Path metadataPath = getFeatureMetadataFilePath(feature.getProjectId(), feature.getId());
+        Path contentPath = getFeatureContentFilePath(feature.getProjectId(), feature.getId());
+        
+        try {
+            // Create feature directory if it doesn't exist
+            Files.createDirectories(featureDir);
+            
+            // Prepare content for storage
+            String content = feature.getContent();
+            feature.setContent(null); // Don't store content in the JSON metadata
+            
+            // Save feature metadata
+            jsonUtils.writeValue(metadataPath.toFile(), feature);
+            
+            // Save feature content
+            Files.writeString(contentPath, content);
+            
+            // Restore content for return
+            feature.setContent(content);
+            
+            return feature;
+        } catch (IOException e) {
+            logger.error("Error saving BDD feature: {}", feature.getId(), e);
+            throw new StorageException("Failed to save BDD feature", e);
+        }
+    }
+    
+    @Override
+    public void delete(FeatureFile feature) {
+        Path featureDir = getFeatureDir(feature.getProjectId(), feature.getId());
+        
+        try {
+            // Delete feature directory recursively
+            if (Files.exists(featureDir)) {
+                Files.walk(featureDir)
+                    .sorted((p1, p2) -> -p1.compareTo(p2)) // Sort in reverse order to delete files before directories
+                    .forEach(path -> {
+                        try {
+                            Files.deleteIfExists(path);
+                        } catch (IOException e) {
+                            logger.error("Error deleting path: {}", path, e);
+                            throw new StorageException("Failed to delete path: " + path, e);
+                        }
+                    });
+            }
+        } catch (IOException e) {
+            logger.error("Error deleting feature directory: {}", featureDir, e);
+            throw new StorageException("Failed to delete BDD feature", e);
+        }
+    }
+}
+
+
+/**
+ * File System BDD Step Definition Repository Implementation
+ * Implements the BDD step definition repository interface with file system storage
+ */
+package com.cstestforge.repository.bdd.impl;
+
+import com.cstestforge.exception.StorageException;
+import com.cstestforge.model.bdd.StepDefinition;
+import com.cstestforge.repository.bdd.BDDStepDefinitionRepository;
+import com.cstestforge.util.FileUtils;
+import com.cstestforge.util.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Repository;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+@Repository
+public class FileSystemBDDStepDefinitionRepository implements BDDStepDefinitionRepository {
+    private static final Logger logger = LoggerFactory.getLogger(FileSystemBDDStepDefinitionRepository.class);
+    
+    @Value("${cstestforge.storage.root-dir:./storage}")
+    private String storageRootDir;
+    
+    @Autowired
+    private JsonUtils jsonUtils;
+    
+    @Autowired
+    private FileUtils fileUtils;
+    
+    /**
+     * Get the directory path for BDD step definitions for a specific project
+     */
+    private Path getProjectBDDStepDefinitionsDir(String projectId) {
+        return Paths.get(storageRootDir, "projects", projectId, "bdd-step-definitions");
+    }
+    
+    /**
+     * Get the file path for a specific step definition
+     */
+    private Path getStepDefinitionFilePath(String projectId, String stepDefId) {
+        return getProjectBDDStepDefinitionsDir(projectId).resolve(stepDefId + ".json");
+    }
+    
+    @Override
+    public List<StepDefinition> findAllByProjectId(String projectId) {
+        Path projectBDDStepDefinitionsDir = getProjectBDDStepDefinitionsDir(projectId);
+        
+        if (!Files.exists(projectBDDStepDefinitionsDir)) {
+            // Return empty list if directory doesn't exist
+            return new ArrayList<>();
+        }
+        
+        try (Stream<Path> paths = Files.list(projectBDDStepDefinitionsDir)) {
+            return paths
+                .filter(path -> path.toString().endsWith(".json"))
+                .map(path -> {
+                    try {
+                        return jsonUtils.readValue(path.toFile(), StepDefinition.class);
+                    } catch (IOException e) {
+                        logger.error("Error reading step definition file: {}", path, e);
+                        return null;
+                    }
+                })
+                .filter(stepDef -> stepDef != null)
+                .collect(Collectors.toList());
+        } catch (IOException e) {
+            logger.error("Error listing step definition files for project: {}", projectId, e);
+            throw new StorageException("Failed to read BDD step definitions", e);
+        }
+    }
+    
+    @Override
+    public Optional<StepDefinition> findByProjectIdAndId(String projectId, String id) {
+        Path stepDefFilePath = getStepDefinitionFilePath(projectId, id);
+        
+        if (!Files.exists(stepDefFilePath)) {
+            return Optional.empty();
+        }
+        
+        try {
+            StepDefinition stepDefinition = jsonUtils.readValue(stepDefFilePath.toFile(), StepDefinition.class);
+            return Optional.of(stepDefinition);
+        } catch (IOException e) {
+            logger.error("Error reading step definition file: {}", stepDefFilePath, e);
+            throw new StorageException("Failed to read BDD step definition", e);
+        }
+    }
+    
+    @Override
+    public boolean existsByProjectIdAndId(String projectId, String id) {
+        Path stepDefFilePath = getStepDefinitionFilePath(projectId, id);
+        return Files.exists(stepDefFilePath);
+    }
+    
+    @Override
+    public StepDefinition save(StepDefinition stepDefinition) {
+        Path projectBDDStepDefinitionsDir = getProjectBDDStepDefinitionsDir(stepDefinition.getProjectId());
+        
+        try {
+            // Create directories if they don't exist
+            Files.createDirectories(projectBDDStepDefinitionsDir);
+            
+            // Save step definition to file
+            Path stepDefFilePath = getStepDefinitionFilePath(stepDefinition.getProjectId(), stepDefinition.getId());
+            jsonUtils.writeValue(stepDefFilePath.toFile(), stepDefinition);
+            
+            return stepDefinition;
+        } catch (IOException e) {
+            logger.error("Error saving BDD step definition: {}", stepDefinition.getId(), e);
+            throw new StorageException("Failed to save BDD step definition", e);
+        }
+    }
+    
+    @Override
+    public void delete(StepDefinition stepDefinition) {
+        Path stepDefFilePath = getStepDefinitionFilePath(stepDefinition.getProjectId(), stepDefinition.getId());
+        
+        try {
+            Files.deleteIfExists(stepDefFilePath);
+        } catch (IOException e) {
+            logger.error("Error deleting step definition file: {}", stepDefFilePath, e);
+            throw new StorageException("Failed to delete BDD step definition", e);
+        }
+    }
+}
+
+
+/**
+ * BDD Execution Repository Interface
+ * Defines data access operations for BDD test executions
+ */
+package com.cstestforge.repository.bdd;
+
+import com.cstestforge.model.bdd.BDDExecution;
+import java.util.List;
+import java.util.Optional;
+
+public interface BDDExecutionRepository {
+    
+    /**
+     * Find all executions for a project
+     * 
+     * @param projectId Project ID
+     * @return List of executions
+     */
+    List<BDDExecution> findAllByProjectId(String projectId);
+    
+    /**
+     * Find execution by ID
+     * 
+     * @param executionId Execution ID
+     * @return Optional containing execution if found
+     */
+    Optional<BDDExecution> findById(String executionId);
+    
+    /**
+     * Find executions for a specific feature
+     * 
+     * @param projectId Project ID
+     * @param featureId Feature ID
+     * @return List of executions
+     */
+    List<BDDExecution> findByProjectIdAndFeatureId(String projectId, String featureId);
+    
+    /**
+     * Save an execution
+     * 
+     * @param execution Execution to save
+     * @return Saved execution
+     */
+    BDDExecution save(BDDExecution execution);
+    
+    /**
+     * Delete an execution
+     * 
+     * @param execution Execution to delete
+     */
+    void delete(BDDExecution execution);
+}
+
+
+/**
+ * BDD Execution Model
+ * Represents a BDD feature execution with results
+ */
+package com.cstestforge.model.bdd;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class BDDExecution {
+    private String id;
+    private String projectId;
+    private String featureId;
+    private String status; // PENDING, RUNNING, COMPLETED, FAILED
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
+    private BDDExecutionConfig config;
+    private List<ScenarioResult> scenarioResults = new ArrayList<>();
+    private String reportUrl;
+    private Map<String, String> executionParameters = new HashMap<>();
+    
+    /**
+     * Result of a scenario execution
+     */
+    public static class ScenarioResult {
+        private String name;
+        private String status; // PASSED, FAILED, SKIPPED, PENDING
+        private Long duration; // in milliseconds
+        private List<StepResult> stepResults = new ArrayList<>();
+        private String errorMessage;
+        private String errorStackTrace;
+        
+        /**
+         * Result of a step execution
+         */
+        public static class StepResult {
+            private String type; // Given, When, Then, And, But
+            private String text;
+            private String status; // PASSED, FAILED, SKIPPED, PENDING
+            private Long duration; // in milliseconds
+            private String errorMessage;
+            private String errorStackTrace;
+            
+            public StepResult() {
+            }
+            
+            public String getType() {
+                return type;
+            }
+            
+            public void setType(String type) {
+                this.type = type;
+            }
+            
+            public String getText() {
+                return text;
+            }
+            
+            public void setText(String text) {
+                this.text = text;
+            }
+            
+            public String getStatus() {
+                return status;
+            }
+            
+            public void setStatus(String status) {
+                this.status = status;
+            }
+            
+            public Long getDuration() {
+                return duration;
+            }
+            
+            public void setDuration(Long duration) {
+                this.duration = duration;
+            }
+            
+            public String getErrorMessage() {
+                return errorMessage;
+            }
+            
+            public void setErrorMessage(String errorMessage) {
+                this.errorMessage = errorMessage;
+            }
+            
+            public String getErrorStackTrace() {
+                return errorStackTrace;
+            }
+            
+            public void setErrorStackTrace(String errorStackTrace) {
+                this.errorStackTrace = errorStackTrace;
+            }
+        }
+        
+        public ScenarioResult() {
+        }
+        
+        public String getName() {
+            return name;
+        }
+        
+        public void setName(String name) {
+            this.name = name;
+        }
+        
+        public String getStatus() {
+            return status;
+        }
+        
+        public void setStatus(String status) {
+            this.status = status;
+        }
+        
+        public Long getDuration() {
+            return duration;
+        }
+        
+        public void setDuration(Long duration) {
+            this.duration = duration;
+        }
+        
+        public List<StepResult> getStepResults() {
+            return stepResults;
+        }
+        
+        public void setStepResults(List<StepResult> stepResults) {
+            this.stepResults = stepResults;
+        }
+        
+        public String getErrorMessage() {
+            return errorMessage;
+        }
+        
+        public void setErrorMessage(String errorMessage) {
+            this.errorMessage = errorMessage;
+        }
+        
+        public String getErrorStackTrace() {
+            return errorStackTrace;
+        }
+        
+        public void setErrorStackTrace(String errorStackTrace) {
+            this.errorStackTrace = errorStackTrace;
+        }
+    }
+    
+    public BDDExecution() {
+    }
+    
+    public String getId() {
+        return id;
+    }
+    
+    public void setId(String id) {
+        this.id = id;
+    }
+    
+    public String getProjectId() {
+        return projectId;
+    }
+    
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
+    }
+    
+    public String getFeatureId() {
+        return featureId;
+    }
+    
+    public void setFeatureId(String featureId) {
+        this.featureId = featureId;
+    }
+    
+    public String getStatus() {
+        return status;
+    }
+    
+    public void setStatus(String status) {
+        this.status = status;
+    }
+    
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+    
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+    }
+    
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+    
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+    }
+    
+    public BDDExecutionConfig getConfig() {
+        return config;
+    }
+    
+    public void setConfig(BDDExecutionConfig config) {
+        this.config = config;
+    }
+    
+    public List<ScenarioResult> getScenarioResults() {
+        return scenarioResults;
+    }
+    
+    public void setScenarioResults(List<ScenarioResult> scenarioResults) {
+        this.scenarioResults = scenarioResults;
+    }
+    
+    public String getReportUrl() {
+        return reportUrl;
+    }
+    
+    public void setReportUrl(String reportUrl) {
+        this.reportUrl = reportUrl;
+    }
+    
+    public Map<String, String> getExecutionParameters() {
+        return executionParameters;
+    }
+    
+    public void setExecutionParameters(Map<String, String> executionParameters) {
+        this.executionParameters = executionParameters;
+    }
+}
+
+/**
+ * File System BDD Execution Repository Implementation
+ * Implements the BDD execution repository interface with file system storage
+ */
+package com.cstestforge.repository.bdd.impl;
+
+import com.cstestforge.exception.StorageException;
+import com.cstestforge.model.bdd.BDDExecution;
+import com.cstestforge.repository.bdd.BDDExecutionRepository;
+import com.cstestforge.util.FileUtils;
+import com.cstestforge.util.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Repository;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+@Repository
+public class FileSystemBDDExecutionRepository implements BDDExecutionRepository {
+    private static final Logger logger = LoggerFactory.getLogger(FileSystemBDDExecutionRepository.class);
+    
+    @Value("${cstestforge.storage.root-dir:./storage}")
+    private String storageRootDir;
+    
+    @Autowired
+    private JsonUtils jsonUtils;
+    
+    @Autowired
+    private FileUtils fileUtils;
+    
+    /**
+     * Get the directory path for BDD executions
+     */
+    private Path getBDDExecutionsDir() {
+        return Paths.get(storageRootDir, "bdd-executions");
+    }
+    
+    /**
+     * Get the directory path for BDD executions for a specific project
+     */
+    private Path getProjectBDDExecutionsDir(String projectId) {
+        return getBDDExecutionsDir().resolve(projectId);
+    }
+    
+    /**
+     * Get the directory path for BDD executions for a specific feature
+     */
+    private Path getFeatureBDDExecutionsDir(String projectId, String featureId) {
+        return getProjectBDDExecutionsDir(projectId).resolve(featureId);
+    }
+    
+    /**
+     * Get the file path for a specific execution
+     */
+    private Path getExecutionFilePath(String executionId) {
+        return getBDDExecutionsDir().resolve(executionId + ".json");
+    }
+    
+    @Override
+    public List<BDDExecution> findAllByProjectId(String projectId) {
+        Path projectBDDExecutionsDir = getProjectBDDExecutionsDir(projectId);
+        
+        if (!Files.exists(projectBDDExecutionsDir)) {
+            // Return empty list if directory doesn't exist
+            return new ArrayList<>();
+        }
+        
+        try (Stream<Path> paths = Files.walk(projectBDDExecutionsDir)) {
+            return paths
+                .filter(path -> path.toString().endsWith(".json"))
+                .map(path -> {
+                    try {
+                        return jsonUtils.readValue(path.toFile(), BDDExecution.class);
+                    } catch (IOException e) {
+                        logger.error("Error reading execution file: {}", path, e);
+                        return null;
+                    }
+                })
+                .filter(execution -> execution != null)
+                .collect(Collectors.toList());
+        } catch (IOException e) {
+            logger.error("Error listing execution files for project: {}", projectId, e);
+            throw new StorageException("Failed to read BDD executions", e);
+        }
+    }
+    
+    @Override
+    public Optional<BDDExecution> findById(String executionId) {
+        Path executionFilePath = getExecutionFilePath(executionId);
+        
+        if (!Files.exists(executionFilePath)) {
+            return Optional.empty();
+        }
+        
+        try {
+            BDDExecution execution = jsonUtils.readValue(executionFilePath.toFile(), BDDExecution.class);
+            return Optional.of(execution);
+        } catch (IOException e) {
+            logger.error("Error reading execution file: {}", executionFilePath, e);
+            throw new StorageException("Failed to read BDD execution", e);
+        }
+    }
+    
+    @Override
+    public List<BDDExecution> findByProjectIdAndFeatureId(String projectId, String featureId) {
+        Path featureBDDExecutionsDir = getFeatureBDDExecutionsDir(projectId, featureId);
+        
+        if (!Files.exists(featureBDDExecutionsDir)) {
+            // Return empty list if directory doesn't exist
+            return new ArrayList<>();
+        }
+        
+        try (Stream<Path> paths = Files.list(featureBDDExecutionsDir)) {
+            return paths
+                .filter(path -> path.toString().endsWith(".json"))
+                .map(path -> {
+                    try {
+                        return jsonUtils.readValue(path.toFile(), BDDExecution.class);
+                    } catch (IOException e) {
+                        logger.error("Error reading execution file: {}", path, e);
+                        return null;
+                    }
+                })
+                .filter(execution -> execution != null)
+                .collect(Collectors.toList());
+        } catch (IOException e) {
+            logger.error("Error listing execution files for feature: {} in project: {}", featureId, projectId, e);
+            throw new StorageException("Failed to read BDD executions", e);
+        }
+    }
+    
+    @Override
+    public BDDExecution save(BDDExecution execution) {
+        try {
+            // Create directories if they don't exist
+            Path executionsDir = getBDDExecutionsDir();
+            Path projectExecutionsDir = getProjectBDDExecutionsDir(execution.getProjectId());
+            Path featureExecutionsDir = getFeatureBDDExecutionsDir(execution.getProjectId(), execution.getFeatureId());
+            
+            Files.createDirectories(executionsDir);
+            Files.createDirectories(projectExecutionsDir);
+            Files.createDirectories(featureExecutionsDir);
+            
+            // Save execution to main executions directory
+            Path executionFilePath = getExecutionFilePath(execution.getId());
+            jsonUtils.writeValue(executionFilePath.toFile(), execution);
+            
+            // Save a copy to the feature executions directory for quick lookup
+            Path featureExecutionFilePath = featureExecutionsDir.resolve(execution.getId() + ".json");
+            jsonUtils.writeValue(featureExecutionFilePath.toFile(), execution);
+            
+            return execution;
+        } catch (IOException e) {
+            logger.error("Error saving BDD execution: {}", execution.getId(), e);
+            throw new StorageException("Failed to save BDD execution", e);
+        }
+    }
+    
+    @Override
+    public void delete(BDDExecution execution) {
+        try {
+            // Delete from main executions directory
+            Path executionFilePath = getExecutionFilePath(execution.getId());
+            Files.deleteIfExists(executionFilePath);
+            
+            // Delete from feature executions directory
+            Path featureExecutionsDir = getFeatureBDDExecutionsDir(execution.getProjectId(), execution.getFeatureId());
+            Path featureExecutionFilePath = featureExecutionsDir.resolve(execution.getId() + ".json");
+            Files.deleteIfExists(featureExecutionFilePath);
+        } catch (IOException e) {
+            logger.error("Error deleting execution file: {}", execution.getId(), e);
+            throw new StorageException("Failed to delete BDD execution", e);
+        }
+    }
+}
+
+
+/**
+ * BDD Testing Service Implementation
+ * Implements BDD testing functionality
+ */
+package com.cstestforge.service.bdd.impl;
+
+import com.cstestforge.exception.ResourceNotFoundException;
+import com.cstestforge.model.bdd.*;
+import com.cstestforge.repository.bdd.BDDExecutionRepository;
+import com.cstestforge.repository.bdd.BDDFeatureRepository;
+import com.cstestforge.repository.bdd.BDDStepDefinitionRepository;
+import com.cstestforge.service.bdd.BDDTestingService;
+import com.cstestforge.service.project.ProjectService;
+import com.cstestforge.util.FeatureParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+@Service
+public class BDDTestingServiceImpl implements BDDTestingService {
+    private static final Logger logger = LoggerFactory.getLogger(BDDTestingServiceImpl.class);
+    
+    @Value("${cstestforge.bdd.reports-dir:./storage/bdd-reports}")
+    private String bddReportsDir;
+    
+    @Autowired
+    private BDDFeatureRepository featureRepository;
+    
+    @Autowired
+    private BDDStepDefinitionRepository stepDefinitionRepository;
+    
+    @Autowired
+    private BDDExecutionRepository executionRepository;
+    
+    @Autowired
+    private ProjectService projectService;
+    
+    @Autowired
+    private FeatureParser featureParser;
+    
+    private final ExecutorService executorService = Executors.newFixedThreadPool(5);
+    
+    @Override
+    public List<FeatureFile> getAllFeatures(String projectId) {
+        logger.debug("Getting all BDD features for project: {}", projectId);
+        validateProject(projectId);
+        
+        return featureRepository.findAllByProjectId(projectId);
+    }
+    
+    @Override
+    public FeatureFile getFeatureById(String projectId, String featureId) {
+        logger.debug("Getting BDD feature: {} for project: {}", featureId, projectId);
+        validateProject(projectId);
+        
+        return featureRepository.findByProjectIdAndId(projectId, featureId)
+                .orElseThrow(() -> new ResourceNotFoundException("Feature not found with id: " + featureId));
+    }
+    
+    @Override
+    public FeatureFile createFeature(String projectId, FeatureFile feature) {
+        logger.debug("Creating BDD feature for project: {}", projectId);
+        validateProject(projectId);
+        
+        // Set required fields
+        feature.setId(UUID.randomUUID().toString());
+        feature.setProjectId(projectId);
+        feature.setCreatedAt(LocalDateTime.now());
+        feature.setUpdatedAt(LocalDateTime.now());
+        
+        // Parse feature content to extract scenarios, steps, tags, etc.
+        if (feature.getContent() != null && !feature.getContent().isEmpty()) {
+            FeatureFile parsedFeature = featureParser.parseFeatureContent(feature.getContent());
+            feature.setScenarios(parsedFeature.getScenarios());
+            feature.setTags(parsedFeature.getTags());
+            
+            // If name or description are not provided, use the parsed ones
+            if (feature.getName() == null || feature.getName().isEmpty()) {
+                feature.setName(parsedFeature.getName());
+            }
+            
+            if (feature.getDescription() == null || feature.getDescription().isEmpty()) {
+                feature.setDescription(parsedFeature.getDescription());
+            }
+        }
+        
+        return featureRepository.save(feature);
+    }
+    
+    @Override
+    public FeatureFile updateFeature(String projectId, String featureId, FeatureFile featureDetails) {
+        logger.debug("Updating BDD feature: {} for project: {}", featureId, projectId);
+        
+        FeatureFile existingFeature = getFeatureById(projectId, featureId);
+        
+        // Update fields
+        existingFeature.setName(featureDetails.getName());
+        existingFeature.setDescription(featureDetails.getDescription());
+        existingFeature.setContent(featureDetails.getContent());
+        existingFeature.setUpdatedAt(LocalDateTime.now());
+        
+        // Parse feature content to extract scenarios, steps, tags, etc.
+        if (featureDetails.getContent() != null && !featureDetails.getContent().isEmpty()) {
+            FeatureFile parsedFeature = featureParser.parseFeatureContent(featureDetails.getContent());
+            existingFeature.setScenarios(parsedFeature.getScenarios());
+            existingFeature.setTags(parsedFeature.getTags());
+        }
+        
+        return featureRepository.save(existingFeature);
+    }
+    
+    @Override
+    public boolean deleteFeature(String projectId, String featureId) {
+        logger.debug("Deleting BDD feature: {} for project: {}", featureId, projectId);
+        
+        FeatureFile existingFeature = getFeatureById(projectId, featureId);
+        featureRepository.delete(existingFeature);
+        return true;
+    }
+    
+    @Override
+    public BDDImportResult importFeatureFiles(String projectId, MultipartFile[] files) {
+        logger.debug("Importing BDD feature files for project: {}", projectId);
+        validateProject(projectId);
+        
+        BDDImportResult result = new BDDImportResult();
+        result.setTotalFiles(files.length);
+        
+        List<BDDImportResult.ImportedFeature> importedFeatures = new ArrayList<>();
+        List<BDDImportResult.SkippedFile> skippedFiles = new ArrayList<>();
+        
+        for (MultipartFile file : files) {
+            try {
+                // Check if file is a feature file
+                if (!file.getOriginalFilename().endsWith(".feature")) {
+                    skippedFiles.add(new BDDImportResult.SkippedFile(
+                            file.getOriginalFilename(),
+                            "Not a .feature file"
+                    ));
+                    continue;
+                }
+                
+                // Read feature content
+                String content = new String(file.getBytes(), StandardCharsets.UTF_8);
+                
+                // Parse feature content
+                FeatureFile parsedFeature = featureParser.parseFeatureContent(content);
+                
+                // Create and save feature
+                FeatureFile feature = new FeatureFile();
+                feature.setId(UUID.randomUUID().toString());
+                feature.setProjectId(projectId);
+                feature.setName(parsedFeature.getName());
+                feature.setDescription(parsedFeature.getDescription());
+                feature.setContent(content);
+                feature.setScenarios(parsedFeature.getScenarios());
+                feature.setTags(parsedFeature.getTags());
+                feature.setCreatedAt(LocalDateTime.now());
+                feature.setUpdatedAt(LocalDateTime.now());
+                
+                FeatureFile savedFeature = featureRepository.save(feature);
+                
+                // Add to imported features list
+                BDDImportResult.ImportedFeature importedFeature = new BDDImportResult.ImportedFeature();
+                importedFeature.setId(savedFeature.getId());
+                importedFeature.setName(savedFeature.getName());
+                importedFeature.setOriginalFileName(file.getOriginalFilename());
+                importedFeature.setScenarioCount(savedFeature.getScenarios().size());
+                
+                int stepCount = savedFeature.getScenarios().stream()
+                        .mapToInt(scenario -> scenario.getSteps().size())
+                        .sum();
+                importedFeature.setStepCount(stepCount);
+                
+                importedFeatures.add(importedFeature);
+            } catch (IOException e) {
+                logger.error("Error reading feature file: {}", file.getOriginalFilename(), e);
+                skippedFiles.add(new BDDImportResult.SkippedFile(
+                        file.getOriginalFilename(),
+                        "Error reading file: " + e.getMessage()
+                ));
+            } catch (Exception e) {
+                logger.error("Error parsing feature file: {}", file.getOriginalFilename(), e);
+                skippedFiles.add(new BDDImportResult.SkippedFile(
+                        file.getOriginalFilename(),
+                        "Error parsing feature: " + e.getMessage()
+                ));
+            }
+        }
+        
+        result.setImportedFeatures(importedFeatures);
+        result.setSkippedFiles(skippedFiles);
+        result.setImportedFiles(importedFeatures.size());
+        result.setSkippedFiles(skippedFiles.size());
+        
+        return result;
+    }
+    
+    @Override
+    public List<StepDefinition> getAllStepDefinitions(String projectId) {
+        logger.debug("Getting all step definitions for project: {}", projectId);
+        validateProject(projectId);
+        
+        return stepDefinitionRepository.findAllByProjectId(projectId);
+    }
+    
+    @Override
+    public StepDefinition getStepDefinitionById(String projectId, String stepDefId) {
+        logger.debug("Getting step definition: {} for project: {}", stepDefId, projectId);
+        validateProject(projectId);
+        
+        return stepDefinitionRepository.findByProjectIdAndId(projectId, stepDefId)
+                .orElseThrow(() -> new ResourceNotFoundException("Step definition not found with id: " + stepDefId));
+    }
+    
+    @Override
+    public StepDefinition createStepDefinition(String projectId, StepDefinition stepDefinition) {
+        logger.debug("Creating step definition for project: {}", projectId);
+        validateProject(projectId);
+        
+        // Set required fields
+        stepDefinition.setId(UUID.randomUUID().toString());
+        stepDefinition.setProjectId(projectId);
+        stepDefinition.setCreatedAt(LocalDateTime.now());
+        stepDefinition.setUpdatedAt(LocalDateTime.now());
+        
+        // Extract parameters from pattern
+        List<StepDefinition.StepParameter> parameters = extractParametersFromPattern(stepDefinition.getPattern());
+        stepDefinition.setParameters(parameters);
+        
+        return stepDefinitionRepository.save(stepDefinition);
+    }
+    
+    @Override
+    public StepDefinition updateStepDefinition(String projectId, String stepDefId, StepDefinition stepDefDetails) {
+        logger.debug("Updating step definition: {} for project: {}", stepDefId, projectId);
+        
+        StepDefinition existingStepDef = getStepDefinitionById(projectId, stepDefId);
+        
+        // Update fields
+        existingStepDef.setPattern(stepDefDetails.getPattern());
+        existingStepDef.setType(stepDefDetails.getType());
+        existingStepDef.setImplementation(stepDefDetails.getImplementation());
+        existingStepDef.setLanguage(stepDefDetails.getLanguage());
+        existingStepDef.setUpdatedAt(LocalDateTime.now());
+        
+        // Extract parameters from pattern
+        List<StepDefinition.StepParameter> parameters = extractParametersFromPattern(existingStepDef.getPattern());
+        existingStepDef.setParameters(parameters);
+        
+        return stepDefinitionRepository.save(existingStepDef);
+    }
+    
+    @Override
+    public boolean deleteStepDefinition(String projectId, String stepDefId) {
+        logger.debug("Deleting step definition: {} for project: {}", stepDefId, projectId);
+        
+        StepDefinition existingStepDef = getStepDefinitionById(projectId, stepDefId);
+        stepDefinitionRepository.delete(existingStepDef);
+        return true;
+    }
+    
+    @Override
+    public String executeFeature(String projectId, String featureId, BDDExecutionConfig config) {
+        logger.debug("Executing feature: {} for project: {}", featureId, projectId);
+        
+        // Validate that feature exists
+        FeatureFile feature = getFeatureById(projectId, featureId);
+        
+        // Create execution record
+        BDDExecution execution = new BDDExecution();
+        execution.setId(UUID.randomUUID().toString());
+        execution.setProjectId(projectId);
+        execution.setFeatureId(featureId);
+        execution.setStatus("PENDING");
+        execution.setStartTime(LocalDateTime.now());
+        execution.setConfig(config);
+        
+        // Save execution record
+        BDDExecution savedExecution = executionRepository.save(execution);
+        
+        // Execute feature asynchronously
+        CompletableFuture.runAsync(() -> {
+            try {
+                // Update execution status to running
+                savedExecution.setStatus("RUNNING");
+                executionRepository.save(savedExecution);
+                
+                // Get step definitions for the project
+                List<StepDefinition> stepDefinitions = stepDefinitionRepository.findAllByProjectId(projectId);
+                
+                // Execute feature
+                BDDExecution result = executeFeatureImpl(feature, stepDefinitions, config);
+                
+                // Update execution record with results
+                savedExecution.setStatus(result.getStatus());
+                savedExecution.setEndTime(LocalDateTime.now());
+                savedExecution.setScenarioResults(result.getScenarioResults());
+                savedExecution.setReportUrl(result.getReportUrl());
+                
+                // Save updated execution record
+                executionRepository.save(savedExecution);
+            } catch (Exception e) {
+                logger.error("Error executing feature: {}", featureId, e);
+                
+                // Update execution record with error
+                savedExecution.setStatus("FAILED");
+                savedExecution.setEndTime(LocalDateTime.now());
+                
+                // Add error scenario result
+                BDDExecution.ScenarioResult errorScenario = new BDDExecution.ScenarioResult();
+                errorScenario.setName("Execution Error");
+                errorScenario.setStatus("FAILED");
+                errorScenario.setErrorMessage(e.getMessage());
+                errorScenario.setErrorStackTrace(getStackTrace(e));
+                savedExecution.getScenarioResults().add(errorScenario);
+                
+                // Save updated execution record
+                executionRepository.save(savedExecution);
+            }
+        }, executorService);
+        
+        return savedExecution.getId();
+    }
+    
+    @Override
+    public List<StepDefinition> generateStepDefinitions(String projectId, String featureId) {
+        logger.debug("Generating step definitions for feature: {} in project: {}", featureId, projectId);
+        
+        // Get feature
+        FeatureFile feature = getFeatureById(projectId, featureId);
+        
+        // Get existing step definitions to avoid duplicates
+        List<StepDefinition> existingStepDefs = stepDefinitionRepository.findAllByProjectId(projectId);
+        Map<String, StepDefinition> existingPatterns = existingStepDefs.stream()
+                .collect(Collectors.toMap(
+                        def -> def.getType() + ": " + def.getPattern(),
+                        def -> def,
+                        (def1, def2) -> def1
+                ));
+        
+        // Generate step definitions from scenarios
+        List<StepDefinition> generatedStepDefs = new ArrayList<>();
+        
+        for (FeatureFile.Scenario scenario : feature.getScenarios()) {
+            for (FeatureFile.Step step : scenario.getSteps()) {
+                // Generate pattern from step text
+                String pattern = generatePatternFromStepText(step.getText());
+                String key = step.getType() + ": " + pattern;
+                
+                // Skip if this pattern already exists
+                if (existingPatterns.containsKey(key)) {
+                    continue;
+                }
+                
+                // Create new step definition
+                StepDefinition stepDef = new StepDefinition();
+                stepDef.setId(UUID.randomUUID().toString());
+                stepDef.setProjectId(projectId);
+                stepDef.setPattern(pattern);
+                stepDef.setType(step.getType());
+                stepDef.setLanguage("java"); // Default to Java
+                
+                // Extract parameters
+                List<StepDefinition.StepParameter> parameters = extractParametersFromPattern(pattern);
+                stepDef.setParameters(parameters);
+                
+                // Generate implementation template
+                String implementation = generateImplementationTemplate(step.getType(), pattern, parameters);
+                stepDef.setImplementation(implementation);
+                
+                stepDef.setCreatedAt(LocalDateTime.now());
+                stepDef.setUpdatedAt(LocalDateTime.now());
+                
+                // Add to generated list
+                generatedStepDefs.add(stepDef);
+                
+                // Add to existing patterns to avoid duplicates
+                existingPatterns.put(key, stepDef);
+            }
+        }
+        
+        // Save generated step definitions
+        for (StepDefinition stepDef : generatedStepDefs) {
+            stepDefinitionRepository.save(stepDef);
+        }
+        
+        return generatedStepDefs;
+    }
+    
+    /**
+     * Execute a feature implementation
+     */
+    private BDDExecution executeFeatureImpl(FeatureFile feature, List<StepDefinition> stepDefinitions, BDDExecutionConfig config) {
+        BDDExecution execution = new BDDExecution();
+        execution.setFeatureId(feature.getId());
+        execution.setProjectId(feature.getProjectId());
+        
+        List<BDDExecution.ScenarioResult> scenarioResults = new ArrayList<>();
+        
+        // Check if we need to filter scenarios by tags
+        List<String> configTags = config.getTags();
+        boolean hasTagFilters = configTags != null && !configTags.isEmpty();
+        
+        // Process each scenario
+        for (FeatureFile.Scenario scenario : feature.getScenarios()) {
+            // Skip if scenario doesn't match tag filters
+            if (hasTagFilters && !scenarioMatchesTags(scenario, configTags)) {
+                continue;
+            }
+            
+            BDDExecution.ScenarioResult scenarioResult = executeScenario(scenario, stepDefinitions, config);
+            scenarioResults.add(scenarioResult);
+        }
+        
+        execution.setScenarioResults(scenarioResults);
+        
+        // Determine overall status
+        boolean hasFailed = scenarioResults.stream()
+                .anyMatch(result -> "FAILED".equals(result.getStatus()));
+        
+        execution.setStatus(hasFailed ? "FAILED" : "COMPLETED");
+        
+        // Generate report URL
+        String reportUrl = "/reports/" + feature.getProjectId() + "/" + feature.getId() + "/" + 
+                           UUID.randomUUID().toString() + "/index.html";
+        execution.setReportUrl(reportUrl);
+        
+        return execution;
+    }
+    
+    /**
+     * Execute a scenario
+     */
+    private BDDExecution.ScenarioResult executeScenario(FeatureFile.Scenario scenario, List<StepDefinition> stepDefinitions, BDDExecutionConfig config) {
+        BDDExecution.ScenarioResult result = new BDDExecution.ScenarioResult();
+        result.setName(scenario.getName());
+        
+        List<BDDExecution.ScenarioResult.StepResult> stepResults = new ArrayList<>();
+        boolean scenarioFailed = false;
+        long scenarioStartTime = System.currentTimeMillis();
+        
+        // Process each step
+        for (FeatureFile.Step step : scenario.getSteps()) {
+            BDDExecution.ScenarioResult.StepResult stepResult = new BDDExecution.ScenarioResult.StepResult();
+            stepResult.setType(step.getType());
+            stepResult.setText(step.getText());
+            
+            // Skip executing steps after a failure if not in strict mode
+            if (scenarioFailed && !config.isStrict()) {
+                stepResult.setStatus("SKIPPED");
+                stepResults.add(stepResult);
+                continue;
+            }
+            
+            // Find matching step definition
+            Optional<StepDefinition> matchingStepDef = findMatchingStepDefinition(step, stepDefinitions);
+            
+            if (matchingStepDef.isPresent()) {
+                // Execute step if not in dry run mode
+                if (!config.isDryRun()) {
+                    try {
+                        long stepStartTime = System.currentTimeMillis();
+                        
+                        // Here we would normally execute the step implementation
+                        // For now, we'll just simulate successful execution
+                        Thread.sleep(100); // Simulate execution time
+                        
+                        long stepEndTime = System.currentTimeMillis();
+                        stepResult.setDuration(stepEndTime - stepStartTime);
+                        stepResult.setStatus("PASSED");
+                    } catch (Exception e) {
+                        stepResult.setStatus("FAILED");
+                        stepResult.setErrorMessage(e.getMessage());
+                        stepResult.setErrorStackTrace(getStackTrace(e));
+                        scenarioFailed = true;
+                    }
+                } else {
+                    // In dry run mode, just mark as passed
+                    stepResult.setStatus("PASSED");
+                    stepResult.setDuration(0L);
+                }
+            } else {
+                // No matching step definition
+                stepResult.setStatus("PENDING");
+                stepResult.setErrorMessage("No matching step definition found");
+                
+                if (config.isStrict()) {
+                    scenarioFailed = true;
+                }
+            }
+            
+            stepResults.add(stepResult);
+        }
+        
+        long scenarioEndTime = System.currentTimeMillis();
+        result.setDuration(scenarioEndTime - scenarioStartTime);
+        result.setStepResults(stepResults);
+        result.setStatus(scenarioFailed ? "FAILED" : "PASSED");
+        
+        return result;
+    }
+    
+    /**
+     * Find matching step definition for a step
+     */
+    private Optional<StepDefinition> findMatchingStepDefinition(FeatureFile.Step step, List<StepDefinition> stepDefinitions) {
+        return stepDefinitions.stream()
+                .filter(def -> isStepTypeCompatible(def.getType(), step.getType()))
+                .filter(def -> {
+                    try {
+                        Pattern pattern = Pattern.compile("^" + def.getPattern() + "$");
+                        return pattern.matcher(step.getText()).matches();
+                    } catch (Exception e) {
+                        logger.warn("Invalid regex pattern in step definition: {}", def.getPattern(), e);
+                        return false;
+                    }
+                })
+                .findFirst();
+    }
+    
+    /**
+     * Check if step type is compatible (e.g., "And" can use any type)
+     */
+    private boolean isStepTypeCompatible(String definitionType, String stepType) {
+        if (definitionType.equalsIgnoreCase(stepType)) {
+            return true;
+        }
+        
+        // And/But can use any previous step type
+        return "And".equalsIgnoreCase(stepType) || "But".equalsIgnoreCase(stepType);
+    }
+    
+    /**
+     * Check if a scenario matches the given tags
+     */
+    private boolean scenarioMatchesTags(FeatureFile.Scenario scenario, List<String> tags) {
+        Set<String> scenarioTagNames = scenario.getTags().stream()
+                .map(FeatureFile.Tag::getName)
+                .collect(Collectors.toSet());
+        
+        for (String tag : tags) {
+            if (tag.startsWith("~")) {
+                // Negative tag (~@tag means scenario should NOT have @tag)
+                String negatedTag = tag.substring(1);
+                if (scenarioTagNames.contains(negatedTag)) {
+                    return false;
+                }
+            } else {
+                // Positive tag (@tag means scenario should have @tag)
+                if (!scenarioTagNames.contains(tag)) {
+                    return false;
+                }
+            }
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Generate pattern from step text
+     */
+    private String generatePatternFromStepText(String stepText) {
+        // Replace numbers with regex for capturing numbers
+        String pattern = stepText.replaceAll("\\b\\d+\\b", "(\\\\d+)");
+        
+        // Replace quoted strings with regex for capturing quoted strings
+        pattern = pattern.replaceAll("\"[^\"]*\"", "\"([^\"]*)\"");
+        
+        // Replace remaining variable-like words with regex captures
+        pattern = pattern.replaceAll("\\b[A-Z][a-zA-Z0-9]*\\b", "([^\\\\s]+)");
+        
+        return pattern;
+    }
+    
+    /**
+     * Extract parameters from step definition pattern
+     */
+    private List<StepDefinition.StepParameter> extractParametersFromPattern(String pattern) {
+        List<StepDefinition.StepParameter> parameters = new ArrayList<>();
+        
+        // Find groups in pattern
+        Matcher groupMatcher = Pattern.compile("\\(([^\\)]+)\\)").matcher(pattern);
+        int position = 0;
+        
+        while (groupMatcher.find()) {
+            StepDefinition.StepParameter parameter = new StepDefinition.StepParameter();
+            
+            // Determine parameter type based on the regex
+            String regexGroup = groupMatcher.group(1);
+            if (regexGroup.equals("\\d+")) {
+                parameter.setType("integer");
+                parameter.setName("num" + position);
+            } else if (regexGroup.equals("[^\"]*")) {
+                parameter.setType("string");
+                parameter.setName("str" + position);
+            } else {
+                parameter.setType("string");
+                parameter.setName("arg" + position);
+            }
+            
+            parameter.setPosition(position);
+            parameters.add(parameter);
+            position++;
+        }
+        
+        return parameters;
+    }
+    
+    /**
+     * Generate implementation template for a step definition
+     */
+    private String generateImplementationTemplate(String stepType, String pattern, List<StepDefinition.StepParameter> parameters) {
+        StringBuilder sb = new StringBuilder();
+        
+        // Java implementation
+        sb.append("@").append(stepType).append("(\"").append(pattern).append("\")\n");
+        sb.append("public void ").append(stepType.toLowerCase());
+        
+        // Method name based on first few words of pattern
+        String methodName = generateMethodName(pattern);
+        sb.append(methodName).append("(");
+        
+        // Method parameters
+        for (int i = 0; i < parameters.size(); i++) {
+            StepDefinition.StepParameter param = parameters.get(i);
+            
+            if (i > 0) {
+                sb.append(", ");
+            }
+            
+            String javaType = mapToJavaType(param.getType());
+            sb.append(javaType).append(" ").append(param.getName());
+        }
+        
+        sb.append(") {\n");
+        sb.append("    // TODO: Implement step\n");
+        sb.append("    throw new io.cucumber.java.PendingException();\n");
+        sb.append("}");
+        
+        return sb.toString();
+    }
+    
+    /**
+     * Generate a Java method name from a pattern
+     */
+    private String generateMethodName(String pattern) {
+        // Remove regex groups and special characters
+        String simplifiedPattern = pattern.replaceAll("\\([^\\)]+\\)", "");
+        simplifiedPattern = simplifiedPattern.replaceAll("[^a-zA-Z0-9\\s]", "");
+        
+        // Take first few words
+        String[] words = simplifiedPattern.split("\\s+");
+        StringBuilder methodName = new StringBuilder();
+        
+        for (int i = 0; i < Math.min(4, words.length); i++) {
+            String word = words[i].trim();
+            if (word.isEmpty()) {
+                continue;
+            }
+            
+            if (i == 0) {
+                methodName.append(word.toLowerCase());
+            } else {
+                methodName.append(word.substring(0, 1).toUpperCase());
+                methodName.append(word.substring(1).toLowerCase());
+            }
+        }
+        
+        return methodName.toString();
+    }
+    
+    /**
+     * Map parameter type to Java type
+     */
+    private String mapToJavaType(String paramType) {
+        switch (paramType.toLowerCase()) {
+            case "integer":
+                return "int";
+            case "number":
+                return "double";
+            case "boolean":
+                return "boolean";
+            default:
+                return "String";
+        }
+    }
+    
+    /**
+     * Validate that project exists
+     */
+    private void validateProject(String projectId) {
+        if (!projectService.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found with id: " + projectId);
+        }
+    }
+    
+    /**
+     * Get stack trace as string
+     */
+    private String getStackTrace(Exception e) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(e.toString()).append("\n");
+        
+        for (StackTraceElement element : e.getStackTrace()) {
+            sb.append("\tat ").append(element.toString()).append("\n");
+        }
+        
+        return sb.toString();
+    }
+}
+
+
+/**
+ * Feature Parser
+ * Parses Gherkin feature files into FeatureFile objects
+ */
+package com.cstestforge.util;
+
+import com.cstestforge.model.bdd.FeatureFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+@Component
+public class FeatureParser {
+    private static final Logger logger = LoggerFactory.getLogger(FeatureParser.class);
+    
+    // Regex patterns for parsing Gherkin syntax
+    private static final Pattern FEATURE_PATTERN = Pattern.compile("Feature:\\s*(.+)(?:\\n|$)");
+    private static final Pattern DESCRIPTION_PATTERN = Pattern.compile("Feature:[^\\n]*\\n([^@\\n]*(?:\\n[^@\\n]+)*)");
+    private static final Pattern TAG_PATTERN = Pattern.compile("(@[^\\s@]+)");
+    private static final Pattern SCENARIO_PATTERN = Pattern.compile("(\\s*)(Scenario|Scenario Outline):\\s*(.+)(?:\\n|$)");
+    private static final Pattern STEP_PATTERN = Pattern.compile("\\s*(Given|When|Then|And|But)\\s+(.+)(?:\\n|$)");
+    private static final Pattern DATA_TABLE_PATTERN = Pattern.compile("\\s*\\|(.+)\\|\\s*(?:\\n|$)");
+    private static final Pattern DOC_STRING_PATTERN = Pattern.compile("\\s*\"\"\"\\s*(?:\\n|$)([\\s\\S]*?)\\s*\"\"\"\\s*(?:\\n|$)");
+    private static final Pattern EXAMPLES_PATTERN = Pattern.compile("\\s*Examples:(?:\\n|$)");
+    
+    /**
+     * Parse feature content into a FeatureFile object
+     * 
+     * @param content Feature file content in Gherkin format
+     * @return Parsed FeatureFile object
+     */
+    public FeatureFile parseFeatureContent(String content) {
+        logger.debug("Parsing feature content");
+        
+        FeatureFile feature = new FeatureFile();
+        
+        // Parse feature name
+        Matcher featureMatcher = FEATURE_PATTERN.matcher(content);
+        if (featureMatcher.find()) {
+            feature.setName(featureMatcher.group(1).trim());
+        }
+        
+        // Parse feature description
+        Matcher descriptionMatcher = DESCRIPTION_PATTERN.matcher(content);
+        if (descriptionMatcher.find()) {
+            feature.setDescription(descriptionMatcher.group(1).trim());
+        }
+        
+        // Parse feature tags
+        List<FeatureFile.Tag> featureTags = new ArrayList<>();
+        String featureSection = content.substring(0, content.indexOf("Feature:"));
+        Matcher tagMatcher = TAG_PATTERN.matcher(featureSection);
+        while (tagMatcher.find()) {
+            FeatureFile.Tag tag = new FeatureFile.Tag(tagMatcher.group(1));
+            featureTags.add(tag);
+        }
+        feature.setTags(featureTags);
+        
+        // Parse scenarios
+        List<FeatureFile.Scenario> scenarios = parseScenarios(content);
+        feature.setScenarios(scenarios);
+        
+        return feature;
+    }
+    
+    /**
+     * Parse scenarios from feature content
+     */
+    private List<FeatureFile.Scenario> parseScenarios(String content) {
+        List<FeatureFile.Scenario> scenarios = new ArrayList<>();
+        
+        Matcher scenarioMatcher = SCENARIO_PATTERN.matcher(content);
+        int contentEnd = content.length();
+        
+        while (scenarioMatcher.find()) {
+            int scenarioStart = scenarioMatcher.start();
+            
+            // Find the next scenario (if any)
+            int nextScenarioStart = contentEnd;
+            scenarioMatcher.region(scenarioMatcher.end(), contentEnd);
+            if (scenarioMatcher.find()) {
+                nextScenarioStart = scenarioMatcher.start();
+                // Reset matcher to current scenario
+                scenarioMatcher.region(scenarioStart, contentEnd);
+            }
+            
+            String scenarioType = scenarioMatcher.group(2).trim();
+            String scenarioName = scenarioMatcher.group(3).trim();
+            boolean isOutline = "Scenario Outline".equals(scenarioType);
+            
+            FeatureFile.Scenario scenario = new FeatureFile.Scenario();
+            scenario.setName(scenarioName);
+            scenario.setOutline(isOutline);
+            
+            // Get scenario content
+            String scenarioContent = content.substring(scenarioStart, nextScenarioStart);
+            
+            // Parse scenario tags
+            List<FeatureFile.Tag> scenarioTags = new ArrayList<>();
+            int scenarioTagsEnd = scenarioContent.indexOf(scenarioType);
+            if (scenarioTagsEnd > 0) {
+                String scenarioTagsSection = scenarioContent.substring(0, scenarioTagsEnd);
+                Matcher tagMatcher = TAG_PATTERN.matcher(scenarioTagsSection);
+                while (tagMatcher.find()) {
+                    FeatureFile.Tag tag = new FeatureFile.Tag(tagMatcher.group(1));
+                    scenarioTags.add(tag);
+                }
+            }
+            scenario.setTags(scenarioTags);
+            
+            // Parse steps
+            List<FeatureFile.Step> steps = parseSteps(scenarioContent);
+            scenario.setSteps(steps);
+            
+            // Parse examples for scenario outlines
+            if (isOutline) {
+                List<FeatureFile.Example> examples = parseExamples(scenarioContent);
+                scenario.setExamples(examples);
+            }
+            
+            scenarios.add(scenario);
+            
+            // Reset matcher for next iteration
+            scenarioMatcher.region(nextScenarioStart, contentEnd);
+        }
+        
+        return scenarios;
+    }
+    
+    /**
+     * Parse steps from scenario content
+     */
+    private List<FeatureFile.Step> parseSteps(String scenarioContent) {
+        List<FeatureFile.Step> steps = new ArrayList<>();
+        
+        Matcher stepMatcher = STEP_PATTERN.matcher(scenarioContent);
+        
+        while (stepMatcher.find()) {
+            String stepType = stepMatcher.group(1).trim();
+            String stepText = stepMatcher.group(2).trim();
+            
+            FeatureFile.Step step = new FeatureFile.Step();
+            step.setType(stepType);
+            step.setText(stepText);
+            
+            // Get the rest of the content after this step
+            int stepEnd = stepMatcher.end();
+            String afterStep = scenarioContent.substring(stepEnd);
+            
+            // Parse data table if present
+            List<String> dataTable = parseDataTable(afterStep);
+            if (!dataTable.isEmpty()) {
+                step.setDataTable(dataTable);
+            }
+            
+            // Parse doc string if present
+            String docString = parseDocString(afterStep);
+            if (docString != null) {
+                step.setDocString(docString);
+            }
+            
+            steps.add(step);
+        }
+        
+        return steps;
+    }
+    
+    /**
+     * Parse data table after a step
+     */
+    private List<String> parseDataTable(String content) {
+        List<String> dataTable = new ArrayList<>();
+        
+        Matcher matcher = DATA_TABLE_PATTERN.matcher(content);
+        while (matcher.find() && !content.substring(0, matcher.start()).contains("Given") &&
+               !content.substring(0, matcher.start()).contains("When") &&
+               !content.substring(0, matcher.start()).contains("Then") &&
+               !content.substring(0, matcher.start()).contains("And") &&
+               !content.substring(0, matcher.start()).contains("But") &&
+               !content.substring(0, matcher.start()).contains("Examples:") &&
+               !content.substring(0, matcher.start()).contains("Scenario:")) {
+            
+            String row = matcher.group(1).trim();
+            dataTable.add(row);
+        }
+        
+        return dataTable;
+    }
+    
+    /**
+     * Parse doc string after a step
+     */
+    private String parseDocString(String content) {
+        Matcher matcher = DOC_STRING_PATTERN.matcher(content);
+        
+        if (matcher.find() && !content.substring(0, matcher.start()).contains("Given") &&
+            !content.substring(0, matcher.start()).contains("When") &&
+            !content.substring(0, matcher.start()).contains("Then") &&
+            !content.substring(0, matcher.start()).contains("And") &&
+            !content.substring(0, matcher.start()).contains("But") &&
+            !content.substring(0, matcher.start()).contains("Examples:") &&
+            !content.substring(0, matcher.start()).contains("Scenario:")) {
+            
+            return matcher.group(1);
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Parse examples for scenario outlines
+     */
+    private List<FeatureFile.Example> parseExamples(String scenarioContent) {
+        List<FeatureFile.Example> examples = new ArrayList<>();
+        
+        Matcher examplesMatcher = EXAMPLES_PATTERN.matcher(scenarioContent);
+        
+        while (examplesMatcher.find()) {
+            FeatureFile.Example example = new FeatureFile.Example();
+            
+            // Get the content after Examples:
+            int examplesStart = examplesMatcher.end();
+            String examplesContent = scenarioContent.substring(examplesStart);
+            
+            // Parse data table for examples
+            List<String> dataTable = parseDataTable(examplesContent);
+            
+            if (!dataTable.isEmpty()) {
+                // First row is headers
+                String headerRow = dataTable.get(0);
+                List<String> headers = Arrays.asList(headerRow.split("\\s*\\|\\s*"));
+                example.setHeaders(headers);
+                
+                // Rest of the rows are data
+                List<List<String>> rows = new ArrayList<>();
+                for (int i = 1; i < dataTable.size(); i++) {
+                    String row = dataTable.get(i);
+                    List<String> rowValues = Arrays.asList(row.split("\\s*\\|\\s*"));
+                    rows.add(rowValues);
+                }
+                example.setRows(rows);
+            }
+            
+            examples.add(example);
+        }
+        
+        return examples;
+    }
+}
+
+
+/**
+ * BDD Cucumber Runner
+ * Handles executing Cucumber tests
+ */
+package com.cstestforge.service.bdd;
+
+import com.cstestforge.model.bdd.BDDExecution;
+import com.cstestforge.model.bdd.BDDExecutionConfig;
+import com.cstestforge.model.bdd.FeatureFile;
+import com.cstestforge.model.bdd.StepDefinition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.*;
+
+@Component
+public class BDDCucumberRunner {
+    private static final Logger logger = LoggerFactory.getLogger(BDDCucumberRunner.class);
+    
+    @Value("${cstestforge.bdd.temp-dir:./tmp/bdd}")
+    private String tempDir;
+    
+    @Value("${cstestforge.bdd.reports-dir:./storage/bdd-reports}")
+    private String reportsDir;
+    
+    /**
+     * Run a BDD feature file with Cucumber
+     * 
+     * @param feature Feature file to run
+     * @param stepDefinitions Step definitions to use
+     * @param config Execution configuration
+     * @param executionId Execution ID for reporting
+     * @return Execution result
+     */
+    public BDDExecution runFeature(FeatureFile feature, List<StepDefinition> stepDefinitions, 
+                                   BDDExecutionConfig config, String executionId) {
+        logger.debug("Running BDD feature: {} with execution ID: {}", feature.getId(), executionId);
+        
+        try {
+            // Create temporary directories
+            String runId = UUID.randomUUID().toString();
+            Path runDir = Paths.get(tempDir, runId);
+            Path featuresDir = runDir.resolve("features");
+            Path stepsDir = runDir.resolve("steps");
+            Path reportsDir = Paths.get(this.reportsDir, feature.getProjectId(), feature.getId(), executionId);
+            
+            Files.createDirectories(featuresDir);
+            Files.createDirectories(stepsDir);
+            Files.createDirectories(reportsDir);
+            
+            // Write feature file
+            Path featureFile = featuresDir.resolve(feature.getName().replaceAll("[^a-zA-Z0-9]", "_") + ".feature");
+            Files.writeString(featureFile, feature.getContent());
+            
+            // Write step definition files
+            Map<String, StringBuilder> stepDefFiles = new HashMap<>();
+            
+            for (StepDefinition stepDef : stepDefinitions) {
+                String language = stepDef.getLanguage();
+                String fileName = "StepDefinitions_" + language + ".java";
+                
+                if (!stepDefFiles.containsKey(fileName)) {
+                    StringBuilder content = new StringBuilder();
+                    content.append("package com.cstestforge.bdd.steps;\n\n");
+                    content.append("import io.cucumber.java.en.*;\n");
+                    content.append("import org.junit.Assert;\n\n");
+                    content.append("public class StepDefinitions_").append(language).append(" {\n\n");
+                    
+                    stepDefFiles.put(fileName, content);
+                }
+                
+                StringBuilder content = stepDefFiles.get(fileName);
+                content.append(stepDef.getImplementation()).append("\n\n");
+            }
+            
+            // Finish and write step definition files
+            for (Map.Entry<String, StringBuilder> entry : stepDefFiles.entrySet()) {
+                StringBuilder content = entry.getValue();
+                content.append("}\n");
+                
+                Path stepDefFile = stepsDir.resolve(entry.getKey());
+                Files.writeString(stepDefFile, content.toString());
+            }
+            
+            // Create Cucumber runner file
+            createCucumberRunner(runDir, config);
+            
+            // Create POM file for Maven
+            createPomFile(runDir);
+            
+            // Generate execution results
+            // In a real implementation, we would execute Cucumber with Maven
+            // For this example, we'll simulate the execution
+            return simulateExecution(feature, executionId);
+            
+        } catch (IOException e) {
+            logger.error("Error preparing BDD execution", e);
+            
+            // Create failed execution result
+            BDDExecution execution = new BDDExecution();
+            execution.setId(executionId);
+            execution.setProjectId(feature.getProjectId());
+            execution.setFeatureId(feature.getId());
+            execution.setStatus("FAILED");
+            execution.setStartTime(LocalDateTime.now());
+            execution.setEndTime(LocalDateTime.now());
+            
+            BDDExecution.ScenarioResult errorScenario = new BDDExecution.ScenarioResult();
+            errorScenario.setName("Execution Error");
+            errorScenario.setStatus("FAILED");
+            errorScenario.setErrorMessage("Error preparing BDD execution: " + e.getMessage());
+            
+            StringBuilder stackTrace = new StringBuilder();
+            for (StackTraceElement element : e.getStackTrace()) {
+                stackTrace.append("\tat ").append(element).append("\n");
+            }
+            errorScenario.setErrorStackTrace(stackTrace.toString());
+            
+            execution.getScenarioResults().add(errorScenario);
+            
+            return execution;
+        }
+    }
+    
+    /**
+     * Create Cucumber runner file
+     */
+    private void createCucumberRunner(Path runDir, BDDExecutionConfig config) throws IOException {
+        Path runnerFile = runDir.resolve("src/test/java/com/cstestforge/bdd/CucumberRunner.java");
+        Files.createDirectories(runnerFile.getParent());
+        
+        StringBuilder content = new StringBuilder();
+        content.append("package com.cstestforge.bdd;\n\n");
+        content.append("import io.cucumber.junit.Cucumber;\n");
+        content.append("import io.cucumber.junit.CucumberOptions;\n");
+        content.append("import org.junit.runner.RunWith;\n\n");
+        
+        content.append("@RunWith(Cucumber.class)\n");
+        content.append("@CucumberOptions(\n");
+        content.append("    features = \"classpath:features\",\n");
+        content.append("    glue = {\"com.cstestforge.bdd.steps\"},\n");
+        
+        // Add tags if specified
+        if (config.getTags() != null && !config.getTags().isEmpty()) {
+            content.append("    tags = \"").append(String.join(" and ", config.getTags())).append("\",\n");
+        }
+        
+        content.append("    plugin = {\n");
+        content.append("        \"pretty\",\n");
+        content.append("        \"html:target/cucumber-reports/index.html\",\n");
+        content.append("        \"json:target/cucumber-reports/cucumber.json\"\n");
+        content.append("    },\n");
+        
+        // Add dry run if specified
+        if (config.isDryRun()) {
+            content.append("    dryRun = true,\n");
+        }
+        
+        // Add strict mode if specified
+        if (config.isStrict()) {
+            content.append("    strict = true,\n");
+        }
+        
+        content.append("    monochrome = true\n");
+        content.append(")\n");
+        content.append("public class CucumberRunner {\n");
+        content.append("}\n");
+        
+        Files.writeString(runnerFile, content.toString());
+    }
+    
+    /**
+     * Create POM file for Maven
+     */
+    private void createPomFile(Path runDir) throws IOException {
+        Path pomFile = runDir.resolve("pom.xml");
+        
+        String content = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<project xmlns=\"http://maven.apache.org/POM/4.0.0\"\n" +
+                "         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n" +
+                "         xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd\">\n" +
+                "    <modelVersion>4.0.0</modelVersion>\n" +
+                "\n" +
+                "    <groupId>com.cstestforge</groupId>\n" +
+                "    <artifactId>bdd-runner</artifactId>\n" +
+                "    <version>1.0-SNAPSHOT</version>\n" +
+                "\n" +
+                "    <properties>\n" +
+                "        <maven.compiler.source>11</maven.compiler.source>\n" +
+                "        <maven.compiler.target>11</maven.compiler.target>\n" +
+                "        <cucumber.version>7.0.0</cucumber.version>\n" +
+                "        <junit.version>4.13.2</junit.version>\n" +
+                "    </properties>\n" +
+                "\n" +
+                "    <dependencies>\n" +
+                "        <dependency>\n" +
+                "            <groupId>io.cucumber</groupId>\n" +
+                "            <artifactId>cucumber-java</artifactId>\n" +
+                "            <version>${cucumber.version}</version>\n" +
+                "        </dependency>\n" +
+                "        <dependency>\n" +
+                "            <groupId>io.cucumber</groupId>\n" +
+                "            <artifactId>cucumber-junit</artifactId>\n" +
+                "            <version>${cucumber.version}</version>\n" +
+                "        </dependency>\n" +
+                "        <dependency>\n" +
+                "            <groupId>junit</groupId>\n" +
+                "            <artifactId>junit</artifactId>\n" +
+                "            <version>${junit.version}</version>\n" +
+                "        </dependency>\n" +
+                "    </dependencies>\n" +
+                "\n" +
+                "    <build>\n" +
+                "        <plugins>\n" +
+                "            <plugin>\n" +
+                "                <groupId>org.apache.maven.plugins</groupId>\n" +
+                "                <artifactId>maven-compiler-plugin</artifactId>\n" +
+                "                <version>3.8.1</version>\n" +
+                "            </plugin>\n" +
+                "            <plugin>\n" +
+                "                <groupId>org.apache.maven.plugins</groupId>\n" +
+                "                <artifactId>maven-surefire-plugin</artifactId>\n" +
+                "                <version>2.22.2</version>\n" +
+                "                <configuration>\n" +
+                "                    <includes>\n" +
+                "                        <include>**/*Runner.java</include>\n" +
+                "                    </includes>\n" +
+                "                </configuration>\n" +
+                "            </plugin>\n" +
+                "        </plugins>\n" +
+                "    </build>\n" +
+                "</project>";
+        
+        Files.writeString(pomFile, content);
+    }
+    
+    /**
+     * Simulate Cucumber execution
+     * In a real implementation, we would run Maven to execute Cucumber
+     */
+    private BDDExecution simulateExecution(FeatureFile feature, String executionId) {
+        BDDExecution execution = new BDDExecution();
+        execution.setId(executionId);
+        execution.setProjectId(feature.getProjectId());
+        execution.setFeatureId(feature.getId());
+        execution.setStatus("COMPLETED");
+        execution.setStartTime(LocalDateTime.now().minusSeconds(5)); // Simulate start time
+        execution.setEndTime(LocalDateTime.now());
+        
+        List<BDDExecution.ScenarioResult> scenarioResults = new ArrayList<>();
+        
+        // Simulate results for each scenario
+        for (FeatureFile.Scenario scenario : feature.getScenarios()) {
+            BDDExecution.ScenarioResult scenarioResult = new BDDExecution.ScenarioResult();
+            scenarioResult.setName(scenario.getName());
+            
+            // Randomly pass or fail scenarios
+            boolean passes = Math.random() > 0.3; // 70% pass rate
+            scenarioResult.setStatus(passes ? "PASSED" : "FAILED");
+            scenarioResult.setDuration((long) (Math.random() * 1000) + 100); // 100-1100ms
+            
+            List<BDDExecution.ScenarioResult.StepResult> stepResults = new ArrayList<>();
+            
+            // Process each step
+            for (FeatureFile.Step step : scenario.getSteps()) {
+                BDDExecution.ScenarioResult.StepResult stepResult = new BDDExecution.ScenarioResult.StepResult();
+                stepResult.setType(step.getType());
+                stepResult.setText(step.getText());
+                
+                // If scenario failed, randomly fail one step
+                boolean stepPasses = passes || Math.random() > 0.8; // Most steps pass
+                
+                if (stepPasses) {
+                    stepResult.setStatus("PASSED");
+                    stepResult.setDuration((long) (Math.random() * 500) + 50); // 50-550ms
+                } else {
+                    stepResult.setStatus("FAILED");
+                    stepResult.setDuration((long) (Math.random() * 300) + 50); // 50-350ms
+                    stepResult.setErrorMessage("Assertion failed: Expected value not found");
+                    stepResult.setErrorStackTrace("at com.cstestforge.bdd.steps.StepDefinitions.thenIShouldSee(StepDefinitions.java:42)\n" +
+                            "at ✽.Then I should see expected results(feature.feature:15)");
+                }
+                
+                stepResults.add(stepResult);
+            }
+            
+            scenarioResult.setStepResults(stepResults);
+            scenarioResults.add(scenarioResult);
+        }
+        
+        execution.setScenarioResults(scenarioResults);
+        
+        // Generate report URL
+        String reportUrl = "/reports/" + feature.getProjectId() + "/" + feature.getId() + "/" + executionId + "/index.html";
+        execution.setReportUrl(reportUrl);
+        
+        return execution;
+    }
+}
