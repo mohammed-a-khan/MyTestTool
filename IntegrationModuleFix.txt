@@ -460,6 +460,30 @@ public class IntegrationSyncOptions {
     /** Path pattern for files to sync in Git */
     private String adoGitPathPattern;
 
+    /** Azure DevOps test run title format */
+    private String adoTestRunTitleFormat;
+
+    /** Azure DevOps test run status */
+    private String adoTestRunStatus;
+
+    /** Flag to include attachments in operations */
+    private boolean includeAttachments = true;
+    
+    /** File extensions to filter by when using Git */
+    private List<String> adoGitFileExtensions = new ArrayList<>();
+    
+    /** Base path for Git operations */
+    private String adoGitBasePath;
+    
+    /** Commit message format for Git operations */
+    private String adoGitCommitMessageFormat;
+    
+    /** Git file format */
+    private String adoGitFileFormat;
+    
+    /** Flag to create Git branch if it doesn't exist */
+    private boolean adoGitCreateBranch = false;
+
     /** Proxy settings to use during synchronization */
     private ProxySettings proxySettings;
 
@@ -683,6 +707,78 @@ public class IntegrationSyncOptions {
         this.proxySettings = proxySettings;
         return this;
     }
+    
+    public String getAdoTestRunTitleFormat() {
+        return adoTestRunTitleFormat;
+    }
+
+    public IntegrationSyncOptions setAdoTestRunTitleFormat(String adoTestRunTitleFormat) {
+        this.adoTestRunTitleFormat = adoTestRunTitleFormat;
+        return this;
+    }
+
+    public String getAdoTestRunStatus() {
+        return adoTestRunStatus;
+    }
+
+    public IntegrationSyncOptions setAdoTestRunStatus(String adoTestRunStatus) {
+        this.adoTestRunStatus = adoTestRunStatus;
+        return this;
+    }
+
+    public boolean isIncludeAttachments() {
+        return includeAttachments;
+    }
+
+    public IntegrationSyncOptions setIncludeAttachments(boolean includeAttachments) {
+        this.includeAttachments = includeAttachments;
+        return this;
+    }
+
+    public List<String> getAdoGitFileExtensions() {
+        return adoGitFileExtensions;
+    }
+
+    public IntegrationSyncOptions setAdoGitFileExtensions(List<String> adoGitFileExtensions) {
+        this.adoGitFileExtensions = adoGitFileExtensions;
+        return this;
+    }
+
+    public String getAdoGitBasePath() {
+        return adoGitBasePath;
+    }
+
+    public IntegrationSyncOptions setAdoGitBasePath(String adoGitBasePath) {
+        this.adoGitBasePath = adoGitBasePath;
+        return this;
+    }
+
+    public String getAdoGitCommitMessageFormat() {
+        return adoGitCommitMessageFormat;
+    }
+
+    public IntegrationSyncOptions setAdoGitCommitMessageFormat(String adoGitCommitMessageFormat) {
+        this.adoGitCommitMessageFormat = adoGitCommitMessageFormat;
+        return this;
+    }
+
+    public String getAdoGitFileFormat() {
+        return adoGitFileFormat;
+    }
+
+    public IntegrationSyncOptions setAdoGitFileFormat(String adoGitFileFormat) {
+        this.adoGitFileFormat = adoGitFileFormat;
+        return this;
+    }
+
+    public boolean isAdoGitCreateBranch() {
+        return adoGitCreateBranch;
+    }
+
+    public IntegrationSyncOptions setAdoGitCreateBranch(boolean adoGitCreateBranch) {
+        this.adoGitCreateBranch = adoGitCreateBranch;
+        return this;
+    }
 }
 ```
 
@@ -743,6 +839,21 @@ public class IntegrationSyncResult {
 
     /** Flag indicating if this was a dry run */
     private boolean dryRun;
+
+    /** Azure DevOps test run ID created during sync */
+    private Long adoTestRunId;
+
+    /** Azure DevOps test run URL */
+    private String adoTestRunUrl;
+
+    /** Azure DevOps Git commit ID */
+    private String adoGitCommitId;
+
+    /** Azure DevOps Git commit URL */
+    private String adoGitCommitUrl;
+
+    /** URLs to exported resources in the external system */
+    private Map<String, String> exportedUrls = new HashMap<>();
 
     /**
      * Synchronization statistics for a content type
@@ -1044,6 +1155,51 @@ public class IntegrationSyncResult {
 
     public IntegrationSyncResult setDryRun(boolean dryRun) {
         this.dryRun = dryRun;
+        return this;
+    }
+
+    public Long getAdoTestRunId() {
+        return adoTestRunId;
+    }
+
+    public IntegrationSyncResult setAdoTestRunId(Long adoTestRunId) {
+        this.adoTestRunId = adoTestRunId;
+        return this;
+    }
+
+    public String getAdoTestRunUrl() {
+        return adoTestRunUrl;
+    }
+
+    public IntegrationSyncResult setAdoTestRunUrl(String adoTestRunUrl) {
+        this.adoTestRunUrl = adoTestRunUrl;
+        return this;
+    }
+
+    public String getAdoGitCommitId() {
+        return adoGitCommitId;
+    }
+
+    public IntegrationSyncResult setAdoGitCommitId(String adoGitCommitId) {
+        this.adoGitCommitId = adoGitCommitId;
+        return this;
+    }
+
+    public String getAdoGitCommitUrl() {
+        return adoGitCommitUrl;
+    }
+
+    public IntegrationSyncResult setAdoGitCommitUrl(String adoGitCommitUrl) {
+        this.adoGitCommitUrl = adoGitCommitUrl;
+        return this;
+    }
+
+    public Map<String, String> getExportedUrls() {
+        return exportedUrls;
+    }
+
+    public IntegrationSyncResult setExportedUrls(Map<String, String> exportedUrls) {
+        this.exportedUrls = exportedUrls;
         return this;
     }
 }
