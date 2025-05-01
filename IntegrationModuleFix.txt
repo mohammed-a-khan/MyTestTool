@@ -11121,3 +11121,21 @@ public interface IntegrationService {
      */
     IntegrationExportResult exportToIntegration(String projectId, String integrationId, IntegrationExportOptions exportOptions);
 }
+
+
+pom.xml updates
+--
+
+<!-- For MultipartEntityBuilder -->
+<dependency>
+    <groupId>org.apache.httpcomponents</groupId>
+    <artifactId>httpmime</artifactId>
+    <version>4.5.13</version>
+</dependency>
+
+<!-- For Jsoup HTML/XML parsing -->
+<dependency>
+    <groupId>org.jsoup</groupId>
+    <artifactId>jsoup</artifactId>
+    <version>1.14.3</version>
+</dependency>
