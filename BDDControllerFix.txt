@@ -630,6 +630,7 @@ public class BDDImportResult {
  */
 package com.cstestforge.service.bdd;
 
+import com.cstestforge.exception.ResourceNotFoundException;
 import com.cstestforge.model.bdd.BDDExecutionConfig;
 import com.cstestforge.model.bdd.BDDImportResult;
 import com.cstestforge.model.bdd.FeatureFile;
@@ -748,6 +749,15 @@ public interface BDDTestingService {
      * @return Execution ID
      */
     String executeFeature(String projectId, String featureId, BDDExecutionConfig config);
+    
+    /**
+     * Get BDD execution result
+     * 
+     * @param executionId Execution ID
+     * @return BDD execution result
+     * @throws ResourceNotFoundException if execution doesn't exist
+     */
+    Object getBDDExecutionResult(String executionId) throws ResourceNotFoundException;
     
     /**
      * Generate step definitions from a feature file
@@ -2396,6 +2406,128 @@ public class BDDTestingServiceImpl implements BDDTestingService {
         
         return sb.toString();
     }
+
+    /**
+ * Implementation of getBDDExecutionResult method for BDDTestingServiceImpl
+ */
+@Override
+public Object getBDDExecutionResult(String executionId) throws ResourceNotFoundException {
+    logger.debug("Getting BDD execution result: {}", executionId);
+    
+    // Get the execution from the repository
+    Optional<BDDExecution> executionOpt = executionRepository.findById(executionId);
+    
+    if (!executionOpt.isPresent()) {
+        throw new ResourceNotFoundException("BDD execution not found with id: " + executionId);
+    }
+    
+    BDDExecution execution = executionOpt.get();
+    
+    // Create a map with all the important execution details
+    // This ensures compatibility with the ExecutionServiceImpl
+    Map<String, Object> resultMap = new HashMap<>();
+    resultMap.put("id", execution.getId());
+    resultMap.put("featureId", execution.getFeatureId());
+    resultMap.put("projectId", execution.getProjectId());
+    resultMap.put("status", execution.getStatus());
+    resultMap.put("startTime", execution.getStartTime());
+    resultMap.put("endTime", execution.getEndTime());
+    
+    // Calculate duration if start and end times are available
+    if (execution.getStartTime() != null && execution.getEndTime() != null) {
+        long durationMs = java.time.Duration.between(
+                execution.getStartTime(), execution.getEndTime()).toMillis();
+        resultMap.put("durationMs", durationMs);
+    }
+    
+    resultMap.put("reportUrl", execution.getReportUrl());
+    
+    // Determine if execution was successful (no failed scenarios)
+    boolean successful = !"FAILED".equals(execution.getStatus());
+    if (execution.getScenarioResults() != null) {
+        successful = execution.getScenarioResults().stream()
+                .noneMatch(scenario -> "FAILED".equals(scenario.getStatus()));
+    }
+    resultMap.put("successful", successful);
+    
+    // Generate a summary
+    String summary = "BDD execution " + (successful ? "completed successfully" : "failed");
+    if (execution.getScenarioResults() != null) {
+        int total = execution.getScenarioResults().size();
+        int passed = (int) execution.getScenarioResults().stream()
+                .filter(scenario -> "PASSED".equals(scenario.getStatus()))
+                .count();
+        int failed = (int) execution.getScenarioResults().stream()
+                .filter(scenario -> "FAILED".equals(scenario.getStatus()))
+                .count();
+        
+        summary += String.format(". %d of %d scenarios passed, %d failed", passed, total, failed);
+    }
+    resultMap.put("summary", summary);
+    
+    // Include scenarios data
+    if (execution.getScenarioResults() != null) {
+        List<Map<String, Object>> scenarios = new ArrayList<>();
+        
+        for (BDDExecution.ScenarioResult scenario : execution.getScenarioResults()) {
+            Map<String, Object> scenarioMap = new HashMap<>();
+            scenarioMap.put("name", scenario.getName());
+            scenarioMap.put("status", scenario.getStatus());
+            scenarioMap.put("duration", scenario.getDuration());
+            
+            if (scenario.getErrorMessage() != null) {
+                scenarioMap.put("errorMessage", scenario.getErrorMessage());
+            }
+            
+            // Include step data
+            if (scenario.getStepResults() != null) {
+                List<Map<String, Object>> steps = new ArrayList<>();
+                
+                for (BDDExecution.ScenarioResult.StepResult step : scenario.getStepResults()) {
+                    Map<String, Object> stepMap = new HashMap<>();
+                    stepMap.put("type", step.getType());
+                    stepMap.put("text", step.getText());
+                    stepMap.put("status", step.getStatus());
+                    stepMap.put("duration", step.getDuration());
+                    
+                    if (step.getErrorMessage() != null) {
+                        stepMap.put("message", step.getErrorMessage());
+                    }
+                    
+                    // Add times for compatible access
+                    // Since BDDExecution.ScenarioResult.StepResult might not have these fields,
+                    // we'll generate them based on the scenario's time
+                    LocalDateTime stepStartTime = execution.getStartTime();
+                    if (stepStartTime == null) {
+                        stepStartTime = LocalDateTime.now().minusMinutes(1);
+                    }
+                    
+                    stepMap.put("startTime", stepStartTime);
+                    
+                    LocalDateTime stepEndTime;
+                    if (step.getDuration() > 0) {
+                        stepEndTime = stepStartTime.plusNanos(step.getDuration() * 1_000_000);
+                    } else {
+                        stepEndTime = stepStartTime.plusSeconds(1);
+                    }
+                    stepMap.put("endTime", stepEndTime);
+                    
+                    // Add to steps list
+                    steps.add(stepMap);
+                }
+                
+                scenarioMap.put("steps", steps);
+            }
+            
+            // Add to scenarios list
+            scenarios.add(scenarioMap);
+        }
+        
+        resultMap.put("scenarios", scenarios);
+    }
+    
+    return resultMap;
+}
 }
 
 
