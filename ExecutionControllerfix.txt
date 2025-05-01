@@ -1,0 +1,2749 @@
+/**
+ * Execution Request
+ * Contains information for executing tests
+ */
+package com.cstestforge.model.execution;
+
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
+import java.util.ArrayList;
+import java.util.List;
+
+public class ExecutionRequest {
+    @NotBlank(message = "Project ID is required")
+    private String projectId;
+    
+    private List<String> testCaseIds = new ArrayList<>();
+    
+    private List<String> testSuiteIds = new ArrayList<>();
+    
+    private ExecutionConfig config;
+    
+    public ExecutionRequest() {
+        this.config = new ExecutionConfig();
+    }
+    
+    // Getters and setters
+    public String getProjectId() {
+        return projectId;
+    }
+    
+    public ExecutionRequest setProjectId(String projectId) {
+        this.projectId = projectId;
+        return this;
+    }
+    
+    public List<String> getTestCaseIds() {
+        return testCaseIds;
+    }
+    
+    public ExecutionRequest setTestCaseIds(List<String> testCaseIds) {
+        this.testCaseIds = testCaseIds;
+        return this;
+    }
+    
+    public List<String> getTestSuiteIds() {
+        return testSuiteIds;
+    }
+    
+    public ExecutionRequest setTestSuiteIds(List<String> testSuiteIds) {
+        this.testSuiteIds = testSuiteIds;
+        return this;
+    }
+    
+    public ExecutionConfig getConfig() {
+        return config;
+    }
+    
+    public ExecutionRequest setConfig(ExecutionConfig config) {
+        this.config = config;
+        return this;
+    }
+}
+
+/**
+ * Execution Configuration
+ * Configuration parameters for test execution
+ */
+package com.cstestforge.model.execution;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class ExecutionConfig {
+    private String environmentId;
+    private boolean parallelExecution = false;
+    private int retryCount = 0;
+    private long timeoutMs = 30000;
+    private boolean stopOnError = false;
+    private Map<String, String> variables = new HashMap<>();
+    
+    // Getters and setters
+    public String getEnvironmentId() {
+        return environmentId;
+    }
+    
+    public ExecutionConfig setEnvironmentId(String environmentId) {
+        this.environmentId = environmentId;
+        return this;
+    }
+    
+    public boolean isParallelExecution() {
+        return parallelExecution;
+    }
+    
+    public ExecutionConfig setParallelExecution(boolean parallelExecution) {
+        this.parallelExecution = parallelExecution;
+        return this;
+    }
+    
+    public int getRetryCount() {
+        return retryCount;
+    }
+    
+    public ExecutionConfig setRetryCount(int retryCount) {
+        this.retryCount = retryCount;
+        return this;
+    }
+    
+    public long getTimeoutMs() {
+        return timeoutMs;
+    }
+    
+    public ExecutionConfig setTimeoutMs(long timeoutMs) {
+        this.timeoutMs = timeoutMs;
+        return this;
+    }
+    
+    public boolean isStopOnError() {
+        return stopOnError;
+    }
+    
+    public ExecutionConfig setStopOnError(boolean stopOnError) {
+        this.stopOnError = stopOnError;
+        return this;
+    }
+    
+    public Map<String, String> getVariables() {
+        return variables;
+    }
+    
+    public ExecutionConfig setVariables(Map<String, String> variables) {
+        this.variables = variables;
+        return this;
+    }
+}
+
+/**
+ * Execution Status
+ * Represents the status of a test execution
+ */
+package com.cstestforge.model.execution;
+
+import java.time.LocalDateTime;
+
+public class ExecutionStatus {
+    private String executionId;
+    private String status; // "QUEUED", "RUNNING", "COMPLETED", "FAILED", "CANCELLED"
+    private int totalTests;
+    private int testsCompleted;
+    private int testsPassed;
+    private int testsFailed;
+    private int testsSkipped;
+    private double progressPercentage;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
+    private String message;
+    
+    public ExecutionStatus() {
+        this.status = "QUEUED";
+        this.progressPercentage = 0.0;
+    }
+    
+    // Getters and setters
+    public String getExecutionId() {
+        return executionId;
+    }
+    
+    public ExecutionStatus setExecutionId(String executionId) {
+        this.executionId = executionId;
+        return this;
+    }
+    
+    public String getStatus() {
+        return status;
+    }
+    
+    public ExecutionStatus setStatus(String status) {
+        this.status = status;
+        return this;
+    }
+    
+    public int getTotalTests() {
+        return totalTests;
+    }
+    
+    public ExecutionStatus setTotalTests(int totalTests) {
+        this.totalTests = totalTests;
+        return this;
+    }
+    
+    public int getTestsCompleted() {
+        return testsCompleted;
+    }
+    
+    public ExecutionStatus setTestsCompleted(int testsCompleted) {
+        this.testsCompleted = testsCompleted;
+        updateProgressPercentage();
+        return this;
+    }
+    
+    public int getTestsPassed() {
+        return testsPassed;
+    }
+    
+    public ExecutionStatus setTestsPassed(int testsPassed) {
+        this.testsPassed = testsPassed;
+        return this;
+    }
+    
+    public int getTestsFailed() {
+        return testsFailed;
+    }
+    
+    public ExecutionStatus setTestsFailed(int testsFailed) {
+        this.testsFailed = testsFailed;
+        return this;
+    }
+    
+    public int getTestsSkipped() {
+        return testsSkipped;
+    }
+    
+    public ExecutionStatus setTestsSkipped(int testsSkipped) {
+        this.testsSkipped = testsSkipped;
+        return this;
+    }
+    
+    public double getProgressPercentage() {
+        return progressPercentage;
+    }
+    
+    public ExecutionStatus setProgressPercentage(double progressPercentage) {
+        this.progressPercentage = progressPercentage;
+        return this;
+    }
+    
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+    
+    public ExecutionStatus setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+        return this;
+    }
+    
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+    
+    public ExecutionStatus setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+        return this;
+    }
+    
+    public String getMessage() {
+        return message;
+    }
+    
+    public ExecutionStatus setMessage(String message) {
+        this.message = message;
+        return this;
+    }
+    
+    private void updateProgressPercentage() {
+        if (totalTests > 0) {
+            this.progressPercentage = ((double) testsCompleted / totalTests) * 100.0;
+        }
+    }
+}
+
+/**
+ * Test Result
+ * Represents the result of an individual test
+ */
+package com.cstestforge.model.execution;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class TestResult {
+    private String testId;
+    private String testName;
+    private String testType; // "API", "BDD", "DATABASE", etc.
+    private String status; // "PASSED", "FAILED", "SKIPPED", "ERROR"
+    private String message;
+    private String errorDetails;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
+    private long durationMs;
+    private List<StepResult> steps = new ArrayList<>();
+    private Map<String, Object> metadata = new HashMap<>();
+    
+    // Getters and setters
+    public String getTestId() {
+        return testId;
+    }
+    
+    public TestResult setTestId(String testId) {
+        this.testId = testId;
+        return this;
+    }
+    
+    public String getTestName() {
+        return testName;
+    }
+    
+    public TestResult setTestName(String testName) {
+        this.testName = testName;
+        return this;
+    }
+    
+    public String getTestType() {
+        return testType;
+    }
+    
+    public TestResult setTestType(String testType) {
+        this.testType = testType;
+        return this;
+    }
+    
+    public String getStatus() {
+        return status;
+    }
+    
+    public TestResult setStatus(String status) {
+        this.status = status;
+        return this;
+    }
+    
+    public String getMessage() {
+        return message;
+    }
+    
+    public TestResult setMessage(String message) {
+        this.message = message;
+        return this;
+    }
+    
+    public String getErrorDetails() {
+        return errorDetails;
+    }
+    
+    public TestResult setErrorDetails(String errorDetails) {
+        this.errorDetails = errorDetails;
+        return this;
+    }
+    
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+    
+    public TestResult setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+        return this;
+    }
+    
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+    
+    public TestResult setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+        return this;
+    }
+    
+    public long getDurationMs() {
+        return durationMs;
+    }
+    
+    public TestResult setDurationMs(long durationMs) {
+        this.durationMs = durationMs;
+        return this;
+    }
+    
+    public List<StepResult> getSteps() {
+        return steps;
+    }
+    
+    public TestResult setSteps(List<StepResult> steps) {
+        this.steps = steps;
+        return this;
+    }
+    
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+    
+    public TestResult setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+        return this;
+    }
+    
+    /**
+     * Step Result - Represents the result of a single test step
+     */
+    public static class StepResult {
+        private String name;
+        private String status; // "PASSED", "FAILED", "SKIPPED", "ERROR"
+        private String message;
+        private String errorDetails;
+        private LocalDateTime startTime;
+        private LocalDateTime endTime;
+        private long durationMs;
+        private Map<String, Object> data = new HashMap<>();
+        
+        // Getters and setters
+        public String getName() {
+            return name;
+        }
+        
+        public StepResult setName(String name) {
+            this.name = name;
+            return this;
+        }
+        
+        public String getStatus() {
+            return status;
+        }
+        
+        public StepResult setStatus(String status) {
+            this.status = status;
+            return this;
+        }
+        
+        public String getMessage() {
+            return message;
+        }
+        
+        public StepResult setMessage(String message) {
+            this.message = message;
+            return this;
+        }
+        
+        public String getErrorDetails() {
+            return errorDetails;
+        }
+        
+        public StepResult setErrorDetails(String errorDetails) {
+            this.errorDetails = errorDetails;
+            return this;
+        }
+        
+        public LocalDateTime getStartTime() {
+            return startTime;
+        }
+        
+        public StepResult setStartTime(LocalDateTime startTime) {
+            this.startTime = startTime;
+            return this;
+        }
+        
+        public LocalDateTime getEndTime() {
+            return endTime;
+        }
+        
+        public StepResult setEndTime(LocalDateTime endTime) {
+            this.endTime = endTime;
+            return this;
+        }
+        
+        public long getDurationMs() {
+            return durationMs;
+        }
+        
+        public StepResult setDurationMs(long durationMs) {
+            this.durationMs = durationMs;
+            return this;
+        }
+        
+        public Map<String, Object> getData() {
+            return data;
+        }
+        
+        public StepResult setData(Map<String, Object> data) {
+            this.data = data;
+            return this;
+        }
+    }
+}
+
+/**
+ * Execution Result
+ * Represents the result of a test execution
+ */
+package com.cstestforge.model.execution;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+public class ExecutionResult {
+    private String id;
+    private String projectId;
+    private List<String> testCaseIds = new ArrayList<>();
+    private List<String> testSuiteIds = new ArrayList<>();
+    private ExecutionConfig config;
+    private String status; // "COMPLETED", "FAILED", "CANCELLED"
+    private int totalTests;
+    private int testsPassed;
+    private int testsFailed;
+    private int testsSkipped;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
+    private long durationMs;
+    private String summary;
+    private List<TestResult> testResults = new ArrayList<>();
+    private Map<String, Object> metadata = new HashMap<>();
+    
+    public ExecutionResult() {
+        this.id = UUID.randomUUID().toString();
+        this.startTime = LocalDateTime.now();
+    }
+    
+    // Getters and setters
+    public String getId() {
+        return id;
+    }
+    
+    public ExecutionResult setId(String id) {
+        this.id = id;
+        return this;
+    }
+    
+    public String getProjectId() {
+        return projectId;
+    }
+    
+    public ExecutionResult setProjectId(String projectId) {
+        this.projectId = projectId;
+        return this;
+    }
+    
+    public List<String> getTestCaseIds() {
+        return testCaseIds;
+    }
+    
+    public ExecutionResult setTestCaseIds(List<String> testCaseIds) {
+        this.testCaseIds = testCaseIds;
+        return this;
+    }
+    
+    public List<String> getTestSuiteIds() {
+        return testSuiteIds;
+    }
+    
+    public ExecutionResult setTestSuiteIds(List<String> testSuiteIds) {
+        this.testSuiteIds = testSuiteIds;
+        return this;
+    }
+    
+    public ExecutionConfig getConfig() {
+        return config;
+    }
+    
+    public ExecutionResult setConfig(ExecutionConfig config) {
+        this.config = config;
+        return this;
+    }
+    
+    public String getStatus() {
+        return status;
+    }
+    
+    public ExecutionResult setStatus(String status) {
+        this.status = status;
+        return this;
+    }
+    
+    public int getTotalTests() {
+        return totalTests;
+    }
+    
+    public ExecutionResult setTotalTests(int totalTests) {
+        this.totalTests = totalTests;
+        return this;
+    }
+    
+    public int getTestsPassed() {
+        return testsPassed;
+    }
+    
+    public ExecutionResult setTestsPassed(int testsPassed) {
+        this.testsPassed = testsPassed;
+        return this;
+    }
+    
+    public int getTestsFailed() {
+        return testsFailed;
+    }
+    
+    public ExecutionResult setTestsFailed(int testsFailed) {
+        this.testsFailed = testsFailed;
+        return this;
+    }
+    
+    public int getTestsSkipped() {
+        return testsSkipped;
+    }
+    
+    public ExecutionResult setTestsSkipped(int testsSkipped) {
+        this.testsSkipped = testsSkipped;
+        return this;
+    }
+    
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+    
+    public ExecutionResult setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+        return this;
+    }
+    
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+    
+    public ExecutionResult setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+        this.durationMs = endTime.compareTo(startTime) > 0 ? 
+                java.time.Duration.between(startTime, endTime).toMillis() : 0;
+        return this;
+    }
+    
+    public long getDurationMs() {
+        return durationMs;
+    }
+    
+    public ExecutionResult setDurationMs(long durationMs) {
+        this.durationMs = durationMs;
+        return this;
+    }
+    
+    public String getSummary() {
+        return summary;
+    }
+    
+    public ExecutionResult setSummary(String summary) {
+        this.summary = summary;
+        return this;
+    }
+    
+    public List<TestResult> getTestResults() {
+        return testResults;
+    }
+    
+    public ExecutionResult setTestResults(List<TestResult> testResults) {
+        this.testResults = testResults;
+        return this;
+    }
+    
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+    
+    public ExecutionResult setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+        return this;
+    }
+    
+    /**
+     * Add a test result and update counters
+     */
+    public ExecutionResult addTestResult(TestResult testResult) {
+        this.testResults.add(testResult);
+        this.totalTests = this.testResults.size();
+        
+        // Update counters based on the test result status
+        if ("PASSED".equals(testResult.getStatus())) {
+            this.testsPassed++;
+        } else if ("FAILED".equals(testResult.getStatus())) {
+            this.testsFailed++;
+        } else if ("SKIPPED".equals(testResult.getStatus())) {
+            this.testsSkipped++;
+        }
+        
+        return this;
+    }
+    
+    /**
+     * Generate a summary of the execution
+     */
+    public ExecutionResult generateSummary() {
+        StringBuilder summaryBuilder = new StringBuilder();
+        summaryBuilder.append("Execution completed with ")
+                     .append(testsPassed).append(" passed, ")
+                     .append(testsFailed).append(" failed, and ")
+                     .append(testsSkipped).append(" skipped tests.");
+        
+        if (testsFailed > 0) {
+            summaryBuilder.append(" Failed tests: ");
+            List<String> failedTestNames = new ArrayList<>();
+            for (TestResult result : testResults) {
+                if ("FAILED".equals(result.getStatus())) {
+                    failedTestNames.add(result.getTestName());
+                }
+            }
+            summaryBuilder.append(String.join(", ", failedTestNames));
+        }
+        
+        this.summary = summaryBuilder.toString();
+        return this;
+    }
+}
+
+/**
+ * Execution Event
+ * Represents an event during test execution
+ */
+package com.cstestforge.model.execution;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+public class ExecutionEvent {
+    private String executionId;
+    private String type; // "started", "progress", "test_completed", "completed", "failed"
+    private LocalDateTime timestamp;
+    private Map<String, Object> data = new HashMap<>();
+    
+    public ExecutionEvent() {
+        this.timestamp = LocalDateTime.now();
+    }
+    
+    // Getters and setters
+    public String getExecutionId() {
+        return executionId;
+    }
+    
+    public ExecutionEvent setExecutionId(String executionId) {
+        this.executionId = executionId;
+        return this;
+    }
+    
+    public String getType() {
+        return type;
+    }
+    
+    public ExecutionEvent setType(String type) {
+        this.type = type;
+        return this;
+    }
+    
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
+    
+    public ExecutionEvent setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+        return this;
+    }
+    
+    public Map<String, Object> getData() {
+        return data;
+    }
+    
+    public ExecutionEvent setData(Map<String, Object> data) {
+        this.data = data;
+        return this;
+    }
+}
+
+
+/**
+ * Execution Service Interface
+ * Defines operations for test execution
+ */
+package com.cstestforge.service.execution;
+
+import com.cstestforge.exception.ResourceNotFoundException;
+import com.cstestforge.model.execution.*;
+
+import java.util.List;
+import java.util.function.Consumer;
+
+public interface ExecutionService {
+    
+    /**
+     * Schedule test case execution
+     * @param projectId Project ID
+     * @param testCaseIds List of test case IDs to execute
+     * @param config Execution configuration
+     * @return Execution ID
+     * @throws ResourceNotFoundException if project or any test case doesn't exist
+     */
+    String scheduleTestCaseExecution(String projectId, List<String> testCaseIds, ExecutionConfig config) 
+            throws ResourceNotFoundException;
+    
+    /**
+     * Schedule test suite execution
+     * @param projectId Project ID
+     * @param testSuiteIds List of test suite IDs to execute
+     * @param config Execution configuration
+     * @return Execution ID
+     * @throws ResourceNotFoundException if project or any test suite doesn't exist
+     */
+    String scheduleTestSuiteExecution(String projectId, List<String> testSuiteIds, ExecutionConfig config) 
+            throws ResourceNotFoundException;
+    
+    /**
+     * Get execution result
+     * @param executionId Execution ID
+     * @return Execution result
+     * @throws ResourceNotFoundException if execution doesn't exist
+     */
+    ExecutionResult getExecutionResult(String executionId) throws ResourceNotFoundException;
+    
+    /**
+     * Get execution status
+     * @param executionId Execution ID
+     * @return Execution status
+     * @throws ResourceNotFoundException if execution doesn't exist
+     */
+    ExecutionStatus getExecutionStatus(String executionId) throws ResourceNotFoundException;
+    
+    /**
+     * Cancel execution
+     * @param executionId Execution ID
+     * @return true if canceled successfully, false otherwise
+     * @throws ResourceNotFoundException if execution doesn't exist
+     */
+    boolean cancelExecution(String executionId) throws ResourceNotFoundException;
+    
+    /**
+     * Get recent executions
+     * @param limit Maximum number of executions to retrieve
+     * @return List of recent executions
+     */
+    List<ExecutionResult> getRecentExecutions(int limit);
+    
+    /**
+     * Get project executions
+     * @param projectId Project ID
+     * @param limit Maximum number of executions to retrieve
+     * @return List of project executions
+     * @throws ResourceNotFoundException if project doesn't exist
+     */
+    List<ExecutionResult> getProjectExecutions(String projectId, int limit) throws ResourceNotFoundException;
+    
+    /**
+     * Register execution listener
+     * @param executionId Execution ID
+     * @param listener Listener to receive execution events
+     * @throws ResourceNotFoundException if execution doesn't exist
+     */
+    void registerExecutionListener(String executionId, Consumer<ExecutionEvent> listener) 
+            throws ResourceNotFoundException;
+}
+
+/**
+ * Execution Service Implementation
+ * Implements test execution functionality
+ */
+package com.cstestforge.service.execution.impl;
+
+import com.cstestforge.exception.ResourceNotFoundException;
+import com.cstestforge.model.api.ApiTest;
+import com.cstestforge.model.bdd.FeatureFile;
+import com.cstestforge.model.database.DatabaseQuery;
+import com.cstestforge.model.execution.*;
+import com.cstestforge.model.project.TestCase;
+import com.cstestforge.model.project.TestSuite;
+import com.cstestforge.repository.execution.ExecutionRepository;
+import com.cstestforge.service.api.ApiTestingService;
+import com.cstestforge.service.bdd.BDDTestingService;
+import com.cstestforge.service.database.DatabaseTestingService;
+import com.cstestforge.service.execution.ExecutionService;
+import com.cstestforge.service.project.ProjectService;
+import com.cstestforge.service.project.TestCaseService;
+import com.cstestforge.service.project.TestSuiteService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+@Service
+public class ExecutionServiceImpl implements ExecutionService {
+    private static final Logger logger = LoggerFactory.getLogger(ExecutionServiceImpl.class);
+    
+    @Value("${cstestforge.execution.max-concurrent:10}")
+    private int maxConcurrentExecutions;
+    
+    @Autowired
+    private ExecutionRepository executionRepository;
+    
+    @Autowired
+    private ProjectService projectService;
+    
+    @Autowired
+    private TestCaseService testCaseService;
+    
+    @Autowired
+    private TestSuiteService testSuiteService;
+    
+    @Autowired
+    private ApiTestingService apiTestingService;
+    
+    @Autowired
+    private BDDTestingService bddTestingService;
+    
+    @Autowired
+    private DatabaseTestingService databaseTestingService;
+    
+    // ExecutorService for running tests asynchronously
+    private final ExecutorService executorService;
+    
+    // Map to store execution futures for cancellation
+    private final Map<String, Future<?>> executionFutures = new ConcurrentHashMap<>();
+    
+    // Map to store execution statuses
+    private final Map<String, ExecutionStatus> executionStatuses = new ConcurrentHashMap<>();
+    
+    // Map to store execution listeners
+    private final Map<String, List<Consumer<ExecutionEvent>>> executionListeners = new ConcurrentHashMap<>();
+    
+    public ExecutionServiceImpl() {
+        // Create a thread pool with bounded queue to prevent resource exhaustion
+        this.executorService = new ThreadPoolExecutor(
+                5, // Core pool size
+                maxConcurrentExecutions, // Maximum pool size
+                60L, // Keep alive time
+                TimeUnit.SECONDS, // Keep alive time unit
+                new LinkedBlockingQueue<>(100), // Work queue
+                new ThreadPoolExecutor.CallerRunsPolicy() // Rejection policy
+        );
+    }
+    
+    @Override
+    public String scheduleTestCaseExecution(String projectId, List<String> testCaseIds, ExecutionConfig config) 
+            throws ResourceNotFoundException {
+        logger.info("Scheduling test case execution for project: {}, test cases: {}", projectId, testCaseIds);
+        
+        // Validate project exists
+        if (!projectService.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found with id: " + projectId);
+        }
+        
+        // Validate test cases exist
+        for (String testCaseId : testCaseIds) {
+            if (!testCaseService.existsById(projectId, testCaseId)) {
+                throw new ResourceNotFoundException("Test case not found with id: " + testCaseId);
+            }
+        }
+        
+        // Create execution result
+        ExecutionResult executionResult = new ExecutionResult()
+                .setProjectId(projectId)
+                .setTestCaseIds(testCaseIds)
+                .setConfig(config)
+                .setStatus("QUEUED");
+        
+        // Save execution result
+        executionRepository.save(executionResult);
+        
+        // Create execution status
+        ExecutionStatus status = new ExecutionStatus()
+                .setExecutionId(executionResult.getId())
+                .setStatus("QUEUED")
+                .setTotalTests(testCaseIds.size())
+                .setStartTime(LocalDateTime.now())
+                .setMessage("Execution queued and waiting to start");
+        
+        // Store execution status
+        executionStatuses.put(executionResult.getId(), status);
+        
+        // Schedule execution
+        Future<?> future = executorService.submit(() -> executeTestCases(executionResult));
+        executionFutures.put(executionResult.getId(), future);
+        
+        return executionResult.getId();
+    }
+    
+    @Override
+    public String scheduleTestSuiteExecution(String projectId, List<String> testSuiteIds, ExecutionConfig config) 
+            throws ResourceNotFoundException {
+        logger.info("Scheduling test suite execution for project: {}, test suites: {}", projectId, testSuiteIds);
+        
+        // Validate project exists
+        if (!projectService.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found with id: " + projectId);
+        }
+        
+        // Validate test suites exist and collect all test cases
+        List<String> allTestCaseIds = new ArrayList<>();
+        for (String testSuiteId : testSuiteIds) {
+            TestSuite testSuite = testSuiteService.getById(projectId, testSuiteId);
+            allTestCaseIds.addAll(testSuite.getTestCaseIds());
+        }
+        
+        // Create execution result
+        ExecutionResult executionResult = new ExecutionResult()
+                .setProjectId(projectId)
+                .setTestSuiteIds(testSuiteIds)
+                .setTestCaseIds(allTestCaseIds)
+                .setConfig(config)
+                .setStatus("QUEUED");
+        
+        // Save execution result
+        executionRepository.save(executionResult);
+        
+        // Create execution status
+        ExecutionStatus status = new ExecutionStatus()
+                .setExecutionId(executionResult.getId())
+                .setStatus("QUEUED")
+                .setTotalTests(allTestCaseIds.size())
+                .setStartTime(LocalDateTime.now())
+                .setMessage("Execution queued and waiting to start");
+        
+        // Store execution status
+        executionStatuses.put(executionResult.getId(), status);
+        
+        // Schedule execution
+        Future<?> future = executorService.submit(() -> executeTestCases(executionResult));
+        executionFutures.put(executionResult.getId(), future);
+        
+        return executionResult.getId();
+    }
+    
+    /**
+     * Execute test cases for an execution
+     */
+    private void executeTestCases(ExecutionResult executionResult) {
+        String executionId = executionResult.getId();
+        String projectId = executionResult.getProjectId();
+        List<String> testCaseIds = executionResult.getTestCaseIds();
+        ExecutionConfig config = executionResult.getConfig();
+        
+        logger.info("Starting execution: {} for project: {}", executionId, projectId);
+        
+        try {
+            // Update execution status to RUNNING
+            ExecutionStatus status = executionStatuses.get(executionId)
+                    .setStatus("RUNNING")
+                    .setMessage("Execution in progress");
+            
+            // Fire started event
+            fireExecutionEvent(executionId, "started", Map.of(
+                    "totalTests", testCaseIds.size(),
+                    "status", status
+            ));
+            
+            // Determine if execution should be parallel
+            if (config.isParallelExecution() && testCaseIds.size() > 1) {
+                executeTestCasesInParallel(executionResult);
+            } else {
+                executeTestCasesSequentially(executionResult);
+            }
+            
+            // Update execution status to COMPLETED
+            executionResult.setStatus("COMPLETED")
+                    .setEndTime(LocalDateTime.now())
+                    .generateSummary();
+            
+            status.setStatus("COMPLETED")
+                    .setTestsCompleted(executionResult.getTotalTests())
+                    .setTestsPassed(executionResult.getTestsPassed())
+                    .setTestsFailed(executionResult.getTestsFailed())
+                    .setTestsSkipped(executionResult.getTestsSkipped())
+                    .setProgressPercentage(100.0)
+                    .setEndTime(LocalDateTime.now())
+                    .setMessage("Execution completed successfully");
+            
+            // Save execution result
+            executionRepository.save(executionResult);
+            
+            // Fire completed event
+            fireExecutionEvent(executionId, "completed", Map.of(
+                    "result", executionResult,
+                    "status", status
+            ));
+            
+            logger.info("Execution completed: {} with {} passed, {} failed, {} skipped tests",
+                    executionId, executionResult.getTestsPassed(), executionResult.getTestsFailed(),
+                    executionResult.getTestsSkipped());
+        } catch (Exception e) {
+            logger.error("Execution failed: {}", executionId, e);
+            
+            // Update execution status to FAILED
+            executionResult.setStatus("FAILED")
+                    .setEndTime(LocalDateTime.now())
+                    .setSummary("Execution failed: " + e.getMessage());
+            
+            executionStatuses.get(executionId)
+                    .setStatus("FAILED")
+                    .setEndTime(LocalDateTime.now())
+                    .setMessage("Execution failed: " + e.getMessage());
+            
+            // Save execution result
+            executionRepository.save(executionResult);
+            
+            // Fire failed event
+            fireExecutionEvent(executionId, "failed", Map.of(
+                    "error", e.getMessage(),
+                    "status", executionStatuses.get(executionId)
+            ));
+        } finally {
+            // Remove execution future
+            executionFutures.remove(executionId);
+        }
+    }
+    
+    /**
+     * Execute test cases sequentially
+     */
+    private void executeTestCasesSequentially(ExecutionResult executionResult) {
+        String executionId = executionResult.getId();
+        String projectId = executionResult.getProjectId();
+        List<String> testCaseIds = executionResult.getTestCaseIds();
+        ExecutionConfig config = executionResult.getConfig();
+        
+        for (int i = 0; i < testCaseIds.size(); i++) {
+            String testCaseId = testCaseIds.get(i);
+            
+            try {
+                // Check if execution was cancelled
+                if (Thread.currentThread().isInterrupted()) {
+                    logger.info("Execution cancelled: {}", executionId);
+                    break;
+                }
+                
+                // Get test case
+                TestCase testCase = testCaseService.getById(projectId, testCaseId);
+                
+                // Update progress
+                ExecutionStatus status = executionStatuses.get(executionId);
+                status.setMessage("Executing test case: " + testCase.getName());
+                
+                // Fire progress event
+                fireExecutionEvent(executionId, "progress", Map.of(
+                        "currentTest", i + 1,
+                        "totalTests", testCaseIds.size(),
+                        "testName", testCase.getName(),
+                        "progressPercentage", ((double) i / testCaseIds.size()) * 100.0,
+                        "status", status
+                ));
+                
+                // Execute test case based on type
+                TestResult testResult = executeTestCase(projectId, testCase, config);
+                
+                // Add test result to execution result
+                executionResult.addTestResult(testResult);
+                
+                // Update execution status
+                status.setTestsCompleted(i + 1);
+                
+                if ("PASSED".equals(testResult.getStatus())) {
+                    status.setTestsPassed(status.getTestsPassed() + 1);
+                } else if ("FAILED".equals(testResult.getStatus())) {
+                    status.setTestsFailed(status.getTestsFailed() + 1);
+                } else if ("SKIPPED".equals(testResult.getStatus())) {
+                    status.setTestsSkipped(status.getTestsSkipped() + 1);
+                }
+                
+                // Fire test_completed event
+                fireExecutionEvent(executionId, "test_completed", Map.of(
+                        "testResult", testResult,
+                        "status", status
+                ));
+                
+                // If stopOnError is true and test failed, stop execution
+                if (config.isStopOnError() && "FAILED".equals(testResult.getStatus())) {
+                    logger.info("Stopping execution due to test failure: {}", testCase.getName());
+                    
+                    // Skip remaining tests
+                    for (int j = i + 1; j < testCaseIds.size(); j++) {
+                        TestCase skippedTestCase = testCaseService.getById(projectId, testCaseIds.get(j));
+                        
+                        TestResult skippedResult = new TestResult()
+                                .setTestId(skippedTestCase.getId())
+                                .setTestName(skippedTestCase.getName())
+                                .setTestType(skippedTestCase.getType())
+                                .setStatus("SKIPPED")
+                                .setMessage("Skipped due to previous test failure")
+                                .setStartTime(LocalDateTime.now())
+                                .setEndTime(LocalDateTime.now())
+                                .setDurationMs(0);
+                        
+                        executionResult.addTestResult(skippedResult);
+                        status.setTestsSkipped(status.getTestsSkipped() + 1);
+                    }
+                    
+                    break;
+                }
+            } catch (ResourceNotFoundException e) {
+                logger.error("Test case not found: {}", testCaseId, e);
+                
+                // Create error test result
+                TestResult errorResult = new TestResult()
+                        .setTestId(testCaseId)
+                        .setTestName("Unknown Test")
+                        .setTestType("UNKNOWN")
+                        .setStatus("ERROR")
+                        .setMessage("Test case not found")
+                        .setErrorDetails(e.getMessage())
+                        .setStartTime(LocalDateTime.now())
+                        .setEndTime(LocalDateTime.now())
+                        .setDurationMs(0);
+                
+                executionResult.addTestResult(errorResult);
+                
+                // Update execution status
+                ExecutionStatus status = executionStatuses.get(executionId);
+                status.setTestsCompleted(status.getTestsCompleted() + 1);
+                status.setTestsFailed(status.getTestsFailed() + 1);
+                
+                // Fire test_completed event
+                fireExecutionEvent(executionId, "test_completed", Map.of(
+                        "testResult", errorResult,
+                        "status", status
+                ));
+            }
+        }
+    }
+    
+    /**
+     * Execute test cases in parallel
+     */
+    private void executeTestCasesInParallel(ExecutionResult executionResult) {
+        String executionId = executionResult.getId();
+        String projectId = executionResult.getProjectId();
+        List<String> testCaseIds = executionResult.getTestCaseIds();
+        ExecutionConfig config = executionResult.getConfig();
+        
+        // Create a thread pool for parallel execution
+        ExecutorService parallelExecutor = Executors.newFixedThreadPool(
+                Math.min(testCaseIds.size(), 10) // Limit parallel threads to 10
+        );
+        
+        try {
+            // Create completion service for collecting results
+            CompletionService<TestResult> completionService = new ExecutorCompletionService<>(parallelExecutor);
+            
+            // Submit all test cases for execution
+            Map<Future<TestResult>, String> futureToTestCaseId = new HashMap<>();
+            
+            for (String testCaseId : testCaseIds) {
+                Future<TestResult> future = completionService.submit(() -> {
+                    try {
+                        // Get test case
+                        TestCase testCase = testCaseService.getById(projectId, testCaseId);
+                        
+                        // Execute test case based on type
+                        return executeTestCase(projectId, testCase, config);
+                    } catch (ResourceNotFoundException e) {
+                        logger.error("Test case not found: {}", testCaseId, e);
+                        
+                        // Create error test result
+                        return new TestResult()
+                                .setTestId(testCaseId)
+                                .setTestName("Unknown Test")
+                                .setTestType("UNKNOWN")
+                                .setStatus("ERROR")
+                                .setMessage("Test case not found")
+                                .setErrorDetails(e.getMessage())
+                                .setStartTime(LocalDateTime.now())
+                                .setEndTime(LocalDateTime.now())
+                                .setDurationMs(0);
+                    }
+                });
+                
+                futureToTestCaseId.put(future, testCaseId);
+            }
+            
+            // Collect results as they complete
+            for (int i = 0; i < testCaseIds.size(); i++) {
+                try {
+                    // Check if execution was cancelled
+                    if (Thread.currentThread().isInterrupted()) {
+                        logger.info("Execution cancelled: {}", executionId);
+                        break;
+                    }
+                    
+                    // Get next completed result
+                    Future<TestResult> completedFuture = completionService.take();
+                    TestResult testResult = completedFuture.get();
+                    
+                    // Add test result to execution result
+                    executionResult.addTestResult(testResult);
+                    
+                    // Update execution status
+                    ExecutionStatus status = executionStatuses.get(executionId);
+                    status.setTestsCompleted(status.getTestsCompleted() + 1);
+                    
+                    if ("PASSED".equals(testResult.getStatus())) {
+                        status.setTestsPassed(status.getTestsPassed() + 1);
+                    } else if ("FAILED".equals(testResult.getStatus())) {
+                        status.setTestsFailed(status.getTestsFailed() + 1);
+                    } else if ("SKIPPED".equals(testResult.getStatus())) {
+                        status.setTestsSkipped(status.getTestsSkipped() + 1);
+                    }
+                    
+                    // Fire test_completed event
+                    fireExecutionEvent(executionId, "test_completed", Map.of(
+                            "testResult", testResult,
+                            "status", status
+                    ));
+                    
+                    // Fire progress event
+                    fireExecutionEvent(executionId, "progress", Map.of(
+                            "currentTest", status.getTestsCompleted(),
+                            "totalTests", testCaseIds.size(),
+                            "testName", testResult.getTestName(),
+                            "progressPercentage", ((double) status.getTestsCompleted() / testCaseIds.size()) * 100.0,
+                            "status", status
+                    ));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    logger.info("Execution interrupted: {}", executionId);
+                    break;
+                } catch (ExecutionException e) {
+                    logger.error("Error executing test case", e);
+                }
+            }
+        } finally {
+            // Shutdown the parallel executor
+            parallelExecutor.shutdownNow();
+            try {
+                parallelExecutor.awaitTermination(30, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                logger.warn("Interrupted while waiting for parallel executor to terminate", e);
+            }
+        }
+    }
+    
+    /**
+     * Execute a single test case
+     */
+    private TestResult executeTestCase(String projectId, TestCase testCase, ExecutionConfig config) {
+        logger.info("Executing test case: {} of type: {}", testCase.getName(), testCase.getType());
+        
+        TestResult testResult = new TestResult()
+                .setTestId(testCase.getId())
+                .setTestName(testCase.getName())
+                .setTestType(testCase.getType())
+                .setStartTime(LocalDateTime.now());
+        
+        try {
+            switch (testCase.getType()) {
+                case "API":
+                    return executeApiTest(projectId, testCase, config, testResult);
+                case "BDD":
+                    return executeBddTest(projectId, testCase, config, testResult);
+                case "DATABASE":
+                    return executeDatabaseTest(projectId, testCase, config, testResult);
+                default:
+                    testResult.setStatus("ERROR")
+                             .setMessage("Unsupported test type: " + testCase.getType())
+                             .setEndTime(LocalDateTime.now())
+                             .setDurationMs(System.currentTimeMillis() - testResult.getStartTime().toInstant(java.time.ZoneOffset.UTC).toEpochMilli());
+                    return testResult;
+            }
+        } catch (Exception e) {
+            logger.error("Error executing test case: {}", testCase.getName(), e);
+            
+            testResult.setStatus("ERROR")
+                     .setMessage("Test execution error")
+                     .setErrorDetails(e.getMessage())
+                     .setEndTime(LocalDateTime.now())
+                     .setDurationMs(System.currentTimeMillis() - testResult.getStartTime().toInstant(java.time.ZoneOffset.UTC).toEpochMilli());
+            
+            return testResult;
+        }
+    }
+    
+    /**
+     * Execute an API test
+     */
+    private TestResult executeApiTest(String projectId, TestCase testCase, ExecutionConfig config, TestResult testResult) 
+            throws ResourceNotFoundException {
+        // Get the API test
+        ApiTest apiTest = apiTestingService.getApiTestById(projectId, testCase.getReference());
+        
+        // Create API execution config
+        com.cstestforge.model.api.ApiTestExecutionConfig apiConfig = new com.cstestforge.model.api.ApiTestExecutionConfig()
+                .setEnvironmentId(config.getEnvironmentId())
+                .setTimeoutMs(config.getTimeoutMs())
+                .setVariables(config.getVariables());
+        
+        // Execute the API test
+        com.cstestforge.model.api.ApiTestResult apiTestResult = 
+                apiTestingService.executeApiTest(projectId, apiTest.getId(), apiConfig);
+        
+        // Map API test result to test result
+        testResult.setStatus(apiTestResult.isSuccessful() ? "PASSED" : "FAILED")
+                 .setMessage(apiTestResult.getMessage())
+                 .setEndTime(LocalDateTime.now())
+                 .setDurationMs(apiTestResult.getDurationMs());
+        
+        // Add steps from API test result
+        if (apiTestResult.getAssertionResults() != null) {
+            for (com.cstestforge.model.api.ApiTestResult.AssertionResult assertionResult : apiTestResult.getAssertionResults()) {
+                TestResult.StepResult stepResult = new TestResult.StepResult()
+                        .setName(assertionResult.getName())
+                        .setStatus(assertionResult.isSuccessful() ? "PASSED" : "FAILED")
+                        .setMessage(assertionResult.getMessage())
+                        .setStartTime(apiTestResult.getExecutionTime())
+                        .setEndTime(apiTestResult.getExecutionTime().plusNanos(1000000 * apiTestResult.getDurationMs()))
+                        .setDurationMs(0);
+                
+                testResult.getSteps().add(stepResult);
+            }
+        }
+        
+        // Add metadata from API test result
+        testResult.getMetadata().put("request", apiTestResult.getRequest());
+        testResult.getMetadata().put("response", apiTestResult.getResponse());
+        
+        return testResult;
+    }
+    
+    /**
+     * Execute a BDD test
+     */
+    private TestResult executeBddTest(String projectId, TestCase testCase, ExecutionConfig config, TestResult testResult) 
+            throws ResourceNotFoundException {
+        // Get the BDD feature
+        FeatureFile feature = bddTestingService.getFeatureById(projectId, testCase.getReference());
+        
+        // Create BDD execution config
+        com.cstestforge.model.bdd.BDDExecutionConfig bddConfig = new com.cstestforge.model.bdd.BDDExecutionConfig()
+                .setEnvironmentId(config.getEnvironmentId())
+                .setTimeoutMs(config.getTimeoutMs())
+                .setVariables(config.getVariables());
+        
+        // Execute the BDD feature
+        String executionId = bddTestingService.executeFeature(projectId, feature.getId(), bddConfig);
+        
+        // Get the BDD execution result
+        com.cstestforge.model.bdd.BDDExecution bddExecution = bddTestingService.getExecutionResult(executionId);
+        
+        // Map BDD execution to test result
+        testResult.setStatus(bddExecution.isSuccessful() ? "PASSED" : "FAILED")
+                 .setMessage(bddExecution.getSummary())
+                 .setEndTime(LocalDateTime.now())
+                 .setDurationMs(bddExecution.getDurationMs());
+        
+        // Add steps from BDD execution
+        if (bddExecution.getScenarioResults() != null) {
+            for (com.cstestforge.model.bdd.BDDExecution.ScenarioResult scenarioResult : bddExecution.getScenarioResults()) {
+                for (com.cstestforge.model.bdd.BDDExecution.StepResult stepResult : scenarioResult.getStepResults()) {
+                    TestResult.StepResult result = new TestResult.StepResult()
+                            .setName(stepResult.getName())
+                            .setStatus(mapBddStatus(stepResult.getStatus()))
+                            .setMessage(stepResult.getMessage())
+                            .setStartTime(stepResult.getStartTime())
+                            .setEndTime(stepResult.getEndTime())
+                            .setDurationMs(stepResult.getDurationMs());
+                    
+                    testResult.getSteps().add(result);
+                }
+            }
+        }
+        
+        // Add metadata from BDD execution
+        testResult.getMetadata().put("feature", feature.getName());
+        testResult.getMetadata().put("scenarios", bddExecution.getScenarioResults().size());
+        
+        return testResult;
+    }
+    
+    /**
+     * Map BDD status to test result status
+     */
+    private String mapBddStatus(String bddStatus) {
+        switch (bddStatus) {
+            case "PASSED":
+                return "PASSED";
+            case "FAILED":
+                return "FAILED";
+            case "SKIPPED":
+                return "SKIPPED";
+            case "PENDING":
+                return "SKIPPED";
+            case "UNDEFINED":
+                return "ERROR";
+            default:
+                return "ERROR";
+        }
+    }
+    
+    /**
+     * Execute a database test
+     */
+    private TestResult executeDatabaseTest(String projectId, TestCase testCase, ExecutionConfig config, TestResult testResult) 
+            throws ResourceNotFoundException {
+        // Get the database query
+        DatabaseQuery query = databaseTestingService.getQueryById(projectId, testCase.getReference());
+        
+        // Execute the database query
+        com.cstestforge.model.database.DatabaseQueryResult queryResult = 
+                databaseTestingService.executeQuery(projectId, query.getId(), mapToObjectMap(config.getVariables()));
+        
+        // Map database query result to test result
+        testResult.setStatus(queryResult.isSuccessful() ? "PASSED" : "FAILED")
+                 .setMessage(queryResult.getMessage())
+                 .setEndTime(LocalDateTime.now())
+                 .setDurationMs(queryResult.getExecutionDurationMs());
+        
+        // Add metadata from database query result
+        testResult.getMetadata().put("query", query.getSqlQuery());
+        testResult.getMetadata().put("rowsAffected", queryResult.getRowsAffected());
+        testResult.getMetadata().put("resultData", queryResult.getResultData());
+        
+        return testResult;
+    }
+    
+    /**
+     * Map string map to object map
+     */
+    private Map<String, Object> mapToObjectMap(Map<String, String> stringMap) {
+        if (stringMap == null) {
+            return new HashMap<>();
+        }
+        
+        Map<String, Object> objectMap = new HashMap<>();
+        for (Map.Entry<String, String> entry : stringMap.entrySet()) {
+            objectMap.put(entry.getKey(), entry.getValue());
+        }
+        
+        return objectMap;
+    }
+    
+    @Override
+    public ExecutionResult getExecutionResult(String executionId) throws ResourceNotFoundException {
+        logger.info("Getting execution result: {}", executionId);
+        
+        return executionRepository.findById(executionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Execution not found with id: " + executionId));
+    }
+    
+    @Override
+    public ExecutionStatus getExecutionStatus(String executionId) throws ResourceNotFoundException {
+        logger.info("Getting execution status: {}", executionId);
+        
+        // Check if we have status in memory
+        ExecutionStatus status = executionStatuses.get(executionId);
+        if (status != null) {
+            return status;
+        }
+        
+        // Otherwise, get from repository
+        ExecutionResult result = getExecutionResult(executionId);
+        
+        // Create status from result
+        status = new ExecutionStatus()
+                .setExecutionId(result.getId())
+                .setStatus(result.getStatus())
+                .setTotalTests(result.getTotalTests())
+                .setTestsCompleted(result.getTotalTests())
+                .setTestsPassed(result.getTestsPassed())
+                .setTestsFailed(result.getTestsFailed())
+                .setTestsSkipped(result.getTestsSkipped())
+                .setProgressPercentage(100.0)
+                .setStartTime(result.getStartTime())
+                .setEndTime(result.getEndTime())
+                .setMessage(result.getSummary());
+        
+        return status;
+    }
+    
+    @Override
+    public boolean cancelExecution(String executionId) throws ResourceNotFoundException {
+        logger.info("Cancelling execution: {}", executionId);
+        
+        // Check if execution exists
+        if (!executionRepository.existsById(executionId)) {
+            throw new ResourceNotFoundException("Execution not found with id: " + executionId);
+        }
+        
+        // Get execution future
+        Future<?> future = executionFutures.get(executionId);
+        if (future == null) {
+            logger.warn("Execution not active: {}", executionId);
+            
+            // Update execution status to CANCELLED
+            ExecutionResult result = getExecutionResult(executionId);
+            if (!"COMPLETED".equals(result.getStatus()) && !"FAILED".equals(result.getStatus())) {
+                result.setStatus("CANCELLED")
+                     .setEndTime(LocalDateTime.now())
+                     .setSummary("Execution was cancelled");
+                
+                executionRepository.save(result);
+            }
+            
+            return true;
+        }
+        
+        // Cancel execution
+        boolean canceled = future.cancel(true);
+        
+        if (canceled) {
+            // Update execution status to CANCELLED
+            ExecutionResult result = getExecutionResult(executionId);
+            result.setStatus("CANCELLED")
+                 .setEndTime(LocalDateTime.now())
+                 .setSummary("Execution was cancelled");
+            
+            executionRepository.save(result);
+            
+            // Update in-memory status
+            ExecutionStatus status = executionStatuses.get(executionId);
+            if (status != null) {
+                status.setStatus("CANCELLED")
+                     .setEndTime(LocalDateTime.now())
+                     .setMessage("Execution was cancelled");
+            }
+            
+            // Fire cancelled event
+            fireExecutionEvent(executionId, "cancelled", Map.of(
+                    "status", status != null ? status : new ExecutionStatus().setExecutionId(executionId).setStatus("CANCELLED")
+            ));
+            
+            // Remove execution future
+            executionFutures.remove(executionId);
+        }
+        
+        return canceled;
+    }
+    
+    @Override
+    public List<ExecutionResult> getRecentExecutions(int limit) {
+        logger.info("Getting recent executions (limit: {})", limit);
+        
+        return executionRepository.findAllRecent(limit);
+    }
+    
+    @Override
+    public List<ExecutionResult> getProjectExecutions(String projectId, int limit) throws ResourceNotFoundException {
+        logger.info("Getting executions for project: {} (limit: {})", projectId, limit);
+        
+        // Validate project exists
+        if (!projectService.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found with id: " + projectId);
+        }
+        
+        return executionRepository.findByProjectId(projectId, limit);
+    }
+    
+    @Override
+    public void registerExecutionListener(String executionId, Consumer<ExecutionEvent> listener)
+            throws ResourceNotFoundException {
+        logger.info("Registering execution listener for: {}", executionId);
+        
+        // Check if execution exists
+        if (!executionRepository.existsById(executionId)) {
+            throw new ResourceNotFoundException("Execution not found with id: " + executionId);
+        }
+        
+        // Register listener
+        executionListeners.computeIfAbsent(executionId, k -> new CopyOnWriteArrayList<>()).add(listener);
+        
+        // Get current status to send immediately
+        ExecutionStatus status = getExecutionStatus(executionId);
+        
+        // Create initial event
+        ExecutionEvent initialEvent = new ExecutionEvent()
+                .setExecutionId(executionId)
+                .setType("status")
+                .setData(Map.of("status", status));
+        
+        // Fire event to the newly registered listener
+        listener.accept(initialEvent);
+    }
+    
+    /**
+     * Fire an execution event
+     */
+    private void fireExecutionEvent(String executionId, String eventType, Map<String, Object> data) {
+        logger.debug("Firing execution event: {} for execution: {}", eventType, executionId);
+        
+        // Create event
+        ExecutionEvent event = new ExecutionEvent()
+                .setExecutionId(executionId)
+                .setType(eventType)
+                .setData(data);
+        
+        // Fire event to all listeners
+        List<Consumer<ExecutionEvent>> listeners = executionListeners.get(executionId);
+        if (listeners != null) {
+            for (Consumer<ExecutionEvent> listener : listeners) {
+                try {
+                    listener.accept(event);
+                } catch (Exception e) {
+                    logger.error("Error firing execution event to listener", e);
+                }
+            }
+        }
+    }
+}
+
+
+
+/**
+ * Execution Repository Interface
+ * Defines data access operations for execution results
+ */
+package com.cstestforge.repository.execution;
+
+import com.cstestforge.model.execution.ExecutionResult;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface ExecutionRepository {
+    
+    /**
+     * Save an execution result
+     * @param executionResult The execution result to save
+     * @return The saved execution result
+     */
+    ExecutionResult save(ExecutionResult executionResult);
+    
+    /**
+     * Find an execution result by ID
+     * @param executionId The execution ID
+     * @return The execution result if found
+     */
+    Optional<ExecutionResult> findById(String executionId);
+    
+    /**
+     * Find all recent execution results
+     * @param limit Maximum number of results to return
+     * @return List of recent execution results
+     */
+    List<ExecutionResult> findAllRecent(int limit);
+    
+    /**
+     * Find execution results by project ID
+     * @param projectId The project ID
+     * @param limit Maximum number of results to return
+     * @return List of execution results for the project
+     */
+    List<ExecutionResult> findByProjectId(String projectId, int limit);
+    
+    /**
+     * Check if an execution result exists by ID
+     * @param executionId The execution ID
+     * @return true if the execution result exists, false otherwise
+     */
+    boolean existsById(String executionId);
+    
+    /**
+     * Delete an execution result by ID
+     * @param executionId The execution ID
+     * @return true if deleted, false if not found
+     */
+    boolean deleteById(String executionId);
+}
+
+/**
+ * File System Execution Repository Implementation
+ * Implements execution repository with file system storage
+ */
+package com.cstestforge.repository.execution.impl;
+
+import com.cstestforge.exception.StorageException;
+import com.cstestforge.model.execution.ExecutionResult;
+import com.cstestforge.repository.execution.ExecutionRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Repository;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+@Repository
+public class FileSystemExecutionRepository implements ExecutionRepository {
+    private static final Logger logger = LoggerFactory.getLogger(FileSystemExecutionRepository.class);
+    
+    @Value("${cstestforge.storage.root-dir:/tmp/cstestforge}")
+    private String rootDir;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
+    
+    /**
+     * Get the directory for executions
+     */
+    private Path getExecutionsDir() {
+        return Paths.get(rootDir, "executions");
+    }
+    
+    /**
+     * Get the directory for project executions
+     */
+    private Path getProjectExecutionsDir(String projectId) {
+        return Paths.get(rootDir, "projects", projectId, "executions");
+    }
+    
+    /**
+     * Get the file path for an execution result
+     */
+    private Path getExecutionFilePath(String executionId) {
+        return getExecutionsDir().resolve(executionId + ".json");
+    }
+    
+    /**
+     * Get the file path for a project execution result
+     */
+    private Path getProjectExecutionFilePath(String projectId, String executionId) {
+        return getProjectExecutionsDir(projectId).resolve(executionId + ".json");
+    }
+    
+    @Override
+    public ExecutionResult save(ExecutionResult executionResult) {
+        logger.debug("Saving execution result: {}", executionResult.getId());
+        
+        try {
+            // Ensure directories exist
+            Files.createDirectories(getExecutionsDir());
+            Files.createDirectories(getProjectExecutionsDir(executionResult.getProjectId()));
+            
+            // Save in main executions directory
+            Path executionFile = getExecutionFilePath(executionResult.getId());
+            objectMapper.writeValue(executionFile.toFile(), executionResult);
+            
+            // Also save in project executions directory
+            Path projectExecutionFile = getProjectExecutionFilePath(
+                    executionResult.getProjectId(), executionResult.getId());
+            objectMapper.writeValue(projectExecutionFile.toFile(), executionResult);
+            
+            return executionResult;
+        } catch (IOException e) {
+            logger.error("Failed to save execution result: {}", executionResult.getId(), e);
+            throw new StorageException("Failed to save execution result: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public Optional<ExecutionResult> findById(String executionId) {
+        logger.debug("Finding execution result by ID: {}", executionId);
+        
+        Path executionFile = getExecutionFilePath(executionId);
+        if (!Files.exists(executionFile)) {
+            return Optional.empty();
+        }
+        
+        try {
+            ExecutionResult executionResult = objectMapper.readValue(
+                    executionFile.toFile(), ExecutionResult.class);
+            return Optional.of(executionResult);
+        } catch (IOException e) {
+            logger.error("Failed to read execution result: {}", executionId, e);
+            return Optional.empty();
+        }
+    }
+    
+    @Override
+    public List<ExecutionResult> findAllRecent(int limit) {
+        logger.debug("Finding recent execution results (limit: {})", limit);
+        
+        try {
+            Files.createDirectories(getExecutionsDir());
+            
+            try (Stream<Path> paths = Files.list(getExecutionsDir())) {
+                return paths
+                        .filter(path -> path.toString().endsWith(".json"))
+                        .map(path -> {
+                            try {
+                                return objectMapper.readValue(path.toFile(), ExecutionResult.class);
+                            } catch (IOException e) {
+                                logger.error("Failed to read execution result: {}", path, e);
+                                return null;
+                            }
+                        })
+                        .filter(result -> result != null)
+                        .sorted(Comparator.comparing(ExecutionResult::getStartTime).reversed())
+                        .limit(limit)
+                        .collect(Collectors.toList());
+            }
+        } catch (IOException e) {
+            logger.error("Failed to list execution results", e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    public List<ExecutionResult> findByProjectId(String projectId, int limit) {
+        logger.debug("Finding execution results for project: {} (limit: {})", projectId, limit);
+        
+        try {
+            Path projectExecutionsDir = getProjectExecutionsDir(projectId);
+            Files.createDirectories(projectExecutionsDir);
+            
+            try (Stream<Path> paths = Files.list(projectExecutionsDir)) {
+                return paths
+                        .filter(path -> path.toString().endsWith(".json"))
+                        .map(path -> {
+                            try {
+                                return objectMapper.readValue(path.toFile(), ExecutionResult.class);
+                            } catch (IOException e) {
+                                logger.error("Failed to read execution result: {}", path, e);
+                                return null;
+                            }
+                        })
+                        .filter(result -> result != null)
+                        .sorted(Comparator.comparing(ExecutionResult::getStartTime).reversed())
+                        .limit(limit)
+                        .collect(Collectors.toList());
+            }
+        } catch (IOException e) {
+            logger.error("Failed to list execution results for project: {}", projectId, e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    public boolean existsById(String executionId) {
+        logger.debug("Checking if execution result exists: {}", executionId);
+        
+        Path executionFile = getExecutionFilePath(executionId);
+        return Files.exists(executionFile);
+    }
+    
+    @Override
+    public boolean deleteById(String executionId) {
+        logger.debug("Deleting execution result: {}", executionId);
+        
+        try {
+            // Find the execution first to get the project ID
+            Optional<ExecutionResult> executionResult = findById(executionId);
+            if (executionResult.isPresent()) {
+                String projectId = executionResult.get().getProjectId();
+                
+                // Delete from project executions directory
+                Path projectExecutionFile = getProjectExecutionFilePath(projectId, executionId);
+                Files.deleteIfExists(projectExecutionFile);
+            }
+            
+            // Delete from main executions directory
+            Path executionFile = getExecutionFilePath(executionId);
+            return Files.deleteIfExists(executionFile);
+        } catch (IOException e) {
+            logger.error("Failed to delete execution result: {}", executionId, e);
+            return false;
+        }
+    }
+}
+
+/**
+ * Test Case Model
+ * Represents a test case in the project
+ */
+package com.cstestforge.model.project;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+public class TestCase {
+    private String id;
+    private String name;
+    private String description;
+    private String type; // "API", "BDD", "DATABASE", etc.
+    private String reference; // Reference to the actual test (API test ID, BDD feature ID, etc.)
+    private String tags;
+    private boolean enabled;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    
+    public TestCase() {
+        this.id = UUID.randomUUID().toString();
+        this.enabled = true;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    // Getters and setters
+    public String getId() {
+        return id;
+    }
+    
+    public TestCase setId(String id) {
+        this.id = id;
+        return this;
+    }
+    
+    public String getName() {
+        return name;
+    }
+    
+    public TestCase setName(String name) {
+        this.name = name;
+        return this;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+    
+    public TestCase setDescription(String description) {
+        this.description = description;
+        return this;
+    }
+    
+    public String getType() {
+        return type;
+    }
+    
+    public TestCase setType(String type) {
+        this.type = type;
+        return this;
+    }
+    
+    public String getReference() {
+        return reference;
+    }
+    
+    public TestCase setReference(String reference) {
+        this.reference = reference;
+        return this;
+    }
+    
+    public String getTags() {
+        return tags;
+    }
+    
+    public TestCase setTags(String tags) {
+        this.tags = tags;
+        return this;
+    }
+    
+    public boolean isEnabled() {
+        return enabled;
+    }
+    
+    public TestCase setEnabled(boolean enabled) {
+        this.enabled = enabled;
+        return this;
+    }
+    
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    
+    public TestCase setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+        return this;
+    }
+    
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+    
+    public TestCase setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+        return this;
+    }
+}
+
+/**
+ * Test Suite Model
+ * Represents a collection of test cases
+ */
+package com.cstestforge.model.project;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+public class TestSuite {
+    private String id;
+    private String name;
+    private String description;
+    private List<String> testCaseIds;
+    private String tags;
+    private boolean enabled;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    
+    public TestSuite() {
+        this.id = UUID.randomUUID().toString();
+        this.testCaseIds = new ArrayList<>();
+        this.enabled = true;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    // Getters and setters
+    public String getId() {
+        return id;
+    }
+    
+    public TestSuite setId(String id) {
+        this.id = id;
+        return this;
+    }
+    
+    public String getName() {
+        return name;
+    }
+    
+    public TestSuite setName(String name) {
+        this.name = name;
+        return this;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+    
+    public TestSuite setDescription(String description) {
+        this.description = description;
+        return this;
+    }
+    
+    public List<String> getTestCaseIds() {
+        return testCaseIds;
+    }
+    
+    public TestSuite setTestCaseIds(List<String> testCaseIds) {
+        this.testCaseIds = testCaseIds;
+        return this;
+    }
+    
+    public String getTags() {
+        return tags;
+    }
+    
+    public TestSuite setTags(String tags) {
+        this.tags = tags;
+        return this;
+    }
+    
+    public boolean isEnabled() {
+        return enabled;
+    }
+    
+    public TestSuite setEnabled(boolean enabled) {
+        this.enabled = enabled;
+        return this;
+    }
+    
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    
+    public TestSuite setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+        return this;
+    }
+    
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+    
+    public TestSuite setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+        return this;
+    }
+}
+
+
+/**
+ * Test Case Service Interface
+ * Defines operations for test case management
+ */
+package com.cstestforge.service.project;
+
+import com.cstestforge.exception.ResourceNotFoundException;
+import com.cstestforge.model.project.TestCase;
+
+import java.util.List;
+
+public interface TestCaseService {
+    
+    /**
+     * Get all test cases for a project
+     * @param projectId Project ID
+     * @return List of test cases
+     * @throws ResourceNotFoundException if project doesn't exist
+     */
+    List<TestCase> getAllByProjectId(String projectId) throws ResourceNotFoundException;
+    
+    /**
+     * Get a test case by ID
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @return Test case
+     * @throws ResourceNotFoundException if project or test case doesn't exist
+     */
+    TestCase getById(String projectId, String testCaseId) throws ResourceNotFoundException;
+    
+    /**
+     * Create a new test case
+     * @param projectId Project ID
+     * @param testCase Test case to create
+     * @return Created test case
+     * @throws ResourceNotFoundException if project doesn't exist
+     */
+    TestCase create(String projectId, TestCase testCase) throws ResourceNotFoundException;
+    
+    /**
+     * Update a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @param testCase Updated test case details
+     * @return Updated test case
+     * @throws ResourceNotFoundException if project or test case doesn't exist
+     */
+    TestCase update(String projectId, String testCaseId, TestCase testCase) throws ResourceNotFoundException;
+    
+    /**
+     * Delete a test case
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @return true if deleted successfully, false otherwise
+     * @throws ResourceNotFoundException if project or test case doesn't exist
+     */
+    boolean delete(String projectId, String testCaseId) throws ResourceNotFoundException;
+    
+    /**
+     * Check if a test case exists
+     * @param projectId Project ID
+     * @param testCaseId Test case ID
+     * @return true if test case exists, false otherwise
+     */
+    boolean existsById(String projectId, String testCaseId);
+}
+
+/**
+ * Test Suite Service Interface
+ * Defines operations for test suite management
+ */
+package com.cstestforge.service.project;
+
+import com.cstestforge.exception.ResourceNotFoundException;
+import com.cstestforge.model.project.TestSuite;
+
+import java.util.List;
+
+public interface TestSuiteService {
+    
+    /**
+     * Get all test suites for a project
+     * @param projectId Project ID
+     * @return List of test suites
+     * @throws ResourceNotFoundException if project doesn't exist
+     */
+    List<TestSuite> getAllByProjectId(String projectId) throws ResourceNotFoundException;
+    
+    /**
+     * Get a test suite by ID
+     * @param projectId Project ID
+     * @param testSuiteId Test suite ID
+     * @return Test suite
+     * @throws ResourceNotFoundException if project or test suite doesn't exist
+     */
+    TestSuite getById(String projectId, String testSuiteId) throws ResourceNotFoundException;
+    
+    /**
+     * Create a new test suite
+     * @param projectId Project ID
+     * @param testSuite Test suite to create
+     * @return Created test suite
+     * @throws ResourceNotFoundException if project doesn't exist
+     */
+    TestSuite create(String projectId, TestSuite testSuite) throws ResourceNotFoundException;
+    
+    /**
+     * Update a test suite
+     * @param projectId Project ID
+     * @param testSuiteId Test suite ID
+     * @param testSuite Updated test suite details
+     * @return Updated test suite
+     * @throws ResourceNotFoundException if project or test suite doesn't exist
+     */
+    TestSuite update(String projectId, String testSuiteId, TestSuite testSuite) throws ResourceNotFoundException;
+    
+    /**
+     * Delete a test suite
+     * @param projectId Project ID
+     * @param testSuiteId Test suite ID
+     * @return true if deleted successfully, false otherwise
+     * @throws ResourceNotFoundException if project or test suite doesn't exist
+     */
+    boolean delete(String projectId, String testSuiteId) throws ResourceNotFoundException;
+    
+    /**
+     * Check if a test suite exists
+     * @param projectId Project ID
+     * @param testSuiteId Test suite ID
+     * @return true if test suite exists, false otherwise
+     */
+    boolean existsById(String projectId, String testSuiteId);
+}
+
+/**
+ * File System Test Case Service Implementation
+ * Implements test case management with file system storage
+ */
+package com.cstestforge.service.project.impl;
+
+import com.cstestforge.exception.ResourceNotFoundException;
+import com.cstestforge.model.project.TestCase;
+import com.cstestforge.service.project.ProjectService;
+import com.cstestforge.service.project.TestCaseService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+@Service
+public class FileSystemTestCaseService implements TestCaseService {
+    private static final Logger logger = LoggerFactory.getLogger(FileSystemTestCaseService.class);
+    
+    @Value("${cstestforge.storage.root-dir:/tmp/cstestforge}")
+    private String rootDir;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
+    
+    @Autowired
+    private ProjectService projectService;
+    
+    /**
+     * Get the directory for project test cases
+     */
+    private Path getTestCasesDir(String projectId) {
+        return Paths.get(rootDir, "projects", projectId, "testcases");
+    }
+    
+    /**
+     * Get the file path for a test case
+     */
+    private Path getTestCaseFilePath(String projectId, String testCaseId) {
+        return getTestCasesDir(projectId).resolve(testCaseId + ".json");
+    }
+    
+    @Override
+    public List<TestCase> getAllByProjectId(String projectId) throws ResourceNotFoundException {
+        logger.debug("Getting all test cases for project: {}", projectId);
+        
+        // Validate project exists
+        if (!projectService.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found with id: " + projectId);
+        }
+        
+        Path testCasesDir = getTestCasesDir(projectId);
+        if (!Files.exists(testCasesDir)) {
+            try {
+                Files.createDirectories(testCasesDir);
+            } catch (IOException e) {
+                logger.error("Failed to create test cases directory for project: {}", projectId, e);
+                return new ArrayList<>();
+            }
+            return new ArrayList<>();
+        }
+        
+        try (Stream<Path> paths = Files.list(testCasesDir)) {
+            return paths
+                    .filter(path -> path.toString().endsWith(".json"))
+                    .map(path -> {
+                        try {
+                            return objectMapper.readValue(path.toFile(), TestCase.class);
+                        } catch (IOException e) {
+                            logger.error("Failed to read test case file: {}", path, e);
+                            return null;
+                        }
+                    })
+                    .filter(testCase -> testCase != null)
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            logger.error("Failed to list test cases for project: {}", projectId, e);
+            return new ArrayList<>();
+        }
+    }
+    
+    @Override
+    public TestCase getById(String projectId, String testCaseId) throws ResourceNotFoundException {
+        logger.debug("Getting test case: {} for project: {}", testCaseId, projectId);
+        
+        // Validate project exists
+        if (!projectService.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found with id: " + projectId);
+        }
+        
+        Path testCaseFile = getTestCaseFilePath(projectId, testCaseId);
+        if (!Files.exists(testCaseFile)) {
+            throw new ResourceNotFoundException("Test case not found with id: " + testCaseId);
+        }
+        
+        try {
+            return objectMapper.readValue(testCaseFile.toFile(), TestCase.class);
+        } catch (IOException e) {
+            logger.error("Failed to read test case file: {}", testCaseFile, e);
+            throw new ResourceNotFoundException("Failed to read test case with id: " + testCaseId);
+        }
+    }
+    
+    @Override
+    public TestCase create(String projectId, TestCase testCase) throws ResourceNotFoundException {
+        logger.debug("Creating test case for project: {}", projectId);
+        
+        // Validate project exists
+        if (!projectService.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found with id: " + projectId);
+        }
+        
+        // Ensure ID is set
+        if (testCase.getId() == null || testCase.getId().isEmpty()) {
+            testCase.setId(UUID.randomUUID().toString());
+        }
+        
+        // Set creation and update timestamps
+        LocalDateTime now = LocalDateTime.now();
+        testCase.setCreatedAt(now);
+        testCase.setUpdatedAt(now);
+        
+        Path testCasesDir = getTestCasesDir(projectId);
+        try {
+            Files.createDirectories(testCasesDir);
+            
+            Path testCaseFile = testCasesDir.resolve(testCase.getId() + ".json");
+            objectMapper.writeValue(testCaseFile.toFile(), testCase);
+            
+            return testCase;
+        } catch (IOException e) {
+            logger.error("Failed to create test case for project: {}", projectId, e);
+            throw new RuntimeException("Failed to create test case: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public TestCase update(String projectId, String testCaseId, TestCase testCase) 
+            throws ResourceNotFoundException {
+        logger.debug("Updating test case: {} for project: {}", testCaseId, projectId);
+        
+        // Get existing test case to preserve creation date
+        TestCase existingTestCase = getById(projectId, testCaseId);
+        
+        // Update test case details
+        testCase.setId(testCaseId);
+        testCase.setCreatedAt(existingTestCase.getCreatedAt());
+        testCase.setUpdatedAt(LocalDateTime.now());
+        
+        Path testCaseFile = getTestCaseFilePath(projectId, testCaseId);
+        try {
+            objectMapper.writeValue(testCaseFile.toFile(), testCase);
+            return testCase;
+        } catch (IOException e) {
+            logger.error("Failed to update test case: {} for project: {}", testCaseId, projectId, e);
+            throw new RuntimeException("Failed to update test case: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public boolean delete(String projectId, String testCaseId) throws ResourceNotFoundException {
+        logger.debug("Deleting test case: {} for project: {}", testCaseId, projectId);
+        
+        // Validate project exists
+        if (!projectService.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found with id: " + projectId);
+        }
+        
+        // Check if test case exists
+        Path testCaseFile = getTestCaseFilePath(projectId, testCaseId);
+        if (!Files.exists(testCaseFile)) {
+            throw new ResourceNotFoundException("Test case not found with id: " + testCaseId);
+        }
+        
+        try {
+            return Files.deleteIfExists(testCaseFile);
+        } catch (IOException e) {
+            logger.error("Failed to delete test case: {} for project: {}", testCaseId, projectId, e);
+            return false;
+        }
+    }
+    
+    @Override
+    public boolean existsById(String projectId, String testCaseId) {
+        logger.debug("Checking if test case exists: {} for project: {}", testCaseId, projectId);
+        
+        if (!projectService.existsById(projectId)) {
+            return false;
+        }
+        
+        Path testCaseFile = getTestCaseFilePath(projectId, testCaseId);
+        return Files.exists(testCaseFile);
+    }
+}
+
+/**
+ * File System Test Suite Service Implementation
+ * Implements test suite management with file system storage
+ */
+package com.cstestforge.service.project.impl;
+
+import com.cstestforge.exception.ResourceNotFoundException;
+import com.cstestforge.model.project.TestSuite;
+import com.cstestforge.service.project.ProjectService;
+import com.cstestforge.service.project.TestSuiteService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+@Service
+public class FileSystemTestSuiteService implements TestSuiteService {
+    private static final Logger logger = LoggerFactory.getLogger(FileSystemTestSuiteService.class);
+    
+    @Value("${cstestforge.storage.root-dir:/tmp/cstestforge}")
+    private String rootDir;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
+    
+    @Autowired
+    private ProjectService projectService;
+    
+    /**
+     * Get the directory for project test suites
+     */
+    private Path getTestSuitesDir(String projectId) {
+        return Paths.get(rootDir, "projects", projectId, "testsuites");
+    }
+    
+    /**
+     * Get the file path for a test suite
+     */
+    private Path getTestSuiteFilePath(String projectId, String testSuiteId) {
+        return getTestSuitesDir(projectId).resolve(testSuiteId + ".json");
+    }
+    
+    @Override
+    public List<TestSuite> getAllByProjectId(String projectId) throws ResourceNotFoundException {
+        logger.debug("Getting all test suites for project: {}", projectId);
+        
+        // Validate project exists
+        if (!projectService.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found with id: " + projectId);
+        }
+        
+        Path testSuitesDir = getTestSuitesDir(projectId);
+        if (!Files.exists(testSuitesDir)) {
+            try {
+                Files.createDirectories(testSuitesDir);
+            } catch (IOException e) {
+                logger.error("Failed to create test suites directory for project: {}", projectId, e);
+                return new ArrayList<>();
+            }
+            return new ArrayList<>();
+        }
+        
+        try (Stream<Path> paths = Files.list(testSuitesDir)) {
+            return paths
+                    .filter(path -> path.toString().endsWith(".json"))
+                    .map(path -> {
+                        try {
+                            return objectMapper.readValue(path.toFile(), TestSuite.class);
+                        } catch (IOException e) {
+                            logger.error("Failed to read test suite file: {}", path, e);
+                            return null;
+                        }
+                    })
+                    .filter(testSuite -> testSuite != null)
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            logger.error("Failed to list test suites for project: {}", projectId, e);
+            return new ArrayList<>();
+        }
+    }
+    
+    @Override
+    public TestSuite getById(String projectId, String testSuiteId) throws ResourceNotFoundException {
+        logger.debug("Getting test suite: {} for project: {}", testSuiteId, projectId);
+        
+        // Validate project exists
+        if (!projectService.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found with id: " + projectId);
+        }
+        
+        Path testSuiteFile = getTestSuiteFilePath(projectId, testSuiteId);
+        if (!Files.exists(testSuiteFile)) {
+            throw new ResourceNotFoundException("Test suite not found with id: " + testSuiteId);
+        }
+        
+        try {
+            return objectMapper.readValue(testSuiteFile.toFile(), TestSuite.class);
+        } catch (IOException e) {
+            logger.error("Failed to read test suite file: {}", testSuiteFile, e);
+            throw new ResourceNotFoundException("Failed to read test suite with id: " + testSuiteId);
+        }
+    }
+    
+    @Override
+    public TestSuite create(String projectId, TestSuite testSuite) throws ResourceNotFoundException {
+        logger.debug("Creating test suite for project: {}", projectId);
+        
+        // Validate project exists
+        if (!projectService.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found with id: " + projectId);
+        }
+        
+        // Ensure ID is set
+        if (testSuite.getId() == null || testSuite.getId().isEmpty()) {
+            testSuite.setId(UUID.randomUUID().toString());
+        }
+        
+        // Set creation and update timestamps
+        LocalDateTime now = LocalDateTime.now();
+        testSuite.setCreatedAt(now);
+        testSuite.setUpdatedAt(now);
+        
+        Path testSuitesDir = getTestSuitesDir(projectId);
+        try {
+            Files.createDirectories(testSuitesDir);
+            
+            Path testSuiteFile = testSuitesDir.resolve(testSuite.getId() + ".json");
+            objectMapper.writeValue(testSuiteFile.toFile(), testSuite);
+            
+            return testSuite;
+        } catch (IOException e) {
+            logger.error("Failed to create test suite for project: {}", projectId, e);
+            throw new RuntimeException("Failed to create test suite: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public TestSuite update(String projectId, String testSuiteId, TestSuite testSuite) 
+            throws ResourceNotFoundException {
+        logger.debug("Updating test suite: {} for project: {}", testSuiteId, projectId);
+        
+        // Get existing test suite to preserve creation date
+        TestSuite existingTestSuite = getById(projectId, testSuiteId);
+        
+        // Update test suite details
+        testSuite.setId(testSuiteId);
+        testSuite.setCreatedAt(existingTestSuite.getCreatedAt());
+        testSuite.setUpdatedAt(LocalDateTime.now());
+        
+        Path testSuiteFile = getTestSuiteFilePath(projectId, testSuiteId);
+        try {
+            objectMapper.writeValue(testSuiteFile.toFile(), testSuite);
+            return testSuite;
+        } catch (IOException e) {
+            logger.error("Failed to update test suite: {} for project: {}", testSuiteId, projectId, e);
+            throw new RuntimeException("Failed to update test suite: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public boolean delete(String projectId, String testSuiteId) throws ResourceNotFoundException {
+        logger.debug("Deleting test suite: {} for project: {}", testSuiteId, projectId);
+        
+        // Validate project exists
+        if (!projectService.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project not found with id: " + projectId);
+        }
+        
+        // Check if test suite exists
+        Path testSuiteFile = getTestSuiteFilePath(projectId, testSuiteId);
+        if (!Files.exists(testSuiteFile)) {
+            throw new ResourceNotFoundException("Test suite not found with id: " + testSuiteId);
+        }
+        
+        try {
+            return Files.deleteIfExists(testSuiteFile);
+        } catch (IOException e) {
+            logger.error("Failed to delete test suite: {} for project: {}", testSuiteId, projectId, e);
+            return false;
+        }
+    }
+    
+    @Override
+    public boolean existsById(String projectId, String testSuiteId) {
+        logger.debug("Checking if test suite exists: {} for project: {}", testSuiteId, projectId);
+        
+        if (!projectService.existsById(projectId)) {
+            return false;
+        }
+        
+        Path testSuiteFile = getTestSuiteFilePath(projectId, testSuiteId);
+        return Files.exists(testSuiteFile);
+    }
+}
+
+
+/**
+ * Storage Exception
+ * Thrown when there's an error with file system storage operations
+ */
+package com.cstestforge.exception;
+
+public class StorageException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+    
+    public StorageException(String message) {
+        super(message);
+    }
+    
+    public StorageException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}
+
+
