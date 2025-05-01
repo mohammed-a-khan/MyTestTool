@@ -330,9 +330,6 @@ package com.cstestforge.model.project;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -344,25 +341,22 @@ public class ProjectConfig {
     
     private String projectId;
     
-    @NotBlank(message = "Test case template is required")
+    // Original fields
+    private String baseUrl;
+    private Map<String, String> environment;
+    private Map<String, String> defaultHeaders;
+    private boolean captureScreenshots;
+    private boolean captureVideo;
+    private int defaultTimeout;
+    
+    // Additional fields needed by ProjectServiceImpl
     private String testCaseTemplate;
-    
     private String defaultTestCategory;
-    
     private boolean enableVersioning = true;
-    
-    @Min(value = 1, message = "Minimum attachment size must be at least 1 MB")
-    @Max(value = 100, message = "Maximum attachment size cannot exceed 100 MB")
     private int maxAttachmentSizeMb = 10;
-    
-    @Min(value = 0, message = "Minimum attachments per test case cannot be negative")
-    @Max(value = 50, message = "Maximum attachments per test case cannot exceed 50")
     private int maxAttachmentsPerTestCase = 5;
-    
     private Set<String> allowedAttachmentTypes = new HashSet<>();
-    
     private Map<String, Object> customFields = new HashMap<>();
-    
     private Map<String, Object> integrationSettings = new HashMap<>();
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
@@ -371,7 +365,73 @@ public class ProjectConfig {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updatedAt;
     
-    // Getters and setters
+    public ProjectConfig() {
+        this.environment = new HashMap<>();
+        this.defaultHeaders = new HashMap<>();
+        this.captureScreenshots = true;
+        this.captureVideo = false;
+        this.defaultTimeout = 30;
+        this.customFields = new HashMap<>();
+        this.integrationSettings = new HashMap<>();
+        this.allowedAttachmentTypes = new HashSet<>();
+    }
+    
+    // Original getters and setters
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+    
+    public ProjectConfig setBaseUrl(String baseUrl) {
+        this.baseUrl = baseUrl;
+        return this;
+    }
+    
+    public Map<String, String> getEnvironment() {
+        return environment;
+    }
+    
+    public ProjectConfig setEnvironment(Map<String, String> environment) {
+        this.environment = environment;
+        return this;
+    }
+    
+    public Map<String, String> getDefaultHeaders() {
+        return defaultHeaders;
+    }
+    
+    public ProjectConfig setDefaultHeaders(Map<String, String> defaultHeaders) {
+        this.defaultHeaders = defaultHeaders;
+        return this;
+    }
+    
+    public boolean isCaptureScreenshots() {
+        return captureScreenshots;
+    }
+    
+    public ProjectConfig setCaptureScreenshots(boolean captureScreenshots) {
+        this.captureScreenshots = captureScreenshots;
+        return this;
+    }
+    
+    public boolean isCaptureVideo() {
+        return captureVideo;
+    }
+    
+    public ProjectConfig setCaptureVideo(boolean captureVideo) {
+        this.captureVideo = captureVideo;
+        return this;
+    }
+    
+    public int getDefaultTimeout() {
+        return defaultTimeout;
+    }
+    
+    public ProjectConfig setDefaultTimeout(int defaultTimeout) {
+        this.defaultTimeout = defaultTimeout;
+        return this;
+    }
+    
+    // Additional getters and setters needed by ProjectServiceImpl
     public String getProjectId() {
         return projectId;
     }
