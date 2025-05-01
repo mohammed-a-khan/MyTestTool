@@ -2104,3 +2104,58 @@ public class FileSystemProjectRepository implements ProjectRepository {
         }
     }
 }
+
+
+/**
+ * API Testing Environment Repository Interface
+ * Defines data access operations for API testing environments
+ */
+package com.cstestforge.repository.api;
+
+import com.cstestforge.model.api.ApiTestingEnvironment;
+import java.util.List;
+import java.util.Optional;
+
+public interface ApiTestingEnvironmentRepository {
+    
+    /**
+     * Find all environments for a project
+     * 
+     * @param projectId Project ID
+     * @return List of environments
+     */
+    List<ApiTestingEnvironment> findAllByProjectId(String projectId);
+    
+    /**
+     * Find environment by project ID and environment ID
+     * 
+     * @param projectId Project ID
+     * @param id Environment ID
+     * @return Optional containing environment if found
+     */
+    Optional<ApiTestingEnvironment> findByProjectIdAndId(String projectId, String id);
+    
+    /**
+     * Check if an environment exists
+     * 
+     * @param projectId Project ID
+     * @param id Environment ID
+     * @return true if the environment exists
+     */
+    boolean existsByProjectIdAndId(String projectId, String id);
+    
+    /**
+     * Save an environment
+     * 
+     * @param environment Environment to save
+     * @return Saved environment
+     */
+    ApiTestingEnvironment save(ApiTestingEnvironment environment);
+    
+    /**
+     * Delete an environment
+     * 
+     * @param environment Environment to delete
+     */
+    void delete(ApiTestingEnvironment environment);
+}
