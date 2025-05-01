@@ -489,7 +489,7 @@ import java.util.List;
 public class BDDImportResult {
     private int totalFiles;
     private int importedFiles;
-    private int skippedFiles;
+    private int skippedCount;
     private List<ImportedFeature> importedFeatures = new ArrayList<>();
     private List<SkippedFile> skippedFiles = new ArrayList<>();
 
@@ -598,12 +598,12 @@ public class BDDImportResult {
         this.importedFiles = importedFiles;
     }
 
-    public int getSkippedFiles() {
-        return skippedFiles;
+    public int getSkippedCount() {
+        return skippedCount;
     }
 
-    public void setSkippedFiles(int skippedFiles) {
-        this.skippedFiles = skippedFiles;
+    public void setSkippedCount(int skippedCount) {
+        this.skippedCount = skippedCount;
     }
 
     public List<ImportedFeature> getImportedFeatures() {
@@ -622,6 +622,7 @@ public class BDDImportResult {
         this.skippedFiles = skippedFiles;
     }
 }
+
 
 /**
  * BDD Testing Service Interface
@@ -1878,7 +1879,7 @@ public class BDDTestingServiceImpl implements BDDTestingService {
         result.setImportedFeatures(importedFeatures);
         result.setSkippedFiles(skippedFiles);
         result.setImportedFiles(importedFeatures.size());
-        result.setSkippedFiles(skippedFiles.size());
+        result.setSkippedCount(skippedFiles.size());
         
         return result;
     }
@@ -2396,6 +2397,7 @@ public class BDDTestingServiceImpl implements BDDTestingService {
         return sb.toString();
     }
 }
+
 
 
 /**
