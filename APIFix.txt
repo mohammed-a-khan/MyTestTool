@@ -1,0 +1,2106 @@
+/**
+ * API Response model
+ * Standard response format for REST API endpoints
+ */
+package com.cstestforge.model.common;
+
+public class ApiResponse {
+    private boolean success;
+    private String message;
+    private Object data;
+    
+    public ApiResponse() {
+    }
+    
+    public ApiResponse(boolean success) {
+        this.success = success;
+    }
+    
+    public ApiResponse(boolean success, String message) {
+        this.success = success;
+        this.message = message;
+    }
+    
+    public ApiResponse(boolean success, String message, Object data) {
+        this.success = success;
+        this.message = message;
+        this.data = data;
+    }
+    
+    public boolean isSuccess() {
+        return success;
+    }
+    
+    public ApiResponse setSuccess(boolean success) {
+        this.success = success;
+        return this;
+    }
+    
+    public String getMessage() {
+        return message;
+    }
+    
+    public ApiResponse setMessage(String message) {
+        this.message = message;
+        return this;
+    }
+    
+    public Object getData() {
+        return data;
+    }
+    
+    public ApiResponse setData(Object data) {
+        this.data = data;
+        return this;
+    }
+}
+
+
+
+/**
+ * API Test Model
+ * Represents an API test definition
+ */
+package com.cstestforge.model.api;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class ApiTest {
+    private String id;
+    private String projectId;
+    private String name;
+    private String description;
+    private String method; // GET, POST, PUT, DELETE, etc.
+    private String url;
+    private Map<String, String> headers = new HashMap<>();
+    private Map<String, String> queryParams = new HashMap<>();
+    private Map<String, String> pathParams = new HashMap<>();
+    private String requestBody;
+    private String contentType;
+    private List<ApiTestAssertion> assertions = new ArrayList<>();
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    
+    // Inner class for assertions
+    public static class ApiTestAssertion {
+        private String type; // statusCode, jsonPath, header, responseTime
+        private String property; // Property to check (e.g., jsonPath expression, header name)
+        private String operator; // equals, contains, greaterThan, lessThan, exists, etc.
+        private String expectedValue; // Expected value to compare against
+        
+        public ApiTestAssertion() {
+        }
+        
+        public String getType() {
+            return type;
+        }
+        
+        public void setType(String type) {
+            this.type = type;
+        }
+        
+        public String getProperty() {
+            return property;
+        }
+        
+        public void setProperty(String property) {
+            this.property = property;
+        }
+        
+        public String getOperator() {
+            return operator;
+        }
+        
+        public void setOperator(String operator) {
+            this.operator = operator;
+        }
+        
+        public String getExpectedValue() {
+            return expectedValue;
+        }
+        
+        public void setExpectedValue(String expectedValue) {
+            this.expectedValue = expectedValue;
+        }
+    }
+    
+    public ApiTest() {
+    }
+    
+    public String getId() {
+        return id;
+    }
+    
+    public void setId(String id) {
+        this.id = id;
+    }
+    
+    public String getProjectId() {
+        return projectId;
+    }
+    
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
+    }
+    
+    public String getName() {
+        return name;
+    }
+    
+    public void setName(String name) {
+        this.name = name;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+    
+    public void setDescription(String description) {
+        this.description = description;
+    }
+    
+    public String getMethod() {
+        return method;
+    }
+    
+    public void setMethod(String method) {
+        this.method = method;
+    }
+    
+    public String getUrl() {
+        return url;
+    }
+    
+    public void setUrl(String url) {
+        this.url = url;
+    }
+    
+    public Map<String, String> getHeaders() {
+        return headers;
+    }
+    
+    public void setHeaders(Map<String, String> headers) {
+        this.headers = headers;
+    }
+    
+    public Map<String, String> getQueryParams() {
+        return queryParams;
+    }
+    
+    public void setQueryParams(Map<String, String> queryParams) {
+        this.queryParams = queryParams;
+    }
+    
+    public Map<String, String> getPathParams() {
+        return pathParams;
+    }
+    
+    public void setPathParams(Map<String, String> pathParams) {
+        this.pathParams = pathParams;
+    }
+    
+    public String getRequestBody() {
+        return requestBody;
+    }
+    
+    public void setRequestBody(String requestBody) {
+        this.requestBody = requestBody;
+    }
+    
+    public String getContentType() {
+        return contentType;
+    }
+    
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
+    }
+    
+    public List<ApiTestAssertion> getAssertions() {
+        return assertions;
+    }
+    
+    public void setAssertions(List<ApiTestAssertion> assertions) {
+        this.assertions = assertions;
+    }
+    
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+    
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+    
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+}
+
+
+
+/**
+ * API Test Result Model
+ * Represents the result of an API test execution
+ */
+package com.cstestforge.model.api;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
+
+public class ApiTestResult {
+    private String id;
+    private String apiTestId;
+    private LocalDateTime executedAt;
+    private int statusCode;
+    private String responseBody;
+    private Map<String, String> responseHeaders = new HashMap<>();
+    private Long duration; // in milliseconds
+    private boolean success;
+    private List<AssertionResult> assertionResults = new ArrayList<>();
+    
+    public static class AssertionResult {
+        private String assertionType;
+        private String property;
+        private String operator;
+        private String expectedValue;
+        private String actualValue;
+        private boolean passed;
+        private String message;
+        
+        public AssertionResult() {
+        }
+        
+        public String getAssertionType() {
+            return assertionType;
+        }
+        
+        public void setAssertionType(String assertionType) {
+            this.assertionType = assertionType;
+        }
+        
+        public String getProperty() {
+            return property;
+        }
+        
+        public void setProperty(String property) {
+            this.property = property;
+        }
+        
+        public String getOperator() {
+            return operator;
+        }
+        
+        public void setOperator(String operator) {
+            this.operator = operator;
+        }
+        
+        public String getExpectedValue() {
+            return expectedValue;
+        }
+        
+        public void setExpectedValue(String expectedValue) {
+            this.expectedValue = expectedValue;
+        }
+        
+        public String getActualValue() {
+            return actualValue;
+        }
+        
+        public void setActualValue(String actualValue) {
+            this.actualValue = actualValue;
+        }
+        
+        public boolean isPassed() {
+            return passed;
+        }
+        
+        public void setPassed(boolean passed) {
+            this.passed = passed;
+        }
+        
+        public String getMessage() {
+            return message;
+        }
+        
+        public void setMessage(String message) {
+            this.message = message;
+        }
+    }
+    
+    public ApiTestResult() {
+    }
+    
+    public String getId() {
+        return id;
+    }
+    
+    public void setId(String id) {
+        this.id = id;
+    }
+    
+    public String getApiTestId() {
+        return apiTestId;
+    }
+    
+    public void setApiTestId(String apiTestId) {
+        this.apiTestId = apiTestId;
+    }
+    
+    public LocalDateTime getExecutedAt() {
+        return executedAt;
+    }
+    
+    public void setExecutedAt(LocalDateTime executedAt) {
+        this.executedAt = executedAt;
+    }
+    
+    public int getStatusCode() {
+        return statusCode;
+    }
+    
+    public void setStatusCode(int statusCode) {
+        this.statusCode = statusCode;
+    }
+    
+    public String getResponseBody() {
+        return responseBody;
+    }
+    
+    public void setResponseBody(String responseBody) {
+        this.responseBody = responseBody;
+    }
+    
+    public Map<String, String> getResponseHeaders() {
+        return responseHeaders;
+    }
+    
+    public void setResponseHeaders(Map<String, String> responseHeaders) {
+        this.responseHeaders = responseHeaders;
+    }
+    
+    public Long getDuration() {
+        return duration;
+    }
+    
+    public void setDuration(Long duration) {
+        this.duration = duration;
+    }
+    
+    public boolean isSuccess() {
+        return success;
+    }
+    
+    public void setSuccess(boolean success) {
+        this.success = success;
+    }
+    
+    public List<AssertionResult> getAssertionResults() {
+        return assertionResults;
+    }
+    
+    public void setAssertionResults(List<AssertionResult> assertionResults) {
+        this.assertionResults = assertionResults;
+    }
+}
+
+
+/**
+ * API Test Execution Configuration
+ * Defines configuration parameters for API test execution
+ */
+package com.cstestforge.model.api;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class ApiTestExecutionConfig {
+    private String environmentId;
+    private Map<String, String> overrideVariables = new HashMap<>();
+    private Integer timeoutSeconds;
+    private Boolean followRedirects;
+    private Boolean validateCertificates;
+
+    public ApiTestExecutionConfig() {
+        // Default values
+        this.timeoutSeconds = 30;
+        this.followRedirects = true;
+        this.validateCertificates = true;
+    }
+
+    public String getEnvironmentId() {
+        return environmentId;
+    }
+
+    public void setEnvironmentId(String environmentId) {
+        this.environmentId = environmentId;
+    }
+
+    public Map<String, String> getOverrideVariables() {
+        return overrideVariables;
+    }
+
+    public void setOverrideVariables(Map<String, String> overrideVariables) {
+        this.overrideVariables = overrideVariables;
+    }
+
+    public Integer getTimeoutSeconds() {
+        return timeoutSeconds;
+    }
+
+    public void setTimeoutSeconds(Integer timeoutSeconds) {
+        this.timeoutSeconds = timeoutSeconds;
+    }
+
+    public Boolean getFollowRedirects() {
+        return followRedirects;
+    }
+
+    public void setFollowRedirects(Boolean followRedirects) {
+        this.followRedirects = followRedirects;
+    }
+
+    public Boolean getValidateCertificates() {
+        return validateCertificates;
+    }
+
+    public void setValidateCertificates(Boolean validateCertificates) {
+        this.validateCertificates = validateCertificates;
+    }
+}
+
+/**
+ * API Testing Environment Model
+ * Represents an environment for API testing with variables
+ */
+package com.cstestforge.model.api;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+public class ApiTestingEnvironment {
+    private String id;
+    private String projectId;
+    private String name;
+    private String description;
+    private Map<String, String> variables = new HashMap<>();
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    
+    public ApiTestingEnvironment() {
+    }
+    
+    public String getId() {
+        return id;
+    }
+    
+    public void setId(String id) {
+        this.id = id;
+    }
+    
+    public String getProjectId() {
+        return projectId;
+    }
+    
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
+    }
+    
+    public String getName() {
+        return name;
+    }
+    
+    public void setName(String name) {
+        this.name = name;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+    
+    public void setDescription(String description) {
+        this.description = description;
+    }
+    
+    public Map<String, String> getVariables() {
+        return variables;
+    }
+    
+    public void setVariables(Map<String, String> variables) {
+        this.variables = variables;
+    }
+    
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+    
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+    
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+}
+
+
+/**
+ * API Testing Service Interface
+ * Defines operations for API testing functionality
+ */
+package com.cstestforge.service.api;
+
+import com.cstestforge.model.api.ApiTest;
+import com.cstestforge.model.api.ApiTestResult;
+import com.cstestforge.model.api.ApiTestExecutionConfig;
+import com.cstestforge.model.api.ApiTestingEnvironment;
+
+import java.util.List;
+
+public interface ApiTestingService {
+    
+    /**
+     * Get all API tests for a project
+     * 
+     * @param projectId Project ID
+     * @return List of API tests
+     */
+    List<ApiTest> getAllApiTests(String projectId);
+    
+    /**
+     * Get API test by ID
+     * 
+     * @param projectId Project ID
+     * @param apiTestId API test ID
+     * @return API test
+     */
+    ApiTest getApiTestById(String projectId, String apiTestId);
+    
+    /**
+     * Create a new API test
+     * 
+     * @param projectId Project ID
+     * @param apiTest API test details
+     * @return Created API test
+     */
+    ApiTest createApiTest(String projectId, ApiTest apiTest);
+    
+    /**
+     * Update an existing API test
+     * 
+     * @param projectId Project ID
+     * @param apiTestId API test ID
+     * @param apiTestDetails Updated API test details
+     * @return Updated API test
+     */
+    ApiTest updateApiTest(String projectId, String apiTestId, ApiTest apiTestDetails);
+    
+    /**
+     * Delete an API test
+     * 
+     * @param projectId Project ID
+     * @param apiTestId API test ID
+     * @return true if deleted successfully
+     */
+    boolean deleteApiTest(String projectId, String apiTestId);
+    
+    /**
+     * Execute an API test
+     * 
+     * @param projectId Project ID
+     * @param apiTestId API test ID
+     * @param config Execution configuration (optional)
+     * @return API test execution result
+     */
+    ApiTestResult executeApiTest(String projectId, String apiTestId, ApiTestExecutionConfig config);
+    
+    /**
+     * Get all environments for API testing
+     * 
+     * @param projectId Project ID
+     * @return List of environments
+     */
+    List<ApiTestingEnvironment> getEnvironments(String projectId);
+    
+    /**
+     * Save (create or update) an environment
+     * 
+     * @param projectId Project ID
+     * @param environment Environment details
+     * @return Saved environment
+     */
+    ApiTestingEnvironment saveEnvironment(String projectId, ApiTestingEnvironment environment);
+    
+    /**
+     * Delete an environment
+     * 
+     * @param projectId Project ID
+     * @param environmentId Environment ID
+     * @return true if deleted successfully
+     */
+    boolean deleteEnvironment(String projectId, String environmentId);
+}
+
+
+/**
+ * API Test Repository Interface
+ * Defines data access operations for API tests
+ */
+package com.cstestforge.repository.api;
+
+import com.cstestforge.model.api.ApiTest;
+import java.util.List;
+import java.util.Optional;
+
+public interface ApiTestRepository {
+    
+    /**
+     * Find all API tests for a project
+     * 
+     * @param projectId Project ID
+     * @return List of API tests
+     */
+    List<ApiTest> findAllByProjectId(String projectId);
+    
+    /**
+     * Find API test by project ID and test ID
+     * 
+     * @param projectId Project ID
+     * @param id API test ID
+     * @return Optional containing API test if found
+     */
+    Optional<ApiTest> findByProjectIdAndId(String projectId, String id);
+    
+    /**
+     * Check if an API test exists
+     * 
+     * @param projectId Project ID
+     * @param id API test ID
+     * @return true if the API test exists
+     */
+    boolean existsByProjectIdAndId(String projectId, String id);
+    
+    /**
+     * Save an API test
+     * 
+     * @param apiTest API test to save
+     * @return Saved API test
+     */
+    ApiTest save(ApiTest apiTest);
+    
+    /**
+     * Delete an API test
+     * 
+     * @param apiTest API test to delete
+     */
+    void delete(ApiTest apiTest);
+}
+
+
+/**
+ * File System API Test Repository Implementation
+ * Implements the API test repository interface with file system storage
+ */
+package com.cstestforge.repository.api.impl;
+
+import com.cstestforge.exception.StorageException;
+import com.cstestforge.model.api.ApiTest;
+import com.cstestforge.repository.api.ApiTestRepository;
+import com.cstestforge.util.FileUtils;
+import com.cstestforge.util.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Repository;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+@Repository
+public class FileSystemApiTestRepository implements ApiTestRepository {
+    private static final Logger logger = LoggerFactory.getLogger(FileSystemApiTestRepository.class);
+    
+    @Value("${cstestforge.storage.root-dir:./storage}")
+    private String storageRootDir;
+    
+    @Autowired
+    private JsonUtils jsonUtils;
+    
+    @Autowired
+    private FileUtils fileUtils;
+    
+    /**
+     * Get the directory path for API tests for a specific project
+     */
+    private Path getProjectApiTestsDir(String projectId) {
+        return Paths.get(storageRootDir, "projects", projectId, "api-tests");
+    }
+    
+    /**
+     * Get the file path for a specific API test
+     */
+    private Path getApiTestFilePath(String projectId, String apiTestId) {
+        return getProjectApiTestsDir(projectId).resolve(apiTestId + ".json");
+    }
+    
+    @Override
+    public List<ApiTest> findAllByProjectId(String projectId) {
+        Path projectApiTestsDir = getProjectApiTestsDir(projectId);
+        
+        if (!Files.exists(projectApiTestsDir)) {
+            // Return empty list if directory doesn't exist
+            return new ArrayList<>();
+        }
+        
+        try (Stream<Path> paths = Files.list(projectApiTestsDir)) {
+            return paths
+                .filter(path -> path.toString().endsWith(".json"))
+                .map(path -> {
+                    try {
+                        return jsonUtils.readValue(path.toFile(), ApiTest.class);
+                    } catch (IOException e) {
+                        logger.error("Error reading API test file: {}", path, e);
+                        return null;
+                    }
+                })
+                .filter(apiTest -> apiTest != null)
+                .collect(Collectors.toList());
+        } catch (IOException e) {
+            logger.error("Error listing API test files for project: {}", projectId, e);
+            throw new StorageException("Failed to read API tests", e);
+        }
+    }
+    
+    @Override
+    public Optional<ApiTest> findByProjectIdAndId(String projectId, String id) {
+        Path apiTestFilePath = getApiTestFilePath(projectId, id);
+        
+        if (!Files.exists(apiTestFilePath)) {
+            return Optional.empty();
+        }
+        
+        try {
+            ApiTest apiTest = jsonUtils.readValue(apiTestFilePath.toFile(), ApiTest.class);
+            return Optional.of(apiTest);
+        } catch (IOException e) {
+            logger.error("Error reading API test file: {}", apiTestFilePath, e);
+            throw new StorageException("Failed to read API test", e);
+        }
+    }
+    
+    @Override
+    public boolean existsByProjectIdAndId(String projectId, String id) {
+        Path apiTestFilePath = getApiTestFilePath(projectId, id);
+        return Files.exists(apiTestFilePath);
+    }
+    
+    @Override
+    public ApiTest save(ApiTest apiTest) {
+        Path projectApiTestsDir = getProjectApiTestsDir(apiTest.getProjectId());
+        
+        try {
+            // Create directories if they don't exist
+            Files.createDirectories(projectApiTestsDir);
+            
+            // Save API test to file
+            Path apiTestFilePath = getApiTestFilePath(apiTest.getProjectId(), apiTest.getId());
+            jsonUtils.writeValue(apiTestFilePath.toFile(), apiTest);
+            
+            return apiTest;
+        } catch (IOException e) {
+            logger.error("Error saving API test: {}", apiTest.getId(), e);
+            throw new StorageException("Failed to save API test", e);
+        }
+    }
+    
+    @Override
+    public void delete(ApiTest apiTest) {
+        Path apiTestFilePath = getApiTestFilePath(apiTest.getProjectId(), apiTest.getId());
+        
+        try {
+            Files.deleteIfExists(apiTestFilePath);
+        } catch (IOException e) {
+            logger.error("Error deleting API test file: {}", apiTestFilePath, e);
+            throw new StorageException("Failed to delete API test", e);
+        }
+    }
+}
+
+/**
+ * File System API Testing Environment Repository Implementation
+ * Implements the API testing environment repository interface with file system storage
+ */
+package com.cstestforge.repository.api.impl;
+
+import com.cstestforge.exception.StorageException;
+import com.cstestforge.model.api.ApiTestingEnvironment;
+import com.cstestforge.repository.api.ApiTestingEnvironmentRepository;
+import com.cstestforge.util.FileUtils;
+import com.cstestforge.util.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Repository;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+@Repository
+public class FileSystemApiTestingEnvironmentRepository implements ApiTestingEnvironmentRepository {
+    private static final Logger logger = LoggerFactory.getLogger(FileSystemApiTestingEnvironmentRepository.class);
+    
+    @Value("${cstestforge.storage.root-dir:./storage}")
+    private String storageRootDir;
+    
+    @Autowired
+    private JsonUtils jsonUtils;
+    
+    @Autowired
+    private FileUtils fileUtils;
+    
+    /**
+     * Get the directory path for API testing environments for a specific project
+     */
+    private Path getProjectEnvironmentsDir(String projectId) {
+        return Paths.get(storageRootDir, "projects", projectId, "api-environments");
+    }
+    
+    /**
+     * Get the file path for a specific environment
+     */
+    private Path getEnvironmentFilePath(String projectId, String environmentId) {
+        return getProjectEnvironmentsDir(projectId).resolve(environmentId + ".json");
+    }
+    
+    @Override
+    public List<ApiTestingEnvironment> findAllByProjectId(String projectId) {
+        Path projectEnvironmentsDir = getProjectEnvironmentsDir(projectId);
+        
+        if (!Files.exists(projectEnvironmentsDir)) {
+            // Return empty list if directory doesn't exist
+            return new ArrayList<>();
+        }
+        
+        try (Stream<Path> paths = Files.list(projectEnvironmentsDir)) {
+            return paths
+                .filter(path -> path.toString().endsWith(".json"))
+                .map(path -> {
+                    try {
+                        return jsonUtils.readValue(path.toFile(), ApiTestingEnvironment.class);
+                    } catch (IOException e) {
+                        logger.error("Error reading environment file: {}", path, e);
+                        return null;
+                    }
+                })
+                .filter(env -> env != null)
+                .collect(Collectors.toList());
+        } catch (IOException e) {
+            logger.error("Error listing environment files for project: {}", projectId, e);
+            throw new StorageException("Failed to read environments", e);
+        }
+    }
+    
+    @Override
+    public Optional<ApiTestingEnvironment> findByProjectIdAndId(String projectId, String id) {
+        Path environmentFilePath = getEnvironmentFilePath(projectId, id);
+        
+        if (!Files.exists(environmentFilePath)) {
+            return Optional.empty();
+        }
+        
+        try {
+            ApiTestingEnvironment environment = jsonUtils.readValue(environmentFilePath.toFile(), ApiTestingEnvironment.class);
+            return Optional.of(environment);
+        } catch (IOException e) {
+            logger.error("Error reading environment file: {}", environmentFilePath, e);
+            throw new StorageException("Failed to read environment", e);
+        }
+    }
+    
+    @Override
+    public boolean existsByProjectIdAndId(String projectId, String id) {
+        Path environmentFilePath = getEnvironmentFilePath(projectId, id);
+        return Files.exists(environmentFilePath);
+    }
+    
+    @Override
+    public ApiTestingEnvironment save(ApiTestingEnvironment environment) {
+        Path projectEnvironmentsDir = getProjectEnvironmentsDir(environment.getProjectId());
+        
+        try {
+            // Create directories if they don't exist
+            Files.createDirectories(projectEnvironmentsDir);
+            
+            // Save environment to file
+            Path environmentFilePath = getEnvironmentFilePath(environment.getProjectId(), environment.getId());
+            jsonUtils.writeValue(environmentFilePath.toFile(), environment);
+            
+            return environment;
+        } catch (IOException e) {
+            logger.error("Error saving environment: {}", environment.getId(), e);
+            throw new StorageException("Failed to save environment", e);
+        }
+    }
+    
+    @Override
+    public void delete(ApiTestingEnvironment environment) {
+        Path environmentFilePath = getEnvironmentFilePath(environment.getProjectId(), environment.getId());
+        
+        try {
+            Files.deleteIfExists(environmentFilePath);
+        } catch (IOException e) {
+            logger.error("Error deleting environment file: {}", environmentFilePath, e);
+            throw new StorageException("Failed to delete environment", e);
+        }
+    }
+}
+
+
+/**
+ * API Testing Service Implementation
+ * Implements API testing functionality
+ */
+package com.cstestforge.service.api.impl;
+
+import com.cstestforge.exception.ResourceNotFoundException;
+import com.cstestforge.model.api.ApiTest;
+import com.cstestforge.model.api.ApiTestResult;
+import com.cstestforge.model.api.ApiTestExecutionConfig;
+import com.cstestforge.model.api.ApiTestingEnvironment;
+import com.cstestforge.repository.api.ApiTestRepository;
+import com.cstestforge.repository.api.ApiTestingEnvironmentRepository;
+import com.cstestforge.service.api.ApiTestingService;
+import com.cstestforge.service.http.HttpClientService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+@Service
+public class ApiTestingServiceImpl implements ApiTestingService {
+    private static final Logger logger = LoggerFactory.getLogger(ApiTestingServiceImpl.class);
+    private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{\\{([^{}]+)\\}\\}");
+
+    @Autowired
+    private ApiTestRepository apiTestRepository;
+    
+    @Autowired
+    private ApiTestingEnvironmentRepository environmentRepository;
+    
+    @Autowired
+    private HttpClientService httpClientService;
+    
+    @Override
+    public List<ApiTest> getAllApiTests(String projectId) {
+        logger.debug("Getting all API tests for project: {}", projectId);
+        return apiTestRepository.findAllByProjectId(projectId);
+    }
+    
+    @Override
+    public ApiTest getApiTestById(String projectId, String apiTestId) {
+        logger.debug("Getting API test: {} for project: {}", apiTestId, projectId);
+        return apiTestRepository.findByProjectIdAndId(projectId, apiTestId)
+                .orElseThrow(() -> new ResourceNotFoundException("API test not found with id: " + apiTestId));
+    }
+    
+    @Override
+    public ApiTest createApiTest(String projectId, ApiTest apiTest) {
+        logger.debug("Creating API test for project: {}", projectId);
+        
+        // Set required fields
+        apiTest.setId(UUID.randomUUID().toString());
+        apiTest.setProjectId(projectId);
+        apiTest.setCreatedAt(LocalDateTime.now());
+        apiTest.setUpdatedAt(LocalDateTime.now());
+        
+        return apiTestRepository.save(apiTest);
+    }
+    
+    @Override
+    public ApiTest updateApiTest(String projectId, String apiTestId, ApiTest apiTestDetails) {
+        logger.debug("Updating API test: {} for project: {}", apiTestId, projectId);
+        
+        ApiTest existingApiTest = getApiTestById(projectId, apiTestId);
+        
+        // Update fields
+        existingApiTest.setName(apiTestDetails.getName());
+        existingApiTest.setDescription(apiTestDetails.getDescription());
+        existingApiTest.setMethod(apiTestDetails.getMethod());
+        existingApiTest.setUrl(apiTestDetails.getUrl());
+        existingApiTest.setHeaders(apiTestDetails.getHeaders());
+        existingApiTest.setQueryParams(apiTestDetails.getQueryParams());
+        existingApiTest.setPathParams(apiTestDetails.getPathParams());
+        existingApiTest.setRequestBody(apiTestDetails.getRequestBody());
+        existingApiTest.setContentType(apiTestDetails.getContentType());
+        existingApiTest.setAssertions(apiTestDetails.getAssertions());
+        existingApiTest.setUpdatedAt(LocalDateTime.now());
+        
+        return apiTestRepository.save(existingApiTest);
+    }
+    
+    @Override
+    public boolean deleteApiTest(String projectId, String apiTestId) {
+        logger.debug("Deleting API test: {} for project: {}", apiTestId, projectId);
+        
+        ApiTest existingApiTest = getApiTestById(projectId, apiTestId);
+        apiTestRepository.delete(existingApiTest);
+        return true;
+    }
+    
+    @Override
+    public ApiTestResult executeApiTest(String projectId, String apiTestId, ApiTestExecutionConfig config) {
+        logger.debug("Executing API test: {} for project: {}", apiTestId, projectId);
+        
+        ApiTest apiTest = getApiTestById(projectId, apiTestId);
+        
+        // Prepare variables from environment
+        Map<String, String> variables = new HashMap<>();
+        if (config != null && StringUtils.hasText(config.getEnvironmentId())) {
+            ApiTestingEnvironment environment = environmentRepository.findByProjectIdAndId(projectId, config.getEnvironmentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Environment not found with id: " + config.getEnvironmentId()));
+            variables.putAll(environment.getVariables());
+        }
+        
+        // Override variables with any provided in the config
+        if (config != null && config.getOverrideVariables() != null) {
+            variables.putAll(config.getOverrideVariables());
+        }
+        
+        // Create result object
+        ApiTestResult result = new ApiTestResult();
+        result.setId(UUID.randomUUID().toString());
+        result.setApiTestId(apiTestId);
+        result.setExecutedAt(LocalDateTime.now());
+        
+        // Execute the API test
+        try {
+            // Prepare request
+            String url = replaceVariables(apiTest.getUrl(), variables);
+            
+            // Replace path parameters
+            for (Map.Entry<String, String> entry : apiTest.getPathParams().entrySet()) {
+                String paramValue = replaceVariables(entry.getValue(), variables);
+                url = url.replace("{" + entry.getKey() + "}", paramValue);
+            }
+            
+            // Add query parameters
+            StringBuilder queryString = new StringBuilder();
+            for (Map.Entry<String, String> entry : apiTest.getQueryParams().entrySet()) {
+                String paramName = entry.getKey();
+                String paramValue = replaceVariables(entry.getValue(), variables);
+                
+                if (queryString.length() > 0) {
+                    queryString.append("&");
+                } else {
+                    queryString.append("?");
+                }
+                
+                queryString.append(paramName).append("=").append(paramValue);
+            }
+            url += queryString.toString();
+            
+            // Create HTTP request builder
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.of(config != null && config.getTimeoutSeconds() != null ? config.getTimeoutSeconds() : 30, ChronoUnit.SECONDS));
+            
+            // Set method and body if needed
+            switch (apiTest.getMethod().toUpperCase()) {
+                case "GET":
+                    requestBuilder.GET();
+                    break;
+                case "POST":
+                    if (apiTest.getRequestBody() != null) {
+                        String body = replaceVariables(apiTest.getRequestBody(), variables);
+                        requestBuilder.POST(HttpRequest.BodyPublishers.ofString(body));
+                    } else {
+                        requestBuilder.POST(HttpRequest.BodyPublishers.noBody());
+                    }
+                    break;
+                case "PUT":
+                    if (apiTest.getRequestBody() != null) {
+                        String body = replaceVariables(apiTest.getRequestBody(), variables);
+                        requestBuilder.PUT(HttpRequest.BodyPublishers.ofString(body));
+                    } else {
+                        requestBuilder.PUT(HttpRequest.BodyPublishers.noBody());
+                    }
+                    break;
+                case "DELETE":
+                    requestBuilder.DELETE();
+                    break;
+                case "PATCH":
+                    if (apiTest.getRequestBody() != null) {
+                        String body = replaceVariables(apiTest.getRequestBody(), variables);
+                        requestBuilder.method("PATCH", HttpRequest.BodyPublishers.ofString(body));
+                    } else {
+                        requestBuilder.method("PATCH", HttpRequest.BodyPublishers.noBody());
+                    }
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported HTTP method: " + apiTest.getMethod());
+            }
+            
+            // Add headers
+            for (Map.Entry<String, String> entry : apiTest.getHeaders().entrySet()) {
+                String headerValue = replaceVariables(entry.getValue(), variables);
+                requestBuilder.header(entry.getKey(), headerValue);
+            }
+            
+            // Set content type header if specified
+            if (apiTest.getContentType() != null && !apiTest.getContentType().isEmpty()) {
+                requestBuilder.header("Content-Type", apiTest.getContentType());
+            }
+            
+            // Create HTTP client
+            HttpClient httpClient = httpClientService.createHttpClient(
+                    config != null ? config.getFollowRedirects() : true,
+                    config != null ? config.getValidateCertificates() : true
+            );
+            
+            // Execute request and measure time
+            long startTime = System.currentTimeMillis();
+            
+            CompletableFuture<HttpResponse<String>> responseFuture = httpClient.sendAsync(
+                    requestBuilder.build(),
+                    HttpResponse.BodyHandlers.ofString()
+            );
+            
+            // Wait for the response with timeout
+            HttpResponse<String> response = responseFuture.get(
+                    config != null && config.getTimeoutSeconds() != null ? config.getTimeoutSeconds() : 30,
+                    TimeUnit.SECONDS
+            );
+            
+            long endTime = System.currentTimeMillis();
+            long duration = endTime - startTime;
+            
+            // Fill result object
+            result.setStatusCode(response.statusCode());
+            result.setResponseBody(response.body());
+            result.setDuration(duration);
+            
+            // Convert headers
+            Map<String, String> responseHeaders = new HashMap<>();
+            response.headers().map().forEach((key, values) -> {
+                responseHeaders.put(key, String.join(", ", values));
+            });
+            result.setResponseHeaders(responseHeaders);
+            
+            // Evaluate assertions
+            boolean allAssertionsPassed = evaluateAssertions(apiTest, result, response);
+            result.setSuccess(allAssertionsPassed);
+            
+            return result;
+        } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
+            logger.error("API test execution failed", e);
+            
+            result.setSuccess(false);
+            result.setStatusCode(-1);
+            result.setResponseBody("Error: " + e.getMessage());
+            
+            // Add assertion failure for timeout or other errors
+            ApiTestResult.AssertionResult assertionResult = new ApiTestResult.AssertionResult();
+            assertionResult.setAssertionType("error");
+            assertionResult.setPassed(false);
+            assertionResult.setMessage("Error executing request: " + e.getMessage());
+            result.getAssertionResults().add(assertionResult);
+            
+            return result;
+        }
+    }
+    
+    /**
+     * Replace variables in a string using the provided variable map
+     */
+    private String replaceVariables(String input, Map<String, String> variables) {
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
+        
+        Matcher matcher = VARIABLE_PATTERN.matcher(input);
+        StringBuffer result = new StringBuffer();
+        
+        while (matcher.find()) {
+            String varName = matcher.group(1).trim();
+            String replacement = variables.getOrDefault(varName, "");
+            matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
+        }
+        
+        matcher.appendTail(result);
+        return result.toString();
+    }
+    
+    /**
+     * Evaluate test assertions against the HTTP response
+     */
+    private boolean evaluateAssertions(ApiTest apiTest, ApiTestResult result, HttpResponse<String> response) {
+        List<ApiTestResult.AssertionResult> assertionResults = new ArrayList<>();
+        boolean allPassed = true;
+        
+        for (ApiTest.ApiTestAssertion assertion : apiTest.getAssertions()) {
+            ApiTestResult.AssertionResult assertionResult = new ApiTestResult.AssertionResult();
+            assertionResult.setAssertionType(assertion.getType());
+            assertionResult.setProperty(assertion.getProperty());
+            assertionResult.setOperator(assertion.getOperator());
+            assertionResult.setExpectedValue(assertion.getExpectedValue());
+            
+            boolean passed = false;
+            
+            switch (assertion.getType()) {
+                case "statusCode":
+                    String actualStatusCode = String.valueOf(response.statusCode());
+                    assertionResult.setActualValue(actualStatusCode);
+                    passed = evaluateCondition(actualStatusCode, assertion.getOperator(), assertion.getExpectedValue());
+                    break;
+                
+                case "header":
+                    String headerValue = response.headers().firstValue(assertion.getProperty()).orElse("");
+                    assertionResult.setActualValue(headerValue);
+                    passed = evaluateCondition(headerValue, assertion.getOperator(), assertion.getExpectedValue());
+                    break;
+                
+                case "responseBody":
+                    String responseBody = response.body();
+                    assertionResult.setActualValue("(response body)");
+                    passed = evaluateCondition(responseBody, assertion.getOperator(), assertion.getExpectedValue());
+                    break;
+                
+                case "responseTime":
+                    String actualDuration = String.valueOf(result.getDuration());
+                    assertionResult.setActualValue(actualDuration + " ms");
+                    passed = evaluateCondition(actualDuration, assertion.getOperator(), assertion.getExpectedValue());
+                    break;
+                
+                default:
+                    assertionResult.setMessage("Unknown assertion type: " + assertion.getType());
+                    break;
+            }
+            
+            assertionResult.setPassed(passed);
+            assertionResults.add(assertionResult);
+            
+            if (!passed) {
+                allPassed = false;
+            }
+        }
+        
+        result.setAssertionResults(assertionResults);
+        return allPassed;
+    }
+    
+    /**
+     * Evaluate a condition using the specified operator
+     */
+    private boolean evaluateCondition(String actual, String operator, String expected) {
+        if (actual == null) {
+            actual = "";
+        }
+        
+        switch (operator) {
+            case "equals":
+                return actual.equals(expected);
+            case "notEquals":
+                return !actual.equals(expected);
+            case "contains":
+                return actual.contains(expected);
+            case "notContains":
+                return !actual.contains(expected);
+            case "startsWith":
+                return actual.startsWith(expected);
+            case "endsWith":
+                return actual.endsWith(expected);
+            case "regex":
+                return actual.matches(expected);
+            case "greaterThan":
+                try {
+                    return Double.parseDouble(actual) > Double.parseDouble(expected);
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+            case "lessThan":
+                try {
+                    return Double.parseDouble(actual) < Double.parseDouble(expected);
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+            case "empty":
+                return actual.isEmpty();
+            case "notEmpty":
+                return !actual.isEmpty();
+            default:
+                logger.warn("Unknown operator: {}", operator);
+                return false;
+        }
+    }
+    
+    @Override
+    public List<ApiTestingEnvironment> getEnvironments(String projectId) {
+        logger.debug("Getting environments for project: {}", projectId);
+        return environmentRepository.findAllByProjectId(projectId);
+    }
+    
+    @Override
+    public ApiTestingEnvironment saveEnvironment(String projectId, ApiTestingEnvironment environment) {
+        logger.debug("Saving environment for project: {}", projectId);
+        
+        if (environment.getId() == null || environment.getId().isEmpty()) {
+            environment.setId(UUID.randomUUID().toString());
+            environment.setCreatedAt(LocalDateTime.now());
+        }
+        
+        environment.setProjectId(projectId);
+        environment.setUpdatedAt(LocalDateTime.now());
+        
+        return environmentRepository.save(environment);
+    }
+    
+    @Override
+    public boolean deleteEnvironment(String projectId, String environmentId) {
+        logger.debug("Deleting environment: {} for project: {}", environmentId, projectId);
+        
+        ApiTestingEnvironment environment = environmentRepository.findByProjectIdAndId(projectId, environmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Environment not found with id: " + environmentId));
+        
+        environmentRepository.delete(environment);
+        return true;
+    }
+}
+
+
+/**
+ * HTTP Client Service
+ * Provides HTTP client functionality for API testing
+ */
+package com.cstestforge.service.http;
+
+import org.springframework.stereotype.Service;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.net.http.HttpClient;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
+import java.time.Duration;
+
+@Service
+public class HttpClientService {
+    
+    /**
+     * Create an HTTP client with customizable redirect and certificate validation
+     * 
+     * @param followRedirects Whether to follow redirects
+     * @param validateCertificates Whether to validate certificates
+     * @return Configured HTTP client
+     */
+    public HttpClient createHttpClient(Boolean followRedirects, Boolean validateCertificates) {
+        HttpClient.Builder clientBuilder = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(30));
+                
+        // Set redirect policy
+        if (followRedirects != null) {
+            if (followRedirects) {
+                clientBuilder.followRedirects(HttpClient.Redirect.NORMAL);
+            } else {
+                clientBuilder.followRedirects(HttpClient.Redirect.NEVER);
+            }
+        }
+        
+        // Set SSL context for certificate validation
+        if (validateCertificates != null && !validateCertificates) {
+            try {
+                SSLContext sslContext = SSLContext.getInstance("TLS");
+                TrustManager[] trustAllCerts = new TrustManager[] {
+                    new X509TrustManager() {
+                        public X509Certificate[] getAcceptedIssuers() { return null; }
+                        public void checkClientTrusted(X509Certificate[] certs, String authType) { }
+                        public void checkServerTrusted(X509Certificate[] certs, String authType) { }
+                    }
+                };
+                sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+                clientBuilder.sslContext(sslContext);
+            } catch (NoSuchAlgorithmException | KeyManagementException e) {
+                throw new RuntimeException("Error creating SSL context", e);
+            }
+        }
+        
+        return clientBuilder.build();
+    }
+}
+
+
+/**
+ * JSON Utilities
+ * Provides JSON serialization and deserialization functionality
+ */
+package com.cstestforge.util;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.stereotype.Component;
+
+import java.io.File;
+import java.io.IOException;
+
+@Component
+public class JsonUtils {
+    
+    private final ObjectMapper objectMapper;
+    
+    public JsonUtils() {
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.registerModule(new JavaTimeModule());
+    }
+    
+    /**
+     * Serialize an object to JSON string
+     * 
+     * @param value Object to serialize
+     * @return JSON string
+     * @throws JsonProcessingException If serialization fails
+     */
+    public String writeValueAsString(Object value) throws JsonProcessingException {
+        return objectMapper.writeValueAsString(value);
+    }
+    
+    /**
+     * Deserialize JSON string to an object
+     * 
+     * @param content JSON string
+     * @param valueType Class of the object to deserialize to
+     * @param <T> Type of the object
+     * @return Deserialized object
+     * @throws JsonProcessingException If deserialization fails
+     */
+    public <T> T readValue(String content, Class<T> valueType) throws JsonProcessingException {
+        return objectMapper.readValue(content, valueType);
+    }
+    
+    /**
+     * Serialize an object to a file
+     * 
+     * @param file Output file
+     * @param value Object to serialize
+     * @throws IOException If serialization or file operations fail
+     */
+    public void writeValue(File file, Object value) throws IOException {
+        objectMapper.writeValue(file, value);
+    }
+    
+    /**
+     * Deserialize a file to an object
+     * 
+     * @param file Input file
+     * @param valueType Class of the object to deserialize to
+     * @param <T> Type of the object
+     * @return Deserialized object
+     * @throws IOException If deserialization or file operations fail
+     */
+    public <T> T readValue(File file, Class<T> valueType) throws IOException {
+        return objectMapper.readValue(file, valueType);
+    }
+}
+
+
+/**
+ * File Utilities
+ * Provides file system operations for the application
+ */
+package com.cstestforge.util;
+
+import com.cstestforge.exception.StorageException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+
+@Component
+public class FileUtils {
+    private static final Logger logger = LoggerFactory.getLogger(FileUtils.class);
+    
+    /**
+     * Ensure that a directory exists, creating it if necessary
+     * 
+     * @param directory Directory path
+     * @throws StorageException If directory creation fails
+     */
+    public void ensureDirectoryExists(Path directory) {
+        try {
+            if (!Files.exists(directory)) {
+                Files.createDirectories(directory);
+                logger.debug("Created directory: {}", directory);
+            }
+        } catch (IOException e) {
+            logger.error("Failed to create directory: {}", directory, e);
+            throw new StorageException("Failed to create directory: " + directory, e);
+        }
+    }
+    
+    /**
+     * Write a string to a file
+     * 
+     * @param filePath File path
+     * @param content Content to write
+     * @throws StorageException If file writing fails
+     */
+    public void writeStringToFile(Path filePath, String content) {
+        try {
+            ensureDirectoryExists(filePath.getParent());
+            Files.writeString(filePath, content, StandardCharsets.UTF_8, 
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            logger.debug("Wrote content to file: {}", filePath);
+        } catch (IOException e) {
+            logger.error("Failed to write to file: {}", filePath, e);
+            throw new StorageException("Failed to write to file: " + filePath, e);
+        }
+    }
+    
+    /**
+     * Read a string from a file
+     * 
+     * @param filePath File path
+     * @return File content as a string
+     * @throws StorageException If file reading fails
+     */
+    public String readStringFromFile(Path filePath) {
+        try {
+            if (!Files.exists(filePath)) {
+                logger.error("File does not exist: {}", filePath);
+                throw new StorageException("File does not exist: " + filePath);
+            }
+            return Files.readString(filePath, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            logger.error("Failed to read from file: {}", filePath, e);
+            throw new StorageException("Failed to read from file: " + filePath, e);
+        }
+    }
+    
+    /**
+     * Delete a file if it exists
+     * 
+     * @param filePath File path
+     * @throws StorageException If file deletion fails
+     */
+    public void deleteFileIfExists(Path filePath) {
+        try {
+            boolean deleted = Files.deleteIfExists(filePath);
+            if (deleted) {
+                logger.debug("Deleted file: {}", filePath);
+            }
+        } catch (IOException e) {
+            logger.error("Failed to delete file: {}", filePath, e);
+            throw new StorageException("Failed to delete file: " + filePath, e);
+        }
+    }
+}
+
+
+/**
+ * Storage Exception
+ * Exception for file system storage errors
+ */
+package com.cstestforge.exception;
+
+public class StorageException extends RuntimeException {
+    
+    public StorageException(String message) {
+        super(message);
+    }
+    
+    public StorageException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}
+
+
+/**
+ * Resource Not Found Exception
+ * Exception for requests that reference a non-existent resource
+ */
+package com.cstestforge.exception;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
+@ResponseStatus(HttpStatus.NOT_FOUND)
+public class ResourceNotFoundException extends RuntimeException {
+    
+    public ResourceNotFoundException(String message) {
+        super(message);
+    }
+    
+    public ResourceNotFoundException(String message, Throwable cause) {
+        super(message, cause);
+    }
+    
+    public ResourceNotFoundException(String resourceName, String fieldName, Object fieldValue) {
+        super(String.format("%s not found with %s: '%s'", resourceName, fieldName, fieldValue));
+    }
+}
+
+
+
+/**
+ * Project Service Interface
+ * Defines operations for project management
+ */
+package com.cstestforge.service.project;
+
+import com.cstestforge.model.project.Project;
+
+import java.util.List;
+
+public interface ProjectService {
+    
+    /**
+     * Get all projects
+     * 
+     * @return List of all projects
+     */
+    List<Project> getAllProjects();
+    
+    /**
+     * Get project by ID
+     * 
+     * @param projectId Project ID
+     * @return Project
+     */
+    Project getProjectById(String projectId);
+    
+    /**
+     * Create a new project
+     * 
+     * @param project Project to create
+     * @return Created project
+     */
+    Project createProject(Project project);
+    
+    /**
+     * Update an existing project
+     * 
+     * @param projectId Project ID
+     * @param projectDetails Project details to update
+     * @return Updated project
+     */
+    Project updateProject(String projectId, Project projectDetails);
+    
+    /**
+     * Delete a project
+     * 
+     * @param projectId Project ID
+     * @return true if deleted successfully
+     */
+    boolean deleteProject(String projectId);
+    
+    /**
+     * Check if a project exists
+     * 
+     * @param projectId Project ID
+     * @return true if the project exists
+     */
+    boolean existsById(String projectId);
+}
+
+
+/**
+ * Project Service Implementation
+ * Implements project management functionality
+ */
+package com.cstestforge.service.project.impl;
+
+import com.cstestforge.exception.ResourceNotFoundException;
+import com.cstestforge.model.project.Project;
+import com.cstestforge.repository.project.ProjectRepository;
+import com.cstestforge.service.project.ProjectService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+public class ProjectServiceImpl implements ProjectService {
+    private static final Logger logger = LoggerFactory.getLogger(ProjectServiceImpl.class);
+    
+    @Autowired
+    private ProjectRepository projectRepository;
+    
+    @Override
+    public List<Project> getAllProjects() {
+        logger.debug("Getting all projects");
+        return projectRepository.findAll();
+    }
+    
+    @Override
+    public Project getProjectById(String projectId) {
+        logger.debug("Getting project: {}", projectId);
+        return projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found with id: " + projectId));
+    }
+    
+    @Override
+    public Project createProject(Project project) {
+        logger.debug("Creating new project");
+        
+        // Set required fields
+        project.setId(UUID.randomUUID().toString());
+        project.setCreatedAt(LocalDateTime.now());
+        project.setUpdatedAt(LocalDateTime.now());
+        
+        return projectRepository.save(project);
+    }
+    
+    @Override
+    public Project updateProject(String projectId, Project projectDetails) {
+        logger.debug("Updating project: {}", projectId);
+        
+        Project existingProject = getProjectById(projectId);
+        
+        // Update fields
+        existingProject.setName(projectDetails.getName());
+        existingProject.setDescription(projectDetails.getDescription());
+        existingProject.setUpdatedAt(LocalDateTime.now());
+        
+        return projectRepository.save(existingProject);
+    }
+    
+    @Override
+    public boolean deleteProject(String projectId) {
+        logger.debug("Deleting project: {}", projectId);
+        
+        Project existingProject = getProjectById(projectId);
+        projectRepository.delete(existingProject);
+        return true;
+    }
+    
+    @Override
+    public boolean existsById(String projectId) {
+        logger.debug("Checking if project exists: {}", projectId);
+        return projectRepository.existsById(projectId);
+    }
+}
+
+
+
+/**
+ * Project Repository Interface
+ * Defines data access operations for projects
+ */
+package com.cstestforge.repository.project;
+
+import com.cstestforge.model.project.Project;
+import java.util.List;
+import java.util.Optional;
+
+public interface ProjectRepository {
+    
+    /**
+     * Find all projects
+     * 
+     * @return List of all projects
+     */
+    List<Project> findAll();
+    
+    /**
+     * Find project by ID
+     * 
+     * @param id Project ID
+     * @return Optional containing project if found
+     */
+    Optional<Project> findById(String id);
+    
+    /**
+     * Check if a project exists
+     * 
+     * @param id Project ID
+     * @return true if the project exists
+     */
+    boolean existsById(String id);
+    
+    /**
+     * Save a project
+     * 
+     * @param project Project to save
+     * @return Saved project
+     */
+    Project save(Project project);
+    
+    /**
+     * Delete a project
+     * 
+     * @param project Project to delete
+     */
+    void delete(Project project);
+}
+
+/**
+ * Project Model
+ * Represents a project in the application
+ */
+package com.cstestforge.model.project;
+
+import java.time.LocalDateTime;
+
+public class Project {
+    private String id;
+    private String name;
+    private String description;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    
+    public Project() {
+    }
+    
+    public String getId() {
+        return id;
+    }
+    
+    public void setId(String id) {
+        this.id = id;
+    }
+    
+    public String getName() {
+        return name;
+    }
+    
+    public void setName(String name) {
+        this.name = name;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+    
+    public void setDescription(String description) {
+        this.description = description;
+    }
+    
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+    
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+    
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+}
+
+
+/**
+ * File System Project Repository Implementation
+ * Implements the project repository interface with file system storage
+ */
+package com.cstestforge.repository.project.impl;
+
+import com.cstestforge.exception.StorageException;
+import com.cstestforge.model.project.Project;
+import com.cstestforge.repository.project.ProjectRepository;
+import com.cstestforge.util.FileUtils;
+import com.cstestforge.util.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Repository;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+@Repository
+public class FileSystemProjectRepository implements ProjectRepository {
+    private static final Logger logger = LoggerFactory.getLogger(FileSystemProjectRepository.class);
+    
+    @Value("${cstestforge.storage.root-dir:./storage}")
+    private String storageRootDir;
+    
+    @Autowired
+    private JsonUtils jsonUtils;
+    
+    @Autowired
+    private FileUtils fileUtils;
+    
+    /**
+     * Get the directory path for projects
+     */
+    private Path getProjectsDir() {
+        return Paths.get(storageRootDir, "projects");
+    }
+    
+    /**
+     * Get the file path for a specific project metadata
+     */
+    private Path getProjectMetadataFilePath(String projectId) {
+        return getProjectsDir().resolve(projectId).resolve("metadata.json");
+    }
+    
+    @Override
+    public List<Project> findAll() {
+        Path projectsDir = getProjectsDir();
+        
+        if (!Files.exists(projectsDir)) {
+            // Return empty list if directory doesn't exist
+            return new ArrayList<>();
+        }
+        
+        try (Stream<Path> paths = Files.list(projectsDir)) {
+            return paths
+                .filter(Files::isDirectory)
+                .map(dir -> {
+                    Path metadataPath = dir.resolve("metadata.json");
+                    if (Files.exists(metadataPath)) {
+                        try {
+                            return jsonUtils.readValue(metadataPath.toFile(), Project.class);
+                        } catch (IOException e) {
+                            logger.error("Error reading project metadata file: {}", metadataPath, e);
+                            return null;
+                        }
+                    }
+                    return null;
+                })
+                .filter(project -> project != null)
+                .collect(Collectors.toList());
+        } catch (IOException e) {
+            logger.error("Error listing project directories", e);
+            throw new StorageException("Failed to read projects", e);
+        }
+    }
+    
+    @Override
+    public Optional<Project> findById(String id) {
+        Path metadataPath = getProjectMetadataFilePath(id);
+        
+        if (!Files.exists(metadataPath)) {
+            return Optional.empty();
+        }
+        
+        try {
+            Project project = jsonUtils.readValue(metadataPath.toFile(), Project.class);
+            return Optional.of(project);
+        } catch (IOException e) {
+            logger.error("Error reading project metadata file: {}", metadataPath, e);
+            throw new StorageException("Failed to read project", e);
+        }
+    }
+    
+    @Override
+    public boolean existsById(String id) {
+        Path projectDir = getProjectsDir().resolve(id);
+        Path metadataPath = projectDir.resolve("metadata.json");
+        return Files.exists(metadataPath);
+    }
+    
+    @Override
+    public Project save(Project project) {
+        Path projectDir = getProjectsDir().resolve(project.getId());
+        Path metadataPath = projectDir.resolve("metadata.json");
+        
+        try {
+            // Create project directory if it doesn't exist
+            Files.createDirectories(projectDir);
+            
+            // Save project metadata
+            jsonUtils.writeValue(metadataPath.toFile(), project);
+            
+            return project;
+        } catch (IOException e) {
+            logger.error("Error saving project: {}", project.getId(), e);
+            throw new StorageException("Failed to save project", e);
+        }
+    }
+    
+    @Override
+    public void delete(Project project) {
+        Path projectDir = getProjectsDir().resolve(project.getId());
+        
+        try {
+            // Delete project directory recursively
+            if (Files.exists(projectDir)) {
+                Files.walk(projectDir)
+                    .sorted((p1, p2) -> -p1.compareTo(p2)) // Sort in reverse order to delete files before directories
+                    .forEach(path -> {
+                        try {
+                            Files.deleteIfExists(path);
+                        } catch (IOException e) {
+                            logger.error("Error deleting path: {}", path, e);
+                            throw new StorageException("Failed to delete path: " + path, e);
+                        }
+                    });
+            }
+        } catch (IOException e) {
+            logger.error("Error deleting project directory: {}", projectDir, e);
+            throw new StorageException("Failed to delete project", e);
+        }
+    }
+}
