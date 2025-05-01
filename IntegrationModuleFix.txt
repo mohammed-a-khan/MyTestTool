@@ -10304,369 +10304,820 @@ spring.jackson.default-property-inclusion=non_null
 
 
 
+/**
+ * Integration Controller
+ * Handles REST endpoints for external system integrations
+ */
+package com.cstestforge.controller;
 
-package com.cstestforge.util.http;
+import com.cstestforge.exception.ResourceNotFoundException;
+import com.cstestforge.model.common.ApiResponse;
+import com.cstestforge.model.integration.*;
+import com.cstestforge.service.integration.IntegrationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
-import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
+import javax.validation.Valid;
+import java.util.List;
 
-import java.net.URI;
+@RestController
+@RequestMapping("/api/v1/projects/{projectId}/integrations")
+@CrossOrigin(origins = "*", maxAge = 3600)
+public class IntegrationController {
+    private static final Logger logger = LoggerFactory.getLogger(IntegrationController.class);
+    
+    @Autowired
+    private IntegrationService integrationService;
+    
+    /**
+     * Get all integrations for a project
+     * @param projectId The project ID
+     * @return List of integrations
+     */
+    @GetMapping
+    public ResponseEntity<ApiResponse> getAllIntegrations(@PathVariable String projectId) {
+        logger.info("Request to get all integrations for project: {}", projectId);
+        
+        try {
+            List<Integration> integrations = integrationService.getAllIntegrations(projectId);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Integrations retrieved successfully")
+                .setData(integrations);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Project not found: {}", projectId, e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Get integration by ID
+     * @param projectId The project ID
+     * @param integrationId The integration ID
+     * @return Integration details
+     */
+    @GetMapping("/{integrationId}")
+    public ResponseEntity<ApiResponse> getIntegrationById(
+            @PathVariable String projectId,
+            @PathVariable String integrationId) {
+        logger.info("Request to get integration: {} in project: {}", integrationId, projectId);
+        
+        try {
+            Integration integration = integrationService.getIntegrationById(projectId, integrationId);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Integration retrieved successfully")
+                .setData(integration);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Create a new integration
+     * @param projectId The project ID
+     * @param integration The integration to create
+     * @return Created integration details
+     */
+    @PostMapping
+    public ResponseEntity<ApiResponse> createIntegration(
+            @PathVariable String projectId,
+            @Valid @RequestBody Integration integration) {
+        logger.info("Request to create integration in project: {}", projectId);
+        
+        try {
+            Integration createdIntegration = integrationService.createIntegration(projectId, integration);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Integration created successfully")
+                .setData(createdIntegration);
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Project not found: {}", projectId, e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (Exception e) {
+            logger.error("Failed to create integration", e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage("Failed to create integration: " + e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    /**
+     * Update an integration
+     * @param projectId The project ID
+     * @param integrationId The integration ID
+     * @param integrationDetails The updated integration details
+     * @return Updated integration details
+     */
+    @PutMapping("/{integrationId}")
+    public ResponseEntity<ApiResponse> updateIntegration(
+            @PathVariable String projectId,
+            @PathVariable String integrationId,
+            @Valid @RequestBody Integration integrationDetails) {
+        logger.info("Request to update integration: {} in project: {}", integrationId, projectId);
+        
+        try {
+            Integration updatedIntegration = integrationService.updateIntegration(
+                    projectId, integrationId, integrationDetails);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Integration updated successfully")
+                .setData(updatedIntegration);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (Exception e) {
+            logger.error("Failed to update integration", e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage("Failed to update integration: " + e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    /**
+     * Delete an integration
+     * @param projectId The project ID
+     * @param integrationId The integration ID
+     * @return Response with deletion confirmation
+     */
+    @DeleteMapping("/{integrationId}")
+    public ResponseEntity<ApiResponse> deleteIntegration(
+            @PathVariable String projectId,
+            @PathVariable String integrationId) {
+        logger.info("Request to delete integration: {} in project: {}", integrationId, projectId);
+        
+        try {
+            boolean deleted = integrationService.deleteIntegration(projectId, integrationId);
+            
+            if (deleted) {
+                ApiResponse response = new ApiResponse()
+                    .setSuccess(true)
+                    .setMessage("Integration deleted successfully");
+                
+                return ResponseEntity.ok(response);
+            } else {
+                ApiResponse response = new ApiResponse()
+                    .setSuccess(false)
+                    .setMessage("Failed to delete integration");
+                
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            }
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+    }
+    
+    /**
+     * Test an integration connection
+     * @param projectId The project ID
+     * @param integrationId The integration ID
+     * @return Connection test result
+     */
+    @PostMapping("/{integrationId}/test")
+    public ResponseEntity<ApiResponse> testIntegrationConnection(
+            @PathVariable String projectId,
+            @PathVariable String integrationId) {
+        logger.info("Request to test integration connection: {} in project: {}", integrationId, projectId);
+        
+        try {
+            IntegrationTestResult result = integrationService.testIntegrationConnection(projectId, integrationId);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Integration connection test completed")
+                .setData(result);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (Exception e) {
+            logger.error("Integration connection test failed", e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage("Integration connection test failed: " + e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    /**
+     * Sync data with integration
+     * @param projectId The project ID
+     * @param integrationId The integration ID
+     * @param syncOptions Sync options
+     * @return Sync result
+     */
+    @PostMapping("/{integrationId}/sync")
+    public ResponseEntity<ApiResponse> syncWithIntegration(
+            @PathVariable String projectId,
+            @PathVariable String integrationId,
+            @RequestBody(required = false) IntegrationSyncOptions syncOptions) {
+        logger.info("Request to sync with integration: {} in project: {}", integrationId, projectId);
+        
+        try {
+            // If syncOptions is null, use default options
+            if (syncOptions == null) {
+                syncOptions = new IntegrationSyncOptions();
+            }
+            
+            IntegrationSyncResult result = integrationService.syncWithIntegration(
+                    projectId, integrationId, syncOptions);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Integration sync completed successfully")
+                .setData(result);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (Exception e) {
+            logger.error("Integration sync failed", e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage("Integration sync failed: " + e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    /**
+     * Get available integration types
+     * @return List of available integration types
+     */
+    @GetMapping("/types")
+    public ResponseEntity<ApiResponse> getIntegrationTypes() {
+        logger.info("Request to get available integration types");
+        
+        List<IntegrationType> types = integrationService.getAvailableIntegrationTypes();
+        
+        ApiResponse response = new ApiResponse()
+            .setSuccess(true)
+            .setMessage("Integration types retrieved successfully")
+            .setData(types);
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Get integration settings schema for a specific type
+     * @param type The integration type
+     * @return Settings schema for the integration type
+     */
+    @GetMapping("/types/{type}/schema")
+    public ResponseEntity<ApiResponse> getIntegrationSettingsSchema(@PathVariable String type) {
+        logger.info("Request to get settings schema for integration type: {}", type);
+        
+        try {
+            IntegrationSettingsSchema schema = integrationService.getSettingsSchemaForType(type);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Integration settings schema retrieved successfully")
+                .setData(schema);
+            
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid integration type: {}", type, e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage("Invalid integration type: " + type);
+            
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+    
+    /**
+     * Import test cases from integration
+     * @param projectId The project ID
+     * @param integrationId The integration ID
+     * @param importOptions Import options
+     * @return Import result
+     */
+    @PostMapping("/{integrationId}/import")
+    public ResponseEntity<ApiResponse> importFromIntegration(
+            @PathVariable String projectId,
+            @PathVariable String integrationId,
+            @RequestBody IntegrationImportOptions importOptions) {
+        logger.info("Request to import from integration: {} in project: {}", integrationId, projectId);
+        
+        try {
+            IntegrationImportResult result = integrationService.importFromIntegration(
+                    projectId, integrationId, importOptions);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Import from integration completed successfully")
+                .setData(result);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (Exception e) {
+            logger.error("Import from integration failed", e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage("Import from integration failed: " + e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+    
+    /**
+     * Export test results to integration
+     * @param projectId The project ID
+     * @param integrationId The integration ID
+     * @param exportOptions Export options
+     * @return Export result
+     */
+    @PostMapping("/{integrationId}/export")
+    public ResponseEntity<ApiResponse> exportToIntegration(
+            @PathVariable String projectId,
+            @PathVariable String integrationId,
+            @RequestBody IntegrationExportOptions exportOptions) {
+        logger.info("Request to export to integration: {} in project: {}", integrationId, projectId);
+        
+        try {
+            IntegrationExportResult result = integrationService.exportToIntegration(
+                    projectId, integrationId, exportOptions);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(true)
+                .setMessage("Export to integration completed successfully")
+                .setData(result);
+            
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error("Resource not found: {}", e.getMessage(), e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage(e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (Exception e) {
+            logger.error("Export to integration failed", e);
+            
+            ApiResponse response = new ApiResponse()
+                .setSuccess(false)
+                .setMessage("Export to integration failed: " + e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+}
+
+
+package com.cstestforge.model.integration;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * HTTP PATCH method implementation
- * 
- * Apache HttpClient does not provide a built-in implementation of the PATCH method,
- * so we need to create our own class to support PATCH requests to Azure DevOps API.
+ * Represents an external system integration configuration
  */
-public class HttpPatch extends HttpEntityEnclosingRequestBase {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class Integration {
 
-    /**
-     * The HTTP PATCH method name
-     */
-    public static final String METHOD_NAME = "PATCH";
+    /** Unique identifier for the integration */
+    private Long id;
 
-    /**
-     * Default constructor
-     */
-    public HttpPatch() {
-        super();
+    /** Project ID this integration belongs to */
+    private Long projectId;
+
+    /** Integration name */
+    @NotBlank(message = "Name is required")
+    private String name;
+
+    /** Integration type identifier */
+    @NotBlank(message = "Type is required")
+    private String type;
+
+    /** Description of this integration */
+    private String description;
+
+    /** Connection status */
+    private String status;
+
+    /** Integration configuration settings */
+    @NotNull(message = "Settings are required")
+    private Map<String, Object> settings = new HashMap<>();
+
+    /** Integration metadata and statistics */
+    private Map<String, Object> metadata = new HashMap<>();
+
+    /** Creation timestamp */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime createdAt;
+
+    /** Last update timestamp */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime updatedAt;
+
+    /** Last sync timestamp */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime lastSyncAt;
+
+    /** Flag indicating whether this integration is enabled */
+    private boolean enabled = true;
+
+    // Getters and Setters
+    public Long getId() {
+        return id;
     }
 
-    /**
-     * Constructor with URI
-     * 
-     * @param uri The target URI
-     */
-    public HttpPatch(final URI uri) {
-        super();
-        setURI(uri);
+    public Integration setId(Long id) {
+        this.id = id;
+        return this;
     }
 
-    /**
-     * Constructor with URI string
-     * 
-     * @param uri The target URI string
-     */
-    public HttpPatch(final String uri) {
-        super();
-        setURI(URI.create(uri));
+    public Long getProjectId() {
+        return projectId;
     }
 
-    @Override
-    public String getMethod() {
-        return METHOD_NAME;
+    public Integration setProjectId(Long projectId) {
+        this.projectId = projectId;
+        return this;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public Integration setName(String name) {
+        this.name = name;
+        return this;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public Integration setType(String type) {
+        this.type = type;
+        return this;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public Integration setDescription(String description) {
+        this.description = description;
+        return this;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public Integration setStatus(String status) {
+        this.status = status;
+        return this;
+    }
+
+    public Map<String, Object> getSettings() {
+        return settings;
+    }
+
+    public Integration setSettings(Map<String, Object> settings) {
+        this.settings = settings;
+        return this;
+    }
+
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
+    public Integration setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+        return this;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public Integration setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+        return this;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public Integration setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+        return this;
+    }
+
+    public LocalDateTime getLastSyncAt() {
+        return lastSyncAt;
+    }
+
+    public Integration setLastSyncAt(LocalDateTime lastSyncAt) {
+        this.lastSyncAt = lastSyncAt;
+        return this;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public Integration setEnabled(boolean enabled) {
+        this.enabled = enabled;
+        return this;
     }
 }
 
 
 
-package com.cstestforge.repository.integration;
+package com.cstestforge.model.integration;
 
-import com.cstestforge.exception.StorageException;
-import com.cstestforge.model.integration.Integration;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Repository;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * File system implementation of IntegrationRepository
+ * Represents a supported integration type
  */
-@Repository
-public class FileSystemIntegrationRepository implements IntegrationRepository {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class IntegrationType {
 
-    private static final Logger logger = LoggerFactory.getLogger(FileSystemIntegrationRepository.class);
-    
-    private final ObjectMapper objectMapper;
-    private final String dataDirectory;
-    
-    /**
-     * Constructor
-     * 
-     * @param objectMapper JSON object mapper
-     * @param dataDirectory Base directory for storing data
-     */
-    public FileSystemIntegrationRepository(
-            ObjectMapper objectMapper,
-            @Value("${app.data.directory:./data}") String dataDirectory) {
-        this.objectMapper = objectMapper;
-        this.dataDirectory = dataDirectory;
-        
-        // Ensure data directory exists
-        createDirectoryIfNotExists(Paths.get(dataDirectory));
+    /** Unique identifier for the integration type */
+    private String id;
+
+    /** Display name for the integration type */
+    private String name;
+
+    /** Description of the integration type */
+    private String description;
+
+    /** URL to the icon for this integration type */
+    private String iconUrl;
+
+    /** Supported features for this integration type */
+    private List<String> supportedFeatures = new ArrayList<>();
+
+    /** Version of this integration type */
+    private String version;
+
+    /** Flag indicating whether this integration type is enabled */
+    private boolean enabled = true;
+
+    // Getters and Setters
+    public String getId() {
+        return id;
     }
 
-    @Override
-    public List<Integration> findAllByProjectId(String projectId) {
-        logger.debug("Finding all integrations for project: {}", projectId);
-        
-        Path projectIntegrationsDir = getProjectIntegrationsDirectory(projectId);
-        if (!Files.exists(projectIntegrationsDir)) {
-            return new ArrayList<>();
-        }
-        
-        try (Stream<Path> paths = Files.list(projectIntegrationsDir)) {
-            return paths
-                .filter(path -> path.toString().endsWith(".json"))
-                .map(this::readIntegrationFromFile)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toList());
-        } catch (IOException e) {
-            logger.error("Error reading integrations for project: {}", projectId, e);
-            throw new StorageException("Error reading integrations", e);
-        }
+    public IntegrationType setId(String id) {
+        this.id = id;
+        return this;
     }
 
-    @Override
-    public Optional<Integration> findByIdAndProjectId(String integrationId, String projectId) {
-        logger.debug("Finding integration: {} for project: {}", integrationId, projectId);
-        
-        Path integrationFile = getIntegrationFilePath(projectId, integrationId);
-        if (!Files.exists(integrationFile)) {
-            return Optional.empty();
-        }
-        
-        return readIntegrationFromFile(integrationFile);
+    public String getName() {
+        return name;
     }
 
-    @Override
-    public Integration save(Integration integration) {
-        logger.debug("Saving integration: {}", integration.getId());
-        
-        // Ensure project directory exists
-        Path projectDir = getProjectIntegrationsDirectory(integration.getProjectId().toString());
-        createDirectoryIfNotExists(projectDir);
-        
-        // Generate ID if not provided
-        if (integration.getId() == null) {
-            integration.setId(generateId());
-        }
-        
-        // Set timestamps
-        LocalDateTime now = LocalDateTime.now();
-        if (integration.getCreatedAt() == null) {
-            integration.setCreatedAt(now);
-        }
-        integration.setUpdatedAt(now);
-        
-        // Write to file
-        Path integrationFile = getIntegrationFilePath(
-                integration.getProjectId().toString(), 
-                integration.getId().toString());
-        
-        try {
-            objectMapper.writeValue(integrationFile.toFile(), integration);
-            logger.debug("Successfully saved integration: {}", integration.getId());
-            return integration;
-        } catch (IOException e) {
-            logger.error("Error saving integration: {}", integration.getId(), e);
-            throw new StorageException("Error saving integration", e);
-        }
+    public IntegrationType setName(String name) {
+        this.name = name;
+        return this;
     }
 
-    @Override
-    public boolean delete(Integration integration) {
-        logger.debug("Deleting integration: {}", integration.getId());
-        
-        Path integrationFile = getIntegrationFilePath(
-                integration.getProjectId().toString(),
-                integration.getId().toString());
-        
-        try {
-            return Files.deleteIfExists(integrationFile);
-        } catch (IOException e) {
-            logger.error("Error deleting integration: {}", integration.getId(), e);
-            throw new StorageException("Error deleting integration", e);
-        }
+    public String getDescription() {
+        return description;
     }
 
-    @Override
-    public boolean existsByIdAndProjectId(String integrationId, String projectId) {
-        Path integrationFile = getIntegrationFilePath(projectId, integrationId);
-        return Files.exists(integrationFile);
+    public IntegrationType setDescription(String description) {
+        this.description = description;
+        return this;
     }
+
+    public String getIconUrl() {
+        return iconUrl;
+    }
+
+    public IntegrationType setIconUrl(String iconUrl) {
+        this.iconUrl = iconUrl;
+        return this;
+    }
+
+    public List<String> getSupportedFeatures() {
+        return supportedFeatures;
+    }
+
+    public IntegrationType setSupportedFeatures(List<String> supportedFeatures) {
+        this.supportedFeatures = supportedFeatures;
+        return this;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public IntegrationType setVersion(String version) {
+        this.version = version;
+        return this;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public IntegrationType setEnabled(boolean enabled) {
+        this.enabled = enabled;
+        return this;
+    }
+}
+
+
+
+package com.cstestforge.service.integration;
+
+import com.cstestforge.model.integration.*;
+
+import java.util.List;
+
+/**
+ * Service interface for handling external system integrations
+ */
+public interface IntegrationService {
 
     /**
-     * Read integration from JSON file
-     * 
-     * @param filePath Path to the integration file
-     * @return The integration, if successfully read
-     */
-    private Optional<Integration> readIntegrationFromFile(Path filePath) {
-        try {
-            Integration integration = objectMapper.readValue(filePath.toFile(), Integration.class);
-            return Optional.of(integration);
-        } catch (IOException e) {
-            logger.error("Error reading integration file: {}", filePath, e);
-            return Optional.empty();
-        }
-    }
-
-    /**
-     * Get the project integrations directory
+     * Get all integrations for a project
      * 
      * @param projectId The project ID
-     * @return Path to the project integrations directory
+     * @return List of integrations
      */
-    private Path getProjectIntegrationsDirectory(String projectId) {
-        return Paths.get(dataDirectory, "projects", projectId, "integrations");
-    }
+    List<Integration> getAllIntegrations(String projectId);
 
     /**
-     * Get the path to an integration file
+     * Get an integration by ID
      * 
      * @param projectId The project ID
      * @param integrationId The integration ID
-     * @return Path to the integration file
+     * @return The integration
      */
-    private Path getIntegrationFilePath(String projectId, String integrationId) {
-        return getProjectIntegrationsDirectory(projectId)
-                .resolve(integrationId + ".json");
-    }
+    Integration getIntegrationById(String projectId, String integrationId);
 
     /**
-     * Create a directory if it doesn't exist
+     * Create a new integration
      * 
-     * @param directory Path to the directory
+     * @param projectId The project ID
+     * @param integration The integration to create
+     * @return The created integration
      */
-    private void createDirectoryIfNotExists(Path directory) {
-        if (!Files.exists(directory)) {
-            try {
-                Files.createDirectories(directory);
-                logger.debug("Created directory: {}", directory);
-            } catch (IOException e) {
-                logger.error("Error creating directory: {}", directory, e);
-                throw new StorageException("Error creating directory", e);
-            }
-        }
-    }
+    Integration createIntegration(String projectId, Integration integration);
 
     /**
-     * Generate a unique ID
+     * Update an existing integration
      * 
-     * @return A unique ID
+     * @param projectId The project ID
+     * @param integrationId The integration ID
+     * @param integrationDetails The updated integration details
+     * @return The updated integration
      */
-    private Long generateId() {
-        return System.currentTimeMillis();
-    }
-}
-
-
-package com.cstestforge.exception;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.ResponseStatus;
-
-/**
- * Exception thrown when a requested resource is not found
- */
-@ResponseStatus(value = HttpStatus.NOT_FOUND)
-public class ResourceNotFoundException extends RuntimeException {
-
-    private static final long serialVersionUID = 1L;
-    
-    private String resourceName;
-    private String fieldName;
-    private Object fieldValue;
+    Integration updateIntegration(String projectId, String integrationId, Integration integrationDetails);
 
     /**
-     * Constructor with resource details
+     * Delete an integration
      * 
-     * @param resourceName Name of the resource
-     * @param fieldName Name of the field
-     * @param fieldValue Value of the field
+     * @param projectId The project ID
+     * @param integrationId The integration ID
+     * @return True if the integration was deleted successfully
      */
-    public ResourceNotFoundException(String resourceName, String fieldName, Object fieldValue) {
-        super(String.format("%s not found with %s: '%s'", resourceName, fieldName, fieldValue));
-        this.resourceName = resourceName;
-        this.fieldName = fieldName;
-        this.fieldValue = fieldValue;
-    }
+    boolean deleteIntegration(String projectId, String integrationId);
 
     /**
-     * Constructor with message
+     * Test connection to an integration
      * 
-     * @param message Error message
+     * @param projectId The project ID
+     * @param integrationId The integration ID
+     * @return Result of the connection test
      */
-    public ResourceNotFoundException(String message) {
-        super(message);
-    }
+    IntegrationTestResult testIntegrationConnection(String projectId, String integrationId);
 
     /**
-     * Constructor with message and cause
+     * Synchronize with an integration
      * 
-     * @param message Error message
-     * @param cause The cause
+     * @param projectId The project ID
+     * @param integrationId The integration ID
+     * @param syncOptions Synchronization options
+     * @return Result of the synchronization
      */
-    public ResourceNotFoundException(String message, Throwable cause) {
-        super(message, cause);
-    }
+    IntegrationSyncResult syncWithIntegration(String projectId, String integrationId, IntegrationSyncOptions syncOptions);
 
     /**
-     * Get resource name
+     * Get available integration types
      * 
-     * @return Resource name
+     * @return List of available integration types
      */
-    public String getResourceName() {
-        return resourceName;
-    }
+    List<IntegrationType> getAvailableIntegrationTypes();
 
     /**
-     * Get field name
+     * Get settings schema for an integration type
      * 
-     * @return Field name
+     * @param type The integration type
+     * @return Settings schema for the integration type
      */
-    public String getFieldName() {
-        return fieldName;
-    }
+    IntegrationSettingsSchema getSettingsSchemaForType(String type);
 
     /**
-     * Get field value
+     * Import test cases from an integration
      * 
-     * @return Field value
+     * @param projectId The project ID
+     * @param integrationId The integration ID
+     * @param importOptions Import options
+     * @return Result of the import
      */
-    public Object getFieldValue() {
-        return fieldValue;
-    }
-}
-
-
-package com.cstestforge.exception;
-
-/**
- * Exception thrown when storage operations fail
- */
-public class StorageException extends RuntimeException {
-
-    private static final long serialVersionUID = 1L;
+    IntegrationImportResult importFromIntegration(String projectId, String integrationId, IntegrationImportOptions importOptions);
 
     /**
-     * Constructor with message
+     * Export test results to an integration
      * 
-     * @param message Error message
+     * @param projectId The project ID
+     * @param integrationId The integration ID
+     * @param exportOptions Export options
+     * @return Result of the export
      */
-    public StorageException(String message) {
-        super(message);
-    }
-
-    /**
-     * Constructor with message and cause
-     * 
-     * @param message Error message
-     * @param cause The cause
-     */
-    public StorageException(String message, Throwable cause) {
-        super(message, cause);
-    }
+    IntegrationExportResult exportToIntegration(String projectId, String integrationId, IntegrationExportOptions exportOptions);
 }
